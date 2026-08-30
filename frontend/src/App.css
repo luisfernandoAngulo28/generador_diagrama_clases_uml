@@ -1,0 +1,195 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #2a2a2a;
+  background: #1a1a1a;
+}
+
+.toolbar__diagram-name {
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+}
+
+.toolbar button,
+.toolbar select {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+
+.app__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.canvas-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.uml-class-node {
+  border: 2px solid #4a5568;
+  border-radius: 6px;
+  background: #1e1e1e;
+  min-width: 180px;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.uml-class-node--selected {
+  border-color: #63b3ed;
+}
+
+.uml-class-node__header {
+  background: #2d3748;
+  color: white;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px;
+}
+
+.uml-class-node__attributes {
+  padding: 4px 8px;
+}
+
+.uml-class-node__attribute {
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.uml-class-node__empty {
+  color: #718096;
+  font-style: italic;
+}
+
+.uml-class-node__visibility {
+  width: 12px;
+}
+
+.uml-class-node__attr-type {
+  color: #a0aec0;
+}
+
+.inspector,
+.chat-panel {
+  width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid #2a2a2a;
+  background: #161616;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  overflow-y: auto;
+}
+
+.inspector__header {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.inspector__class-name {
+  flex: 1;
+  font-weight: 700;
+  padding: 0.3rem;
+}
+
+.inspector__close {
+  cursor: pointer;
+}
+
+.inspector__attribute-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+  align-items: center;
+}
+
+.inspector__input {
+  padding: 0.25rem;
+}
+
+.inspector__input--name {
+  width: 90px;
+}
+
+.inspector__input--type {
+  width: 70px;
+}
+
+.inspector__pk {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.inspector__remove {
+  cursor: pointer;
+}
+
+.inspector__add {
+  margin: 0.5rem 0;
+  cursor: pointer;
+}
+
+.inspector__delete {
+  margin-top: auto;
+  color: #f56565;
+  cursor: pointer;
+}
+
+.chat-panel__header {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.chat-panel__messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-panel__message {
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.chat-panel__message--user {
+  background: #2b6cb0;
+  align-self: flex-end;
+}
+
+.chat-panel__message--assistant {
+  background: #2d3748;
+  align-self: flex-start;
+}
+
+.chat-panel__input-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 0.5rem;
+}
+
+.chat-panel__input {
+  flex: 1;
+  padding: 0.4rem;
+}
+
+.chat-panel__send {
+  cursor: pointer;
+}
