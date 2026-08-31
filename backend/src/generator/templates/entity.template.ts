@@ -21,6 +21,9 @@ export function renderEntity(
   }
   for (const field of relationFields) {
     field.imports.forEach((i) => imports.add(i));
+    if (field.pairFieldName) {
+      imports.add('com.fasterxml.jackson.annotation.JsonIgnoreProperties');
+    }
   }
   for (const attr of cls.attributes) {
     const javaType = toJavaType(attr.type);
@@ -39,10 +42,13 @@ export function renderEntity(
     .join('\n');
 
   const relationFieldsCode = relationFields
-    .map(
-      (f) =>
-        `\n${f.annotations.map((a) => `    ${a}`).join('\n')}\n    private ${f.javaType} ${f.fieldName};`,
-    )
+    .map((f) => {
+      const jsonAnnotation = f.pairFieldName
+        ? [`    @JsonIgnoreProperties({"${f.pairFieldName}"})`]
+        : [];
+      const allAnnotations = [...jsonAnnotation, ...f.annotations.map((a) => `    ${a}`)];
+      return `\n${allAnnotations.join('\n')}\n    private ${f.javaType} ${f.fieldName};`;
+    })
     .join('\n');
 
   const idField = superclass

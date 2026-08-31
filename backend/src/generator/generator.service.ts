@@ -9,6 +9,7 @@ import {
   renderApplicationProperties,
   renderPomXml,
 } from './templates/project-files.template.js';
+import { renderJacksonConfig } from './templates/jackson-config.template.js';
 import { capitalize } from './java-type.util.js';
 
 export interface GeneratorOptions {
@@ -38,6 +39,8 @@ export class GeneratorService {
       renderApplicationProperties(options.projectName);
     files[`src/main/java/${packagePath}/${appClassName}.java`] =
       renderApplicationClass(packageName, appClassName);
+    files[`src/main/java/${packagePath}/config/JacksonConfig.java`] =
+      renderJacksonConfig(packageName);
 
     for (const cls of model.classes) {
       files[`src/main/java/${packagePath}/entity/${cls.name}.java`] =

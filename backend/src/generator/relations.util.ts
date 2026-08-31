@@ -6,6 +6,10 @@ export interface RelationField {
   javaType: string;
   annotations: string[];
   imports: string[];
+  /** Name of the field on the referenced type that points back to this
+   * entity, if any. Used to break Jackson's infinite-recursion loop on
+   * bidirectional JPA relations (e.g. Cliente.pedidos <-> Pedido.cliente). */
+  pairFieldName?: string;
 }
 
 function toSnakeColumn(name: string): string {
@@ -67,10 +71,31 @@ function fieldsForOwner(
             'jakarta.persistence.OneToMany',
             'jakarta.persistence.CascadeType',
           ],
+          pairFieldName: mappedBy,
         },
       ];
     }
-    case 'MANY_TO_ONE':
+    case 'MANY_TO_ONE': {
+      const fieldName = rel.targetRole ?? decapitalize(target.name);
+      const pairFieldName =
+        rel.sourceRole ?? decapitalize(pluralize(source.name));
+      return [
+        {
+          fieldName,
+          javaType: target.name,
+          annotations: [
+            '@ManyToOne(fetch = FetchType.LAZY)',
+            `@JoinColumn(name = "${toSnakeColumn(fieldName)}")`,
+          ],
+          imports: [
+            'jakarta.persistence.ManyToOne',
+            'jakarta.persistence.FetchType',
+            'jakarta.persistence.JoinColumn',
+          ],
+          pairFieldName,
+        },
+      ];
+    }
     case 'ASSOCIATION':
     case 'AGGREGATION': {
       const fieldName = rel.targetRole ?? decapitalize(target.name);
@@ -92,6 +117,7 @@ function fieldsForOwner(
     }
     case 'ONE_TO_ONE': {
       const fieldName = rel.targetRole ?? decapitalize(target.name);
+      const pairFieldName = rel.sourceRole ?? decapitalize(source.name);
       return [
         {
           fieldName,
@@ -105,12 +131,15 @@ function fieldsForOwner(
             'jakarta.persistence.FetchType',
             'jakarta.persistence.JoinColumn',
           ],
+          pairFieldName,
         },
       ];
     }
     case 'MANY_TO_MANY': {
       const fieldName =
         rel.targetRole ?? decapitalize(pluralize(target.name));
+      const pairFieldName =
+        rel.sourceRole ?? decapitalize(pluralize(source.name));
       const sourceColumn = toSnakeColumn(source.name);
       const targetColumn = toSnakeColumn(target.name);
       const joinTableName = `${sourceColumn.replace(/_id$/, '')}_${targetColumn.replace(/_id$/, '')}s`;
@@ -130,6 +159,7 @@ function fieldsForOwner(
             'jakarta.persistence.JoinTable',
             'jakarta.persistence.JoinColumn',
           ],
+          pairFieldName,
         },
       ];
     }
@@ -151,6 +181,8 @@ function fieldsForInverse(
     case 'ONE_TO_MANY':
     case 'COMPOSITION': {
       const fieldName = rel.sourceRole ?? decapitalize(source.name);
+      const pairFieldName =
+        rel.targetRole ?? decapitalize(pluralize(target.name));
       return [
         {
           fieldName,
@@ -164,6 +196,7 @@ function fieldsForInverse(
             'jakarta.persistence.FetchType',
             'jakarta.persistence.JoinColumn',
           ],
+          pairFieldName,
         },
       ];
     }
@@ -182,6 +215,7 @@ function fieldsForInverse(
             'jakarta.persistence.OneToMany',
             'jakarta.persistence.CascadeType',
           ],
+          pairFieldName: mappedBy,
         },
       ];
     }
@@ -194,6 +228,7 @@ function fieldsForInverse(
           javaType: source.name,
           annotations: [`@OneToOne(mappedBy = "${mappedBy}")`],
           imports: ['jakarta.persistence.OneToOne'],
+          pairFieldName: mappedBy,
         },
       ];
     }
@@ -208,6 +243,7 @@ function fieldsForInverse(
           javaType: `List<${source.name}>`,
           annotations: [`@ManyToMany(mappedBy = "${mappedBy}")`],
           imports: ['java.util.List', 'jakarta.persistence.ManyToMany'],
+          pairFieldName: mappedBy,
         },
       ];
     }
