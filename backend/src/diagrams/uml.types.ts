@@ -11,6 +11,8 @@ export interface UmlClass {
   id: string;
   name: string;
   attributes: UmlAttribute[];
+  /** Canvas position; not used by the generator, kept only for the frontend layout. */
+  position?: { x: number; y: number };
 }
 
 export type RelationType =

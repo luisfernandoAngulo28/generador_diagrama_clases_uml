@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -20,7 +20,13 @@ import { ClassInspector } from './components/ClassInspector';
 import { ChatPanel } from './components/ChatPanel';
 import type { RelationType, UmlClass, UmlModel } from './types/uml';
 import { RELATION_LABELS } from './types/uml';
-import { createDiagram, downloadGeneratedBackend, updateDiagram } from './api/client';
+import {
+  createDiagram,
+  downloadGeneratedBackend,
+  getDiagram,
+  updateDiagram,
+} from './api/client';
+import { getSocket } from './api/socket';
 
 const nodeTypes = { umlClass: UmlClassNode };
 
@@ -44,10 +50,101 @@ function AppInner() {
   const [nextRelationType, setNextRelationType] = useState<RelationType>('ASSOCIATION');
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [collaboratorCount, setCollaboratorCount] = useState(0);
+
+  const isApplyingRemoteRef = useRef(false);
+  const emitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleEditClass = useCallback((classId: string) => {
     setEditingClassId(classId);
   }, []);
+
+  // Load an existing diagram when opened via a shared link (?diagram=<id>).
+  useEffect(() => {
+    const sharedId = new URLSearchParams(window.location.search).get('diagram');
+    if (!sharedId) return;
+
+    getDiagram(sharedId).then((diagram) => {
+      setDiagramName(diagram.name);
+      setNodes(
+        diagram.model.classes.map((umlClass, index) => ({
+          id: umlClass.id,
+          type: 'umlClass',
+          position: umlClass.position ?? {
+            x: 120 + (index % 4) * 260,
+            y: 80 + Math.floor(index / 4) * 220,
+          },
+          data: { umlClass, onEdit: handleEditClass },
+        })),
+      );
+      setEdges(
+        diagram.model.relations.map((rel) => ({
+          id: rel.id,
+          source: rel.sourceClassId,
+          target: rel.targetClassId,
+          label: RELATION_LABELS[rel.type],
+          data: { type: rel.type },
+          markerEnd: { type: MarkerType.ArrowClosed },
+        })),
+      );
+      setDiagramId(diagram.id);
+    });
+    // Runs once on mount only; handleEditClass/setNodes/setEdges are stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Join the diagram's collaboration room and react to remote changes.
+  useEffect(() => {
+    if (!diagramId) return;
+
+    const socket = getSocket();
+    socket.emit('join-diagram', diagramId);
+
+    function handleRemoteUpdate(payload: { nodes: Node<UmlClassNodeData>[]; edges: Edge[] }) {
+      isApplyingRemoteRef.current = true;
+      setNodes(
+        payload.nodes.map((n) => ({
+          ...n,
+          data: { ...n.data, onEdit: handleEditClass },
+        })),
+      );
+      setEdges(payload.edges);
+      requestAnimationFrame(() => {
+        isApplyingRemoteRef.current = false;
+      });
+    }
+
+    function handlePresence(data: { count: number }) {
+      setCollaboratorCount(data.count);
+    }
+
+    socket.on('diagram-update', handleRemoteUpdate);
+    socket.on('presence', handlePresence);
+
+    return () => {
+      socket.off('diagram-update', handleRemoteUpdate);
+      socket.off('presence', handlePresence);
+    };
+  }, [diagramId, handleEditClass, setNodes, setEdges]);
+
+  // Broadcast local changes to other collaborators (debounced).
+  useEffect(() => {
+    if (!diagramId || isApplyingRemoteRef.current) return;
+
+    if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    emitTimerRef.current = setTimeout(() => {
+      const socket = getSocket();
+      const outgoingNodes = nodes.map((n) => ({
+        ...n,
+        data: { ...n.data, onEdit: undefined },
+      }));
+      socket.emit('diagram-update', { diagramId, nodes: outgoingNodes, edges });
+    }, 400);
+
+    return () => {
+      if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    };
+  }, [nodes, edges, diagramId]);
 
   function addClass() {
     const umlClass = createDefaultClass();
@@ -99,7 +196,7 @@ function AppInner() {
 
   function buildModel(): UmlModel {
     return {
-      classes: nodes.map((n) => n.data.umlClass),
+      classes: nodes.map((n) => ({ ...n.data.umlClass, position: n.position })),
       relations: edges.map((e) => ({
         id: e.id,
         type: (e.data?.type as RelationType) ?? 'ASSOCIATION',
@@ -118,10 +215,20 @@ function AppInner() {
       } else {
         const created = await createDiagram(diagramName, model);
         setDiagramId(created.id);
+        const url = new URL(window.location.href);
+        url.searchParams.set('diagram', created.id);
+        window.history.replaceState({}, '', url);
       }
     } finally {
       setSaving(false);
     }
+  }
+
+  async function copyShareLink() {
+    if (!diagramId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('diagram', diagramId);
+    await navigator.clipboard.writeText(url.toString());
   }
 
   async function generateBackend() {
@@ -167,6 +274,15 @@ function AppInner() {
         <button onClick={() => void generateBackend()} disabled={generating}>
           {generating ? 'Generando…' : 'Generar backend Spring Boot'}
         </button>
+
+        {diagramId && (
+          <>
+            <button onClick={() => void copyShareLink()}>🔗 Copiar enlace</button>
+            <span className="toolbar__presence">
+              🟢 {collaboratorCount} conectado{collaboratorCount === 1 ? '' : 's'}
+            </span>
+          </>
+        )}
       </header>
 
       <div className="app__body">

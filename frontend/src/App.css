@@ -25,6 +25,12 @@
   cursor: pointer;
 }
 
+.toolbar__presence {
+  margin-left: auto;
+  font-size: 12px;
+  color: #a0aec0;
+}
+
 .app__body {
   flex: 1;
   display: flex;

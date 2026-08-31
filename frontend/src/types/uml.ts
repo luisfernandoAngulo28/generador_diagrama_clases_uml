@@ -11,6 +11,8 @@ export interface UmlClass {
   id: string;
   name: string;
   attributes: UmlAttribute[];
+  /** Canvas position, persisted so a reloaded/shared diagram keeps its layout. */
+  position?: { x: number; y: number };
 }
 
 export type RelationType =
