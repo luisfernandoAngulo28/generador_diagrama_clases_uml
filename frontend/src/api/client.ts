@@ -51,6 +51,20 @@ export async function downloadGeneratedBackend(diagramId: string): Promise<void>
   window.URL.revokeObjectURL(url);
 }
 
+export async function downloadXmi(diagramId: string): Promise<void> {
+  const response = await api.get(`/diagrams/${diagramId}/xmi`, {
+    responseType: 'blob',
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', `${diagramId}.xmi`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export async function sendChatMessage(message: string): Promise<string> {
   const { data } = await api.post<{ reply: string }>('/ai/chat', { message });
   return data.reply;

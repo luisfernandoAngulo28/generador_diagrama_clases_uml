@@ -23,6 +23,7 @@ import { RELATION_LABELS } from './types/uml';
 import {
   createDiagram,
   downloadGeneratedBackend,
+  downloadXmi,
   getDiagram,
   interpretDiagramPhoto,
   updateDiagram,
@@ -51,6 +52,7 @@ function AppInner() {
   const [nextRelationType, setNextRelationType] = useState<RelationType>('ASSOCIATION');
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [exportingXmi, setExportingXmi] = useState(false);
   const [collaboratorCount, setCollaboratorCount] = useState(0);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -313,6 +315,19 @@ function AppInner() {
     }
   }
 
+  async function exportXmi() {
+    if (!diagramId) {
+      await saveDiagram();
+    }
+    if (!diagramId) return;
+    setExportingXmi(true);
+    try {
+      await downloadXmi(diagramId);
+    } finally {
+      setExportingXmi(false);
+    }
+  }
+
   const editingClass = nodes.find((n) => n.id === editingClassId)?.data.umlClass;
 
   return (
@@ -342,6 +357,9 @@ function AppInner() {
         </button>
         <button onClick={() => void generateBackend()} disabled={generating}>
           {generating ? 'Generando…' : 'Generar backend Spring Boot'}
+        </button>
+        <button onClick={() => void exportXmi()} disabled={exportingXmi}>
+          {exportingXmi ? 'Exportando…' : '📤 Exportar XMI'}
         </button>
 
         <input
