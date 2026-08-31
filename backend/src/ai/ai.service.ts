@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { UmlModel } from '../diagrams/uml.types.js';
 
 const SYSTEM_PROMPT = `Eres el asistente integrado de una herramienta CASE de modelado UML y generación de backends Spring Boot.
@@ -44,56 +44,46 @@ Los valores validos de "type" en relations son: ASSOCIATION, AGGREGATION, COMPOS
 ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY. Los valores validos de "visibility" son: public, private, protected, package.
 Si la imagen no contiene un diagrama de clases reconocible, responde con {"classes": [], "relations": []}.`;
 
+function stripJsonFences(raw: string): string {
+  return raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+}
+
 @Injectable()
 export class AiService {
-  private readonly client: Anthropic;
+  private readonly client: GoogleGenerativeAI;
+  private readonly modelName: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.client = new Anthropic({
-      apiKey: this.configService.get<string>('ANTHROPIC_API_KEY'),
-    });
+    this.client = new GoogleGenerativeAI(
+      this.configService.get<string>('GEMINI_API_KEY') ?? '',
+    );
+    this.modelName = this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-3.6-flash';
   }
 
   async chat(message: string): Promise<ChatResult> {
-    const response = await this.client.messages.create({
-      model: 'claude-sonnet-5',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: message }],
+    const model = this.client.getGenerativeModel({
+      model: this.modelName,
+      systemInstruction: SYSTEM_PROMPT,
     });
-
-    const textBlock = response.content.find((block) => block.type === 'text');
-    return { reply: textBlock?.type === 'text' ? textBlock.text : '' };
+    const result = await model.generateContent(message);
+    return { reply: result.response.text() };
   }
 
   async interpretDiagramPhoto(
     imageBase64: string,
     mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
   ): Promise<UmlModel> {
-    const response = await this.client.messages.create({
-      model: 'claude-sonnet-5',
-      max_tokens: 4096,
-      system: VISION_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: imageBase64 },
-            },
-            {
-              type: 'text',
-              text: 'Interpreta este diagrama de clases UML dibujado a mano y devuelve el JSON del modelo.',
-            },
-          ],
-        },
-      ],
+    const model = this.client.getGenerativeModel({
+      model: this.modelName,
+      systemInstruction: VISION_SYSTEM_PROMPT,
     });
 
-    const textBlock = response.content.find((block) => block.type === 'text');
-    const raw = textBlock?.type === 'text' ? textBlock.text : '';
-    const jsonText = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    const result = await model.generateContent([
+      { inlineData: { mimeType: mediaType, data: imageBase64 } },
+      { text: 'Interpreta este diagrama de clases UML dibujado a mano y devuelve el JSON del modelo.' },
+    ]);
+
+    const jsonText = stripJsonFences(result.response.text());
 
     try {
       const parsed = JSON.parse(jsonText) as UmlModel;
