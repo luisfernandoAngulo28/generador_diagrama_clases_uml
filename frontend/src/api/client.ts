@@ -55,3 +55,14 @@ export async function sendChatMessage(message: string): Promise<string> {
   const { data } = await api.post<{ reply: string }>('/ai/chat', { message });
   return data.reply;
 }
+
+export async function interpretDiagramPhoto(
+  imageBase64: string,
+  mediaType: string,
+): Promise<UmlModel> {
+  const { data } = await api.post<UmlModel>('/ai/interpret-photo', {
+    imageBase64,
+    mediaType,
+  });
+  return data;
+}
