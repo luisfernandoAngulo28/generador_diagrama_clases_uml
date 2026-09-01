@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'offline_chat_screen.dart';
+
 // ============================================================================
 // PLANTILLA PARA EL DÍA DEL EXAMEN
 //
@@ -100,7 +102,18 @@ class _ApiScreenState extends State<ApiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cliente API genérico')),
+      appBar: AppBar(
+        title: const Text('Cliente API genérico'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.smart_toy_outlined),
+            tooltip: 'Asistente offline',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const OfflineChatScreen()),
+            ),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
