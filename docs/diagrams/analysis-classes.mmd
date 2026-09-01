@@ -1,0 +1,51 @@
+classDiagram
+    class LienzoUML {
+        <<boundary>>
+        +addClass()
+        +onConnect()
+        +saveDiagram()
+    }
+    class ClassInspector {
+        <<boundary>>
+        +onChange()
+        +onDelete()
+    }
+    class ChatPanel {
+        <<boundary>>
+        +sendText()
+        +startListening()
+    }
+    class DiagramsController {
+        <<control>>
+        +create()
+        +findOne()
+        +exportXmi()
+    }
+    class DiagramsGateway {
+        <<control>>
+        +handleJoin()
+        +handleUpdate()
+    }
+    class GeneratorService {
+        <<control>>
+        +generate()
+    }
+    class AiService {
+        <<control>>
+        +chat()
+        +interpretDiagramPhoto()
+    }
+    class Diagram {
+        <<entity>>
+        +id
+        +name
+        +model
+    }
+    LienzoUML --> DiagramsController
+    LienzoUML --> DiagramsGateway
+    LienzoUML --> GeneratorService
+    ClassInspector --> LienzoUML
+    ChatPanel --> AiService
+    DiagramsController --> Diagram
+    DiagramsGateway --> Diagram
+    GeneratorService --> Diagram

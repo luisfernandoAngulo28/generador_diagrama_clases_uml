@@ -1,0 +1,11 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>LienzoUML"]
+    C["«control»<br/>DiagramsController/Service"]
+    E["«entity»<br/>Diagram (PostgreSQL)"]
+    actor -- "1: abrir enlace compartido" --> B
+    B -- "2: GET /diagrams/:id" --> C
+    C -- "3: findOne(id)" --> E
+    E -- "4: modelo" --> C
+    C -- "5: modelo" --> B
+    B -- "6: reconstruir lienzo" --> B

@@ -1,0 +1,11 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>LienzoUML"]
+    C["«control»<br/>DiagramsController/Service"]
+    E["«entity»<br/>Diagram (PostgreSQL)"]
+    actor -- "1: guardar diagrama" --> B
+    B -- "2: buildModel()" --> B
+    B -- "3: POST/PATCH /diagrams" --> C
+    C -- "4: save(dto)" --> E
+    E -- "5: diagrama persistido" --> C
+    C -- "6: id" --> B

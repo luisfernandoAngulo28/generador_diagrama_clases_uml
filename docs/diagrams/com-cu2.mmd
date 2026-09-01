@@ -1,0 +1,8 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>LienzoUML"]
+    C["«control»<br/>Inspector"]
+    actor -- "1: doble clic" --> B
+    B -- "2: abrir panel" --> C
+    actor -- "3: editar dato" --> C
+    C -- "4: onChange" --> B

@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML
+    participant A as api/client.ts
+    participant GC as GeneratorController
+    participant DS as DiagramsService
+    participant GS as GeneratorService
+    U->>L: click "Generar backend Spring Boot"
+    L->>A: downloadGeneratedBackend(id)
+    A->>GC: POST /generator/:id/zip
+    GC->>DS: findOne(id)
+    DS-->>GC: modelo UML
+    GC->>GS: generate(modelo)
+    GS->>GS: renderEntity/Repository/Service/Controller por clase
+    GS-->>GC: archivos generados (Map)
+    GC->>GC: empaquetar .zip (archiver)
+    GC-->>A: stream del .zip
+    A-->>U: descarga del archivo

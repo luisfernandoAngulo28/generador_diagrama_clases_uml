@@ -1,0 +1,27 @@
+flowchart TB
+    subgraph FE["Frontend (React + Vite)"]
+        direction TB
+        UI["Lienzo UML (React Flow)"]
+        Chat["Panel de Chat IA"]
+        ApiClient["api/client.ts"]
+        SocketClient["api/socket.ts"]
+    end
+    subgraph BE["Backend (NestJS)"]
+        direction TB
+        DiagramsPkg["Paquete diagrams"]
+        GeneratorPkg["Paquete generator"]
+        AiPkg["Paquete ai"]
+    end
+    DB[(PostgreSQL)]
+    Gemini["Google Gemini API"]
+
+    UI --> ApiClient
+    Chat --> ApiClient
+    UI --> SocketClient
+    ApiClient -->|REST| DiagramsPkg
+    ApiClient -->|REST| GeneratorPkg
+    ApiClient -->|REST| AiPkg
+    SocketClient -->|WebSocket| DiagramsPkg
+    GeneratorPkg -->|depende de| DiagramsPkg
+    DiagramsPkg --> DB
+    AiPkg --> Gemini

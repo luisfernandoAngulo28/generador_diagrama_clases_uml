@@ -1,0 +1,11 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>LienzoUML"]
+    C["«control»<br/>DiagramsController (XMI)"]
+    E["«entity»<br/>Diagram (PostgreSQL)"]
+    actor -- "1: exportar XMI" --> B
+    B -- "2: GET /diagrams/:id/xmi" --> C
+    C -- "3: findOne(id)" --> E
+    E -- "4: modelo" --> C
+    C -- "5: renderXmi()" --> C
+    C -- "6: descarga .xmi" --> B

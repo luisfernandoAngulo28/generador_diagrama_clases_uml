@@ -1,0 +1,9 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>ChatPanel"]
+    C["«control»<br/>Web Speech API"]
+    actor -- "1: click micrófono" --> B
+    B -- "2: start()" --> C
+    actor -- "3: dictar frase" --> C
+    C -- "4: onresult(transcript)" --> B
+    B -- "5: sendText() → CU10" --> B

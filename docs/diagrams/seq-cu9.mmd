@@ -1,0 +1,14 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML
+    participant A as api/client.ts
+    participant DC as DiagramsController
+    participant DS as DiagramsService
+    U->>L: click "Exportar XMI"
+    L->>A: downloadXmi(id)
+    A->>DC: GET /diagrams/:id/xmi
+    DC->>DS: findOne(id)
+    DS-->>DC: modelo UML
+    DC->>DC: renderXmi(modelo)
+    DC-->>A: archivo .xmi
+    A-->>U: descarga del archivo

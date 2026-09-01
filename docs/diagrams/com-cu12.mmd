@@ -1,0 +1,11 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>LienzoUML"]
+    C["«control»<br/>AiController/Service"]
+    E["«entity»<br/>Google Gemini"]
+    actor -- "1: subir foto" --> B
+    B -- "2: POST /ai/interpret-photo" --> C
+    C -- "3: generateContent(imagen)" --> E
+    E -- "4: JSON del modelo" --> C
+    C -- "5: clases y relaciones" --> B
+    B -- "6: agregar al lienzo" --> B

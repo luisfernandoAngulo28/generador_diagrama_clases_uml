@@ -1,0 +1,17 @@
+sequenceDiagram
+    actor U as Usuario
+    participant CP as ChatPanel
+    participant A as api/client.ts
+    participant AC as AiController
+    participant AS as AiService
+    participant G as Google Gemini
+    U->>CP: escribir mensaje + Enviar
+    CP->>A: sendChatMessage(texto)
+    A->>AC: POST /ai/chat
+    AC->>AS: chat(mensaje)
+    AS->>G: generateContent(systemPrompt + mensaje)
+    G-->>AS: respuesta
+    AS-->>AC: reply
+    AC-->>A: 200 + reply
+    A-->>CP: reply
+    CP-->>U: mostrar respuesta

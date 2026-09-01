@@ -1,0 +1,11 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>LienzoUML"]
+    C["«control»<br/>GeneratorController/Service"]
+    E["«entity»<br/>Diagram (PostgreSQL)"]
+    actor -- "1: generar backend" --> B
+    B -- "2: POST /generator/:id/zip" --> C
+    C -- "3: findOne(id)" --> E
+    E -- "4: modelo" --> C
+    C -- "5: generate() por clase" --> C
+    C -- "6: descarga .zip" --> B

@@ -1,0 +1,7 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML
+    U->>L: seleccionar tipo de relación
+    U->>L: arrastrar conexión (handle origen → destino)
+    L->>L: addEdge(label, tipo)
+    L-->>U: relación visible en el lienzo

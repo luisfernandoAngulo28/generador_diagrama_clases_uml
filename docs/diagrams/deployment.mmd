@@ -1,0 +1,17 @@
+flowchart LR
+    subgraph Cliente["Dispositivo del usuario"]
+        Browser["Navegador web<br/>(React SPA)"]
+    end
+    subgraph Servidor["Servidor de aplicación"]
+        Node["Node.js<br/>Backend NestJS<br/>:3000"]
+    end
+    subgraph BD["Servidor de base de datos"]
+        PG[("PostgreSQL<br/>:5432")]
+    end
+    subgraph Nube["Servicios en la nube"]
+        GeminiAPI["Google Gemini API"]
+    end
+
+    Browser -- "HTTPS / WebSocket" --> Node
+    Node -- "SQL / TCP" --> PG
+    Node -- "HTTPS" --> GeminiAPI

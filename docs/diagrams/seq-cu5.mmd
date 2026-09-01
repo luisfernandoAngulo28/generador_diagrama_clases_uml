@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML
+    participant A as api/client.ts
+    participant DC as DiagramsController
+    participant DS as DiagramsService
+    participant DB as PostgreSQL
+    U->>L: click "Guardar diagrama"
+    L->>L: buildModel() (clases + posiciones + relaciones)
+    L->>A: createDiagram / updateDiagram
+    A->>DC: POST/PATCH /diagrams
+    DC->>DS: create/update(dto)
+    DS->>DB: INSERT/UPDATE
+    DB-->>DS: diagrama persistido
+    DS-->>DC: diagrama
+    DC-->>A: 200/201 + id
+    A-->>L: diagramId
+    L->>L: actualizar URL (?diagram=id)

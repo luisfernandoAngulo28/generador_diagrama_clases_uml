@@ -1,0 +1,7 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>Inspector"]
+    C["«control»<br/>LienzoUML"]
+    actor -- "1: eliminar clase" --> B
+    B -- "2: onDelete(id)" --> C
+    C -- "3: filtrar nodo/aristas" --> C

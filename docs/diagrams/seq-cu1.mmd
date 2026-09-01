@@ -1,0 +1,7 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML (App.tsx)
+    U->>L: click "+ Clase"
+    L->>L: generar id (crypto.randomUUID)
+    L->>L: crear nodo "NuevaClase"
+    L-->>U: mostrar clase en el lienzo

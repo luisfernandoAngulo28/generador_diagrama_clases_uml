@@ -1,0 +1,9 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML
+    participant I as Inspector (ClassInspector)
+    U->>L: doble clic en la clase
+    L->>I: abrir panel con datos actuales
+    U->>I: modificar nombre / atributo
+    I->>L: onChange(umlClass actualizado)
+    L-->>U: refrescar nodo en el lienzo

@@ -1,0 +1,18 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML
+    participant A as api/client.ts
+    participant DC as DiagramsController
+    participant DS as DiagramsService
+    participant DB as PostgreSQL
+    U->>L: abrir URL con ?diagram=id
+    L->>A: getDiagram(id)
+    A->>DC: GET /diagrams/:id
+    DC->>DS: findOne(id)
+    DS->>DB: SELECT
+    DB-->>DS: modelo
+    DS-->>DC: diagrama
+    DC-->>A: 200 + modelo
+    A-->>L: modelo
+    L->>L: reconstruir nodos y aristas
+    L-->>U: diagrama visible

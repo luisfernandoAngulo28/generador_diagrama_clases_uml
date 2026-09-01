@@ -1,0 +1,20 @@
+sequenceDiagram
+    actor U as Usuario
+    participant L as LienzoUML
+    participant A as api/client.ts
+    participant AC as AiController
+    participant AS as AiService
+    participant G as Google Gemini
+    U->>L: click "Foto de pizarra" + seleccionar imagen
+    L->>L: leer archivo como base64
+    L->>A: interpretDiagramPhoto(base64, mediaType)
+    A->>AC: POST /ai/interpret-photo
+    AC->>AS: interpretDiagramPhoto(imagen)
+    AS->>G: generateContent(imagen + instrucciones UML)
+    G-->>AS: JSON del modelo detectado
+    AS->>AS: parsear y validar JSON
+    AS-->>AC: modelo UML
+    AC-->>A: clases y relaciones
+    A-->>L: modelo
+    L->>L: remapear ids y agregar al lienzo
+    L-->>U: nuevas clases visibles

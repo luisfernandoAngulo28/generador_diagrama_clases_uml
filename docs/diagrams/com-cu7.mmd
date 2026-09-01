@@ -1,0 +1,9 @@
+flowchart LR
+    actor((Usuario))
+    B["«boundary»<br/>LienzoUML"]
+    C["«control»<br/>DiagramsGateway (Socket.io)"]
+    actor -- "1: abrir diagrama" --> B
+    B -- "2: join-diagram" --> C
+    C -- "3: presence" --> B
+    C -- "4: broadcast diagram-update" --> B
+    B -- "5: aplicar cambios remotos" --> B

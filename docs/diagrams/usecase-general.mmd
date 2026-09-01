@@ -1,0 +1,34 @@
+flowchart LR
+    U((Usuario))
+    UC((Usuario Colaborador))
+    IA((Asistente de IA))
+    subgraph Sistema["Herramienta CASE — Modelado UML"]
+        direction TB
+        cu1(["Crear Clase UML"])
+        cu2(["Editar Clase UML"])
+        cu3(["Eliminar Clase UML"])
+        cu4(["Crear Relación"])
+        cu5(["Guardar Diagrama"])
+        cu6(["Cargar Diagrama Compartido"])
+        cu7(["Colaborar en Tiempo Real"])
+        cu8(["Generar Backend Spring Boot"])
+        cu9(["Exportar a XMI"])
+        cu10(["Consultar Asistente de IA"])
+        cu11(["Dictar Comando por Voz"])
+        cu12(["Interpretar Foto de Pizarra"])
+    end
+    U --- cu1
+    U --- cu2
+    U --- cu3
+    U --- cu4
+    U --- cu5
+    U --- cu6
+    U --- cu7
+    UC --- cu7
+    U --- cu8
+    U --- cu9
+    U --- cu10
+    U --- cu11
+    U --- cu12
+    cu10 -.-> IA
+    cu12 -.-> IA

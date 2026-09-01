@@ -1,0 +1,11 @@
+sequenceDiagram
+    actor U as Usuario
+    participant CP as ChatPanel
+    participant WS as Web Speech API
+    U->>CP: click micrófono
+    CP->>WS: start()
+    WS-->>U: solicitar permiso de micrófono
+    U->>WS: dictar frase
+    WS-->>CP: onresult(transcript)
+    CP->>CP: sendText(transcript)
+    Note over CP: reutiliza el flujo de CU10 (Consultar Asistente de IA)

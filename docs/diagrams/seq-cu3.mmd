@@ -1,0 +1,8 @@
+sequenceDiagram
+    actor U as Usuario
+    participant I as Inspector
+    participant L as LienzoUML
+    U->>I: click "Eliminar clase"
+    I->>L: onDelete(classId)
+    L->>L: filtrar nodo y aristas asociadas
+    L-->>U: nodo removido del lienzo

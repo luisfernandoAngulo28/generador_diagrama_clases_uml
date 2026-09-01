@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor U as Usuario
+    actor UC as Usuario Colaborador
+    participant L as LienzoUML
+    participant SC as api/socket.ts
+    participant GW as DiagramsGateway
+    U->>L: abrir diagrama guardado
+    L->>SC: emit("join-diagram", id)
+    SC->>GW: join-diagram
+    GW->>GW: client.join(sala)
+    GW-->>SC: presence {count}
+    UC->>GW: emit("diagram-update", payload)
+    GW->>SC: broadcast diagram-update
+    SC-->>L: aplicar cambios remotos
+    L-->>U: lienzo actualizado sin recargar
