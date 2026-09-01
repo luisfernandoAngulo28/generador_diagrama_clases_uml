@@ -92,9 +92,8 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
 
       const attributes = cls.attributes
         .map(
-          (attr) => `      <ownedAttribute xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}">
-        <type xmi:idref="type_${sanitizeId(attr.type)}"/>
-      </ownedAttribute>`,
+          (attr) =>
+            `      <ownedAttribute xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}" type="type_${sanitizeId(attr.type)}"/>`,
         )
         .join('\n');
 
