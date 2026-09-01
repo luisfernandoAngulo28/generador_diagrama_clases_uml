@@ -20,7 +20,7 @@ import { AiModule } from './ai/ai.module.js';
         password: config.get<string>('DB_PASSWORD', 'postgres'),
         database: config.get<string>('DB_NAME', 'case_tool'),
         autoLoadEntities: true,
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
+        synchronize: config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
       }),
     }),
     DiagramsModule,
