@@ -18,7 +18,8 @@ import './App.css';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { ClassInspector } from './components/ClassInspector';
 import { ChatPanel } from './components/ChatPanel';
-import type { RelationType, UmlClass, UmlModel } from './types/uml';
+import { ValidationPanel } from './components/ValidationPanel';
+import type { RelationType, UmlClass, UmlModel, ValidationResult } from './types/uml';
 import { RELATION_LABELS } from './types/uml';
 import {
   createDiagram,
@@ -27,6 +28,7 @@ import {
   getDiagram,
   interpretDiagramPhoto,
   updateDiagram,
+  validateDiagram,
 } from './api/client';
 import { getSocket } from './api/socket';
 
@@ -56,6 +58,8 @@ function AppInner() {
   const [collaboratorCount, setCollaboratorCount] = useState(0);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 
   const isApplyingRemoteRef = useRef(false);
   const emitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -212,18 +216,20 @@ function AppInner() {
     };
   }
 
-  async function saveDiagram() {
+  async function saveDiagram(): Promise<string> {
     setSaving(true);
     try {
       const model = buildModel();
       if (diagramId) {
         await updateDiagram(diagramId, diagramName, model);
+        return diagramId;
       } else {
         const created = await createDiagram(diagramName, model);
         setDiagramId(created.id);
         const url = new URL(window.location.href);
         url.searchParams.set('diagram', created.id);
         window.history.replaceState({}, '', url);
+        return created.id;
       }
     } finally {
       setSaving(false);
@@ -303,26 +309,31 @@ function AppInner() {
   }
 
   async function generateBackend() {
-    if (!diagramId) {
-      await saveDiagram();
-    }
-    if (!diagramId) return;
+    const id = diagramId ?? (await saveDiagram());
     setGenerating(true);
     try {
-      await downloadGeneratedBackend(diagramId);
+      await downloadGeneratedBackend(id);
     } finally {
       setGenerating(false);
     }
   }
 
-  async function exportXmi() {
-    if (!diagramId) {
-      await saveDiagram();
+  async function validateCurrentDiagram() {
+    const id = diagramId ?? (await saveDiagram());
+    setValidating(true);
+    try {
+      const result = await validateDiagram(id);
+      setValidationResult(result);
+    } finally {
+      setValidating(false);
     }
-    if (!diagramId) return;
+  }
+
+  async function exportXmi() {
+    const id = diagramId ?? (await saveDiagram());
     setExportingXmi(true);
     try {
-      await downloadXmi(diagramId);
+      await downloadXmi(id);
     } finally {
       setExportingXmi(false);
     }
@@ -354,6 +365,9 @@ function AppInner() {
 
         <button onClick={() => void saveDiagram()} disabled={saving}>
           {saving ? 'Guardando…' : 'Guardar diagrama'}
+        </button>
+        <button onClick={() => void validateCurrentDiagram()} disabled={validating}>
+          {validating ? 'Validando…' : '✅ Validar diagrama'}
         </button>
         <button onClick={() => void generateBackend()} disabled={generating}>
           {generating ? 'Generando…' : 'Generar backend Spring Boot'}
@@ -421,6 +435,13 @@ function AppInner() {
             onChange={updateClass}
             onClose={() => setEditingClassId(null)}
             onDelete={() => deleteClass(editingClass.id)}
+          />
+        )}
+
+        {validationResult && (
+          <ValidationPanel
+            result={validationResult}
+            onClose={() => setValidationResult(null)}
           />
         )}
 

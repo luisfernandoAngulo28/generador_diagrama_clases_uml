@@ -13,6 +13,7 @@ import { DiagramsService } from './diagrams.service.js';
 import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
 import { renderXmi } from './xmi.util.js';
+import { validateModel } from './validation.util.js';
 
 @Controller('diagrams')
 export class DiagramsController {
@@ -37,6 +38,12 @@ export class DiagramsController {
     res.setHeader('Content-Type', 'application/xml');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}.xmi"`);
     res.send(xml);
+  }
+
+  @Get(':id/validate')
+  async validate(@Param('id') id: string) {
+    const diagram = await this.diagramsService.findOne(id);
+    return validateModel(diagram.model);
   }
 
   @Get(':id')

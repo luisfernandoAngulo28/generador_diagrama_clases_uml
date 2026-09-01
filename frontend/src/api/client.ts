@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Diagram, UmlModel } from '../types/uml';
+import type { Diagram, UmlModel, ValidationResult } from '../types/uml';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
@@ -63,6 +63,11 @@ export async function downloadXmi(diagramId: string): Promise<void> {
   link.click();
   link.remove();
   window.URL.revokeObjectURL(url);
+}
+
+export async function validateDiagram(diagramId: string): Promise<ValidationResult> {
+  const { data } = await api.get<ValidationResult>(`/diagrams/${diagramId}/validate`);
+  return data;
 }
 
 export async function sendChatMessage(message: string): Promise<string> {

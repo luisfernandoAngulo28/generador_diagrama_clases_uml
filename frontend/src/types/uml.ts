@@ -58,6 +58,21 @@ export const RELATION_LABELS: Record<RelationType, string> = {
   MANY_TO_MANY: 'N : M',
 };
 
+export interface ValidationIssue {
+  severity: 'error' | 'warning';
+  code: string;
+  message: string;
+  classId?: string;
+  className?: string;
+  relationId?: string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationIssue[];
+  warnings: ValidationIssue[];
+}
+
 export const VISIBILITY_SYMBOLS: Record<Visibility, string> = {
   public: '+',
   private: '-',
