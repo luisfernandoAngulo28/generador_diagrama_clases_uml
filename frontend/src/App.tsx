@@ -19,6 +19,7 @@ import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { ClassInspector } from './components/ClassInspector';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
+import { Tour, type TourStep } from './components/Tour';
 import type { RelationType, UmlClass, UmlModel, ValidationResult } from './types/uml';
 import { RELATION_LABELS } from './types/uml';
 import {
@@ -33,6 +34,46 @@ import {
 import { getSocket } from './api/socket';
 
 const nodeTypes = { umlClass: UmlClassNode };
+
+const TOUR_SEEN_KEY = 'case-tool-tour-seen';
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    target: '[data-tour="diagram-name"]',
+    title: 'Dale un nombre a tu diagrama',
+    body: 'Este es el nombre con el que se guarda tu diagrama de clases. Puedes cambiarlo en cualquier momento.',
+  },
+  {
+    target: '[data-tour="add-class"]',
+    title: 'Agrega una clase',
+    body: 'Crea una nueva clase UML en el lienzo. Haz clic sobre ella para editar su nombre, atributos y clave primaria.',
+  },
+  {
+    target: '[data-tour="relation-select"]',
+    title: 'Elige el tipo de relación',
+    body: 'Selecciona el tipo de relación (asociación, herencia, 1 a N, N a N, etc.) y luego arrastra desde el borde de una clase hasta otra para conectarlas.',
+  },
+  {
+    target: '[data-tour="validate"]',
+    title: 'Valida tu modelo',
+    body: 'Revisa integridad estructural y normalización (3FN) antes de generar código: claves primarias faltantes, atributos duplicados, redundancias.',
+  },
+  {
+    target: '[data-tour="generate-backend"]',
+    title: 'Genera el backend Spring Boot',
+    body: 'Con un clic, descarga un proyecto Spring Boot completo (4 capas, JPA/Hibernate) listo para conectar con tu app móvil.',
+  },
+  {
+    target: '[data-tour="export-xmi"]',
+    title: 'Exporta a XMI',
+    body: 'Descarga el diagrama en formato XMI 2.1, importable directamente en Enterprise Architect u otras herramientas UML.',
+  },
+  {
+    target: '.chat-panel',
+    title: 'Asistente de IA',
+    body: 'Pregúntale al asistente sobre modelado UML, buenas prácticas o pídele ayuda para interpretar tu diagrama. Responde solo temas de ingeniería de software.',
+  },
+];
 
 function createDefaultClass(): UmlClass {
   const id = crypto.randomUUID();
@@ -60,6 +101,18 @@ function AppInner() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    if (!window.localStorage.getItem(TOUR_SEEN_KEY)) {
+      setShowTour(true);
+    }
+  }, []);
+
+  function finishTour() {
+    setShowTour(false);
+    window.localStorage.setItem(TOUR_SEEN_KEY, '1');
+  }
 
   const isApplyingRemoteRef = useRef(false);
   const emitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -345,13 +398,17 @@ function AppInner() {
     <div className="app">
       <header className="toolbar">
         <input
+          data-tour="diagram-name"
           className="toolbar__diagram-name"
           value={diagramName}
           onChange={(e) => setDiagramName(e.target.value)}
         />
-        <button onClick={addClass}>+ Clase</button>
+        <button data-tour="add-class" onClick={addClass}>
+          + Clase
+        </button>
 
         <select
+          data-tour="relation-select"
           className="toolbar__relation-select"
           value={nextRelationType}
           onChange={(e) => setNextRelationType(e.target.value as RelationType)}
@@ -366,13 +423,21 @@ function AppInner() {
         <button onClick={() => void saveDiagram()} disabled={saving}>
           {saving ? 'Guardando…' : 'Guardar diagrama'}
         </button>
-        <button onClick={() => void validateCurrentDiagram()} disabled={validating}>
+        <button
+          data-tour="validate"
+          onClick={() => void validateCurrentDiagram()}
+          disabled={validating}
+        >
           {validating ? 'Validando…' : '✅ Validar diagrama'}
         </button>
-        <button onClick={() => void generateBackend()} disabled={generating}>
+        <button
+          data-tour="generate-backend"
+          onClick={() => void generateBackend()}
+          disabled={generating}
+        >
           {generating ? 'Generando…' : 'Generar backend Spring Boot'}
         </button>
-        <button onClick={() => void exportXmi()} disabled={exportingXmi}>
+        <button data-tour="export-xmi" onClick={() => void exportXmi()} disabled={exportingXmi}>
           {exportingXmi ? 'Exportando…' : '📤 Exportar XMI'}
         </button>
 
@@ -399,6 +464,10 @@ function AppInner() {
             </span>
           </>
         )}
+
+        <button className="toolbar__help" onClick={() => setShowTour(true)}>
+          ❓ Recorrido
+        </button>
       </header>
 
       {photoError && (
@@ -447,6 +516,8 @@ function AppInner() {
 
         <ChatPanel />
       </div>
+
+      {showTour && <Tour steps={TOUR_STEPS} onFinish={finishTour} />}
     </div>
   );
 }

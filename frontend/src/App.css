@@ -104,6 +104,81 @@
   color: #fefcbf;
 }
 
+.toolbar__help {
+  margin-left: auto;
+}
+
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.tour__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.tour__spotlight {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.55);
+  border: 2px solid #63b3ed;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.tour__tooltip {
+  position: fixed;
+  width: 320px;
+  background: #1e1e1e;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.tour__step-count {
+  font-size: 11px;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
+}
+
+.tour__title {
+  margin: 0 0 0.4rem;
+  font-size: 15px;
+}
+
+.tour__body {
+  margin: 0 0 0.9rem;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #cbd5e0;
+}
+
+.tour__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tour__skip {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.tour__nav {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .photo-error button {
   background: transparent;
   border: none;
