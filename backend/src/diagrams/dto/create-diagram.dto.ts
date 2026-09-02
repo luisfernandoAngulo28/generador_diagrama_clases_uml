@@ -1,11 +1,14 @@
-import { IsNotEmpty, IsObject, IsString } from 'class-validator';
-import type { UmlModel } from '../uml.types.js';
+import { Type } from 'class-transformer';
+import { IsDefined, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import { UmlModelDto } from './uml-model.dto.js';
 
 export class CreateDiagramDto {
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @IsObject()
-  model: UmlModel;
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => UmlModelDto)
+  model: UmlModelDto;
 }
