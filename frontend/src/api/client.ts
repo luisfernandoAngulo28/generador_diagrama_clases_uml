@@ -65,6 +65,22 @@ export async function downloadXmi(diagramId: string): Promise<void> {
   window.URL.revokeObjectURL(url);
 }
 
+export async function openDocumentation(diagramId: string): Promise<void> {
+  const response = await api.get(`/diagrams/${diagramId}/documentation`, {
+    responseType: 'blob',
+  });
+  const url = window.URL.createObjectURL(
+    new Blob([response.data], { type: 'text/html' }),
+  );
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 export async function validateDiagram(diagramId: string): Promise<ValidationResult> {
   const { data } = await api.get<ValidationResult>(`/diagrams/${diagramId}/validate`);
   return data;

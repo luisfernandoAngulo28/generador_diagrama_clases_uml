@@ -8,6 +8,7 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   MarkerType,
   type Node,
   type Edge,
@@ -16,6 +17,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import './App.css';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
+import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
@@ -28,6 +30,7 @@ import {
   downloadXmi,
   getDiagram,
   interpretDiagramPhoto,
+  openDocumentation,
   updateDiagram,
   validateDiagram,
 } from './api/client';
@@ -89,6 +92,7 @@ function createDefaultClass(): UmlClass {
 function AppInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<UmlClassNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const { fitView } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -96,6 +100,7 @@ function AppInner() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [exportingXmi, setExportingXmi] = useState(false);
+  const [generatingDocs, setGeneratingDocs] = useState(false);
   const [collaboratorCount, setCollaboratorCount] = useState(0);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -218,6 +223,11 @@ function AppInner() {
       data: { umlClass, onEdit: handleEditClass },
     };
     setNodes((nds) => [...nds, newNode]);
+  }
+
+  function autoLayout() {
+    setNodes((nds) => layoutNodes(nds, edges));
+    requestAnimationFrame(() => fitView({ duration: 300 }));
   }
 
   function updateClass(updated: UmlClass) {
@@ -392,6 +402,16 @@ function AppInner() {
     }
   }
 
+  async function openDocs() {
+    const id = diagramId ?? (await saveDiagram());
+    setGeneratingDocs(true);
+    try {
+      await openDocumentation(id);
+    } finally {
+      setGeneratingDocs(false);
+    }
+  }
+
   const editingClass = nodes.find((n) => n.id === editingClassId)?.data.umlClass;
 
   return (
@@ -405,6 +425,13 @@ function AppInner() {
         />
         <button data-tour="add-class" onClick={addClass}>
           + Clase
+        </button>
+        <button
+          data-tour="auto-layout"
+          onClick={autoLayout}
+          disabled={nodes.length === 0}
+        >
+          🧭 Auto-organizar
         </button>
 
         <select
@@ -439,6 +466,13 @@ function AppInner() {
         </button>
         <button data-tour="export-xmi" onClick={() => void exportXmi()} disabled={exportingXmi}>
           {exportingXmi ? 'Exportando…' : '📤 Exportar XMI'}
+        </button>
+        <button
+          data-tour="documentation"
+          onClick={() => void openDocs()}
+          disabled={generatingDocs}
+        >
+          {generatingDocs ? 'Generando…' : '📄 Documentación'}
         </button>
 
         <input

@@ -14,6 +14,7 @@ import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
 import { renderXmi } from './xmi.util.js';
 import { validateModel } from './validation.util.js';
+import { renderDocumentationHtml } from './documentation.util.js';
 
 @Controller('diagrams')
 export class DiagramsController {
@@ -44,6 +45,15 @@ export class DiagramsController {
   async validate(@Param('id') id: string) {
     const diagram = await this.diagramsService.findOne(id);
     return validateModel(diagram.model);
+  }
+
+  @Get(':id/documentation')
+  async exportDocumentation(@Param('id') id: string, @Res() res: Response) {
+    const diagram = await this.diagramsService.findOne(id);
+    const html = renderDocumentationHtml(diagram.name, diagram.model);
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
   }
 
   @Get(':id')
