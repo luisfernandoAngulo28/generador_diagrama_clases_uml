@@ -94,22 +94,21 @@ mecanismo de subida de archivos en el backend todavía. Hay que decidir
 qué se sube (¿fotos de pizarra ya capturadas por la IA? ¿adjuntos por
 clase? ¿el PDF de documentación?) y agregar un endpoint + bucket S3.
 
-## 8. ¿Documentación colaborativa con bitácora de quién modificó? — ❌ Falta
+## 8. ¿Documentación colaborativa con bitácora de quién modificó? — ✅ Cumple
 
-El `DiagramsGateway` solo tiene estado en memoria (no persistente): quién
-está conectado ahora mismo y qué clase tiene bloqueada ahora mismo. No
-existe una tabla de historial ni un campo que registre "quién cambió qué
-y cuándo" — ni en el diagrama, ni en ningún documento. La entidad
-`Diagram` solo tiene `createdAt`/`updatedAt`, sin autor. Para cumplir esto
-necesitaríamos como mínimo: guardar el `userId` en cada `diagram-update`
-y persistir un log de cambios consultable (quién, qué clase/relación,
-cuándo).
+Resuelto: nueva entidad `DiagramHistoryEntry` (backend, tabla
+`diagram_history_entries`) registra quién, qué cambió (resumen legible a
+nivel de clase/relación: agregadas, eliminadas, renombradas, modificadas)
+y cuándo, en cada creación y guardado de un diagrama — usando el usuario
+autenticado del login. Accesible desde Archivo → "Bitácora de cambios" en
+el toolbar (`frontend/src/components/HistoryPanel.tsx`), endpoint
+`GET /diagrams/:id/history`. Verificado en vivo end-to-end.
 
 ## 9. ¿Está completa la documentación? — ⚠️ Parcial
 
 Completa en estructura (perfil, requisitos, análisis, diseño,
-implementación, manual de usuario, anexos), pero bloqueada por los puntos
-5 (Scrum, diagramas de EA) y 8 (bitácora) de arriba.
+implementación, manual de usuario, anexos), pero todavía bloqueada por el
+punto 5 (Scrum, diagramas de EA).
 
 ---
 
@@ -121,8 +120,8 @@ implementación, manual de usuario, anexos), pero bloqueada por los puntos
 | 2 | Desplegar en AWS (aunque sea una EC2 simple con el docker-compose que ya existe) | 🔴 Alta | Medio — necesitas la cuenta AWS |
 | 3 | Agregar sección de Scrum a la documentación (backlog, sprints) | 🟡 Media | Bajo-medio |
 | 4 | S3 para subir archivos | 🟡 Media | Medio |
-| 5 | Bitácora de cambios (quién modificó qué) | 🟡 Media | Medio |
+| ~~5~~ | ~~Bitácora de cambios (quién modificó qué)~~ — ✅ hecho | — | — |
 | 6 | Probar `flutter_gemma` y `offline_sync_service` en un celular real | 🟢 Baja (ya funciona en el emulador/build) | Bajo — solo necesitas el celular |
 
-Los puntos 2, 4 y 5 (imágenes, ML, formularios/datagrid) del rúbrico ya
-están cumplidos y verificados contra el código real.
+Los puntos 2, 4, 5 y 8 (imágenes, ML, formularios/datagrid, bitácora) del
+rúbrico ya están cumplidos y verificados contra el código real.
