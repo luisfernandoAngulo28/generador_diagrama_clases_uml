@@ -121,7 +121,10 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
       const srcMult = sourceMultiplicity(rel.type);
       const tgtMult = targetMultiplicity(rel.type);
       const aggregation = aggregationKind(rel.type);
-      const sourceEndAttrs = aggregation ? ` aggregation="${aggregation}"` : '';
+      const sourceEndAttrs =
+        (aggregation ? ` aggregation="${aggregation}"` : '') +
+        (rel.sourceRole ? ` name="${escapeXml(rel.sourceRole)}"` : '');
+      const targetEndAttrs = rel.targetRole ? ` name="${escapeXml(rel.targetRole)}"` : '';
 
       return `    <packagedElement xmi:type="uml:Association" xmi:id="${relId}" name="${rel.type.toLowerCase()}">
       <memberEnd xmi:idref="${relId}_src"/>
@@ -130,7 +133,7 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
         <lowerValue xmi:type="uml:LiteralInteger" value="${srcMult.lower}"/>
         <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="${srcMult.upper}"/>
       </ownedEnd>
-      <ownedEnd xmi:id="${relId}_tgt" type="${targetId}">
+      <ownedEnd xmi:id="${relId}_tgt" type="${targetId}"${targetEndAttrs}>
         <lowerValue xmi:type="uml:LiteralInteger" value="${tgtMult.lower}"/>
         <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="${tgtMult.upper}"/>
       </ownedEnd>

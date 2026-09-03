@@ -19,6 +19,7 @@ import './App.css';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
+import { RelationInspector } from './components/RelationInspector';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { DiagramsListPanel } from './components/DiagramsListPanel';
@@ -110,6 +111,7 @@ function AppInner() {
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const [nextRelationType, setNextRelationType] = useState<RelationType>('ASSOCIATION');
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -268,7 +270,7 @@ function AppInner() {
         source: rel.sourceClassId,
         target: rel.targetClassId,
         label: RELATION_LABELS[rel.type],
-        data: { type: rel.type },
+        data: { type: rel.type, sourceRole: rel.sourceRole, targetRole: rel.targetRole },
         markerEnd: { type: MarkerType.ArrowClosed },
       })),
     );
@@ -579,6 +581,8 @@ function AppInner() {
         type: (e.data?.type as RelationType) ?? 'ASSOCIATION',
         sourceClassId: e.source,
         targetClassId: e.target,
+        sourceRole: (e.data?.sourceRole as string) || undefined,
+        targetRole: (e.data?.targetRole as string) || undefined,
       })),
     };
   }
@@ -719,6 +723,42 @@ function AppInner() {
 
   const editingClass = nodes.find((n) => n.id === editingClassId)?.data.umlClass;
 
+  const editingEdgeRaw = edges.find((e) => e.id === editingEdgeId);
+  const editingEdge = editingEdgeRaw
+    ? {
+        id: editingEdgeRaw.id,
+        type: ((editingEdgeRaw.data?.type as RelationType) ?? 'ASSOCIATION') as RelationType,
+        sourceClassName:
+          nodes.find((n) => n.id === editingEdgeRaw.source)?.data.umlClass.name ?? '?',
+        targetClassName:
+          nodes.find((n) => n.id === editingEdgeRaw.target)?.data.umlClass.name ?? '?',
+        sourceRole: (editingEdgeRaw.data?.sourceRole as string) ?? '',
+        targetRole: (editingEdgeRaw.data?.targetRole as string) ?? '',
+      }
+    : null;
+
+  function updateEdgeRelation(
+    patch: Partial<{ type: RelationType; sourceRole: string; targetRole: string }>,
+  ) {
+    setEdges((eds) =>
+      eds.map((e) => {
+        if (e.id !== editingEdgeId) return e;
+        const newType = patch.type ?? (e.data?.type as RelationType) ?? 'ASSOCIATION';
+        return {
+          ...e,
+          label: RELATION_LABELS[newType],
+          data: { ...e.data, ...patch, type: newType },
+        };
+      }),
+    );
+  }
+
+  function deleteRelation(edgeId: string) {
+    pushHistory();
+    setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+    setEditingEdgeId(null);
+  }
+
   return (
     <div className="app">
       <header className="toolbar">
@@ -845,6 +885,10 @@ function AppInner() {
             }}
             onConnect={onConnect}
             onNodeDragStart={() => pushHistory()}
+            onEdgeClick={(_, edge) => {
+              pushHistory();
+              setEditingEdgeId(edge.id);
+            }}
             nodeTypes={nodeTypes}
             fitView
           >
@@ -867,6 +911,15 @@ function AppInner() {
               setEditingClassId(null);
             }}
             onDelete={() => deleteClass(editingClass.id)}
+          />
+        )}
+
+        {editingEdge && (
+          <RelationInspector
+            relation={editingEdge}
+            onChange={updateEdgeRelation}
+            onClose={() => setEditingEdgeId(null)}
+            onDelete={() => deleteRelation(editingEdge.id)}
           />
         )}
 
