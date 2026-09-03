@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type { Diagram, EditDiagramResult, UmlModel, ValidationResult } from '../types/uml';
 import type { AuthResult } from '../types/auth';
+import type { DiagramHistoryEntry } from '../types/history';
 
 export const AUTH_TOKEN_KEY = 'case-tool.auth-token';
 
@@ -54,6 +55,11 @@ export async function listDiagrams(): Promise<Diagram[]> {
 
 export async function getDiagram(id: string): Promise<Diagram> {
   const { data } = await api.get<Diagram>(`/diagrams/${id}`);
+  return data;
+}
+
+export async function getDiagramHistory(id: string): Promise<DiagramHistoryEntry[]> {
+  const { data } = await api.get<DiagramHistoryEntry[]>(`/diagrams/${id}/history`);
   return data;
 }
 

@@ -18,14 +18,16 @@ import { renderXmi } from './xmi.util.js';
 import { parseXmi } from './xmi-import.util.js';
 import { validateModel } from './validation.util.js';
 import { renderDocumentationHtml } from './documentation.util.js';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import type { JwtPayload } from '../auth/auth.service.js';
 
 @Controller('diagrams')
 export class DiagramsController {
   constructor(private readonly diagramsService: DiagramsService) {}
 
   @Post()
-  create(@Body() dto: CreateDiagramDto) {
-    return this.diagramsService.create(dto);
+  create(@Body() dto: CreateDiagramDto, @CurrentUser() user: JwtPayload) {
+    return this.diagramsService.create(dto, user);
   }
 
   @Get()
@@ -34,7 +36,7 @@ export class DiagramsController {
   }
 
   @Post('import-xmi')
-  async importXmi(@Body() dto: ImportXmiDto) {
+  async importXmi(@Body() dto: ImportXmiDto, @CurrentUser() user: JwtPayload) {
     let parsed: ReturnType<typeof parseXmi>;
     try {
       parsed = parseXmi(dto.xml);
@@ -43,7 +45,7 @@ export class DiagramsController {
         err instanceof Error ? err.message : 'No se pudo interpretar el archivo XMI.',
       );
     }
-    return this.diagramsService.create({ name: parsed.name, model: parsed.model });
+    return this.diagramsService.create({ name: parsed.name, model: parsed.model }, user);
   }
 
   @Get(':id/xmi')
@@ -72,14 +74,19 @@ export class DiagramsController {
     res.send(html);
   }
 
+  @Get(':id/history')
+  getHistory(@Param('id') id: string) {
+    return this.diagramsService.getHistory(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.diagramsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateDiagramDto) {
-    return this.diagramsService.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateDiagramDto, @CurrentUser() user: JwtPayload) {
+    return this.diagramsService.update(id, dto, user);
   }
 
   @Delete(':id')

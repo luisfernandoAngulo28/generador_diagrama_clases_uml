@@ -39,6 +39,7 @@ import {
   Trash2,
   User as UserIcon,
   LogOut,
+  History,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
@@ -49,6 +50,7 @@ import { ClassTreePanel } from './components/ClassTreePanel';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { DiagramsListPanel } from './components/DiagramsListPanel';
+import { HistoryPanel } from './components/HistoryPanel';
 import { TemplatesPanel } from './components/TemplatesPanel';
 import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
@@ -166,6 +168,7 @@ function AppInner() {
   const [showTour, setShowTour] = useState(false);
   const [locks, setLocks] = useState<Record<string, string>>({});
   const [showDiagramsList, setShowDiagramsList] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [past, setPast] = useState<HistorySnapshot[]>([]);
@@ -948,6 +951,16 @@ function AppInner() {
                 onClick: () => void openDocs(),
               },
               {
+                key: 'history',
+                icon: <History size={15} />,
+                label: 'Bitácora de cambios',
+                disabled: !diagramId,
+                title: diagramId
+                  ? undefined
+                  : 'Guarda el diagrama al menos una vez para ver su bitácora',
+                onClick: () => setShowHistory(true),
+              },
+              {
                 key: 'export-png',
                 icon: <ImageIcon size={15} />,
                 label: exportingImage ? 'Exportando…' : 'Exportar como PNG',
@@ -1163,6 +1176,9 @@ function AppInner() {
       )}
       {showTemplates && (
         <TemplatesPanel onApply={applyTemplate} onClose={() => setShowTemplates(false)} />
+      )}
+      {showHistory && diagramId && (
+        <HistoryPanel diagramId={diagramId} onClose={() => setShowHistory(false)} />
       )}
     </div>
   );
