@@ -37,6 +37,7 @@ import {
   HelpCircle,
   X,
   Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
@@ -139,7 +140,7 @@ function createDefaultClass(): UmlClass {
 function AppInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<UmlClassNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const { fitView, setCenter, getNodes, getNodesBounds } = useReactFlow();
+  const { fitView, setCenter, getNodes, getNodesBounds, deleteElements } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -150,6 +151,7 @@ function AppInner() {
   const [exportingXmi, setExportingXmi] = useState(false);
   const [generatingDocs, setGeneratingDocs] = useState(false);
   const [exportingImage, setExportingImage] = useState(false);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [collaboratorCount, setCollaboratorCount] = useState(0);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -849,6 +851,15 @@ function AppInner() {
     setEditingEdgeId(null);
   }
 
+  async function deleteSelectedClasses() {
+    if (selectedNodeIds.length === 0) return;
+    // pushHistory() is not called here: deleteElements() routes through the
+    // controlled onNodesChange/onEdgesChange handlers below, which already
+    // push history for 'remove' changes.
+    await deleteElements({ nodes: selectedNodeIds.map((id) => ({ id })) });
+    setSelectedNodeIds([]);
+  }
+
   return (
     <div className="app">
       <header className="toolbar">
@@ -1071,6 +1082,12 @@ function AppInner() {
               pushHistory();
               setEditingEdgeId(edge.id);
             }}
+            onSelectionChange={({ nodes: selected }) => {
+              const ids = selected.map((n) => n.id);
+              setSelectedNodeIds((prev) =>
+                prev.length === ids.length && prev.every((id, i) => id === ids[i]) ? prev : ids,
+              );
+            }}
             nodeTypes={nodeTypes}
             snapToGrid={snapToGrid}
             snapGrid={[20, 20]}
@@ -1084,6 +1101,15 @@ function AppInner() {
               nodeColor="#4a5568"
             />
           </ReactFlow>
+
+          {selectedNodeIds.length > 1 && (
+            <div className="multi-select-bar">
+              <span>{selectedNodeIds.length} clases seleccionadas</span>
+              <button onClick={() => void deleteSelectedClasses()} title="Eliminar clases seleccionadas (Supr)">
+                <Trash2 size={14} /> Eliminar
+              </button>
+            </div>
+          )}
 
           {editingClass && <FeaturesPanel umlClass={editingClass} onChange={updateClass} />}
         </div>
