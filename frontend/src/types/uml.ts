@@ -15,7 +15,7 @@ export interface UmlOperation {
   parameters?: string;
 }
 
-export type ClassStereotype = 'enum';
+export type ClassStereotype = 'enum' | 'abstract' | 'interface';
 
 export interface UmlClass {
   id: string;
@@ -23,7 +23,11 @@ export interface UmlClass {
   attributes: UmlAttribute[];
   /** Operations (methods) shown in the UML notation and exported to XMI; not used by the code generator. */
   operations?: UmlOperation[];
-  /** «enum»: generates a plain Java enum (attribute names become literals) instead of a JPA entity. */
+  /**
+   * «enum»: generates a plain Java enum (attribute names become literals) instead of a JPA entity.
+   * «abstract»: generates an `abstract class`; only meaningful together with an INHERITANCE relation.
+   * «interface»: generates a plain Java interface from `operations` (no JPA entity, no attributes).
+   */
   stereotype?: ClassStereotype;
   /** Free-text description of the class's purpose; shown in the inspector and the documentation report. */
   description?: string;

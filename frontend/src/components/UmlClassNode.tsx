@@ -34,33 +34,37 @@ function UmlClassNodeImpl({ data, selected }: NodeProps) {
         {umlClass.stereotype && (
           <div className="uml-class-node__stereotype">«{umlClass.stereotype}»</div>
         )}
-        {umlClass.name}
+        <span className={umlClass.stereotype === 'abstract' ? 'uml-class-node__name--abstract' : undefined}>
+          {umlClass.name}
+        </span>
       </div>
-      <div className="uml-class-node__attributes">
-        {umlClass.attributes.length === 0 && (
-          <div className="uml-class-node__empty">
-            {umlClass.stereotype === 'enum' ? 'sin valores' : 'sin atributos'}
-          </div>
-        )}
-        {umlClass.stereotype === 'enum'
-          ? umlClass.attributes.map((attr) => (
-              <div key={attr.name} className="uml-class-node__attribute">
-                <span className="uml-class-node__attr-name">{attr.name}</span>
-              </div>
-            ))
-          : umlClass.attributes.map((attr) => (
-              <div key={attr.name} className="uml-class-node__attribute">
-                <span className="uml-class-node__visibility">
-                  {VISIBILITY_SYMBOLS[attr.visibility]}
-                </span>
-                <span className="uml-class-node__attr-name">
-                  {attr.name}
-                  {attr.isPrimaryKey ? ' (PK)' : ''}
-                </span>
-                <span className="uml-class-node__attr-type">: {attr.type}</span>
-              </div>
-            ))}
-      </div>
+      {umlClass.stereotype !== 'interface' && (
+        <div className="uml-class-node__attributes">
+          {umlClass.attributes.length === 0 && (
+            <div className="uml-class-node__empty">
+              {umlClass.stereotype === 'enum' ? 'sin valores' : 'sin atributos'}
+            </div>
+          )}
+          {umlClass.stereotype === 'enum'
+            ? umlClass.attributes.map((attr) => (
+                <div key={attr.name} className="uml-class-node__attribute">
+                  <span className="uml-class-node__attr-name">{attr.name}</span>
+                </div>
+              ))
+            : umlClass.attributes.map((attr) => (
+                <div key={attr.name} className="uml-class-node__attribute">
+                  <span className="uml-class-node__visibility">
+                    {VISIBILITY_SYMBOLS[attr.visibility]}
+                  </span>
+                  <span className="uml-class-node__attr-name">
+                    {attr.name}
+                    {attr.isPrimaryKey ? ' (PK)' : ''}
+                  </span>
+                  <span className="uml-class-node__attr-type">: {attr.type}</span>
+                </div>
+              ))}
+        </div>
+      )}
       {umlClass.stereotype !== 'enum' && !!umlClass.operations?.length && (
         <div className="uml-class-node__operations">
           {umlClass.operations.map((op, i) => (

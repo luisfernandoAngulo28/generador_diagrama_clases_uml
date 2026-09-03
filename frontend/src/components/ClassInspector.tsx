@@ -1,5 +1,12 @@
 import { Trash2, X } from 'lucide-react';
-import type { UmlClass } from '../types/uml';
+import type { ClassStereotype, UmlClass } from '../types/uml';
+
+const STEREOTYPE_OPTIONS: { value: ClassStereotype | ''; label: string; hint: string }[] = [
+  { value: '', label: 'Ninguno', hint: '' },
+  { value: 'enum', label: '«enum»', hint: 'genera un enum de Java en vez de una entidad' },
+  { value: 'abstract', label: '«abstract»', hint: 'genera una clase abstracta (usar con Herencia)' },
+  { value: 'interface', label: '«interface»', hint: 'genera una interfaz de Java a partir de las operaciones' },
+];
 
 interface ClassInspectorProps {
   umlClass: UmlClass;
@@ -20,7 +27,7 @@ export function ClassInspector({
   onClose,
   onDelete,
 }: ClassInspectorProps) {
-  const isEnum = umlClass.stereotype === 'enum';
+  const currentStereotype = STEREOTYPE_OPTIONS.find((o) => o.value === (umlClass.stereotype ?? ''));
 
   return (
     <aside className="inspector">
@@ -35,18 +42,27 @@ export function ClassInspector({
         </button>
       </div>
 
-      <label className="inspector__stereotype">
-        <input
-          type="checkbox"
-          checked={isEnum}
+      <label className="inspector__field">
+        Estereotipo
+        <select
+          className="inspector__cell-input"
+          value={umlClass.stereotype ?? ''}
           onChange={(e) =>
             onChange({
               ...umlClass,
-              stereotype: e.target.checked ? 'enum' : undefined,
+              stereotype: (e.target.value || undefined) as ClassStereotype | undefined,
             })
           }
-        />
-        «enum» (genera un enum de Java en vez de una entidad)
+        >
+          {STEREOTYPE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        {currentStereotype?.hint && (
+          <span className="inspector__field-hint">{currentStereotype.hint}</span>
+        )}
       </label>
 
       <label className="inspector__field">

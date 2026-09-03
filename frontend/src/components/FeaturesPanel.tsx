@@ -16,6 +16,7 @@ const VISIBILITIES: Visibility[] = ['public', 'private', 'protected', 'package']
  */
 export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
   const isEnum = umlClass.stereotype === 'enum';
+  const isInterface = umlClass.stereotype === 'interface';
   const [tab, setTab] = useState<'attributes' | 'operations'>('attributes');
   const operations = umlClass.operations ?? [];
 
@@ -66,17 +67,19 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
     onChange({ ...umlClass, operations: operations.filter((_, i) => i !== index) });
   }
 
-  const activeTab = isEnum ? 'attributes' : tab;
+  const activeTab = isEnum ? 'attributes' : isInterface ? 'operations' : tab;
 
   return (
     <div className="features-dock">
       <div className="features-dock__tabs">
-        <button
-          className={`features-dock__tab${activeTab === 'attributes' ? ' features-dock__tab--active' : ''}`}
-          onClick={() => setTab('attributes')}
-        >
-          {isEnum ? 'Valores' : 'Atributos'}
-        </button>
+        {!isInterface && (
+          <button
+            className={`features-dock__tab${activeTab === 'attributes' ? ' features-dock__tab--active' : ''}`}
+            onClick={() => setTab('attributes')}
+          >
+            {isEnum ? 'Valores' : 'Atributos'}
+          </button>
+        )}
         {!isEnum && (
           <button
             className={`features-dock__tab${activeTab === 'operations' ? ' features-dock__tab--active' : ''}`}
