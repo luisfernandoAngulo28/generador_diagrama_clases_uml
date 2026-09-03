@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -41,6 +42,7 @@ import {
   downloadGeneratedBackend,
   downloadXmi,
   getDiagram,
+  importXmi,
   interpretDiagramPhoto,
   openDocumentation,
   updateDiagram,
@@ -127,6 +129,7 @@ function AppInner() {
   const [collaboratorCount, setCollaboratorCount] = useState(0);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [importingXmi, setImportingXmi] = useState(false);
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showTour, setShowTour] = useState(false);
@@ -151,6 +154,7 @@ function AppInner() {
   const isApplyingRemoteRef = useRef(false);
   const emitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const xmiInputRef = useRef<HTMLInputElement | null>(null);
   const diagramIdRef = useRef<string | null>(null);
   const locksRef = useRef<Record<string, string>>({});
   const myLocksRef = useRef<Set<string>>(new Set());
@@ -304,6 +308,28 @@ function AppInner() {
     window.history.replaceState({}, '', url);
     loadDiagram(id);
     setShowDiagramsList(false);
+  }
+
+  async function handleXmiSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImportingXmi(true);
+    try {
+      const xml = await file.text();
+      const diagram = await importXmi(xml);
+      openDiagramFromList(diagram.id);
+    } catch (err) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      window.alert(
+        Array.isArray(message)
+          ? message.join('\n')
+          : (message ?? 'No se pudo importar el archivo XMI. Verifica que sea un archivo válido.'),
+      );
+    } finally {
+      setImportingXmi(false);
+    }
   }
 
   // Join the diagram's collaboration room and react to remote changes.
@@ -819,6 +845,20 @@ function AppInner() {
           ↪️ Rehacer
         </button>
         <button onClick={() => setShowDiagramsList(true)}>📁 Mis diagramas</button>
+        <input
+          ref={xmiInputRef}
+          type="file"
+          accept=".xmi,.xml,application/xml,text/xml"
+          style={{ display: 'none' }}
+          onChange={(e) => void handleXmiSelected(e)}
+        />
+        <button
+          onClick={() => xmiInputRef.current?.click()}
+          disabled={importingXmi}
+          title="Importar un diagrama desde un archivo XMI (exportado por esta u otra herramienta UML)"
+        >
+          {importingXmi ? 'Importando…' : '📥 Importar XMI'}
+        </button>
 
         <select
           data-tour="relation-select"

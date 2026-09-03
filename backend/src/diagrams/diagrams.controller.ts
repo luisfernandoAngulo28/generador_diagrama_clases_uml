@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -12,7 +13,9 @@ import type { Response } from 'express';
 import { DiagramsService } from './diagrams.service.js';
 import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
+import { ImportXmiDto } from './dto/import-xmi.dto.js';
 import { renderXmi } from './xmi.util.js';
+import { parseXmi } from './xmi-import.util.js';
 import { validateModel } from './validation.util.js';
 import { renderDocumentationHtml } from './documentation.util.js';
 
@@ -28,6 +31,19 @@ export class DiagramsController {
   @Get()
   findAll() {
     return this.diagramsService.findAll();
+  }
+
+  @Post('import-xmi')
+  async importXmi(@Body() dto: ImportXmiDto) {
+    let parsed: ReturnType<typeof parseXmi>;
+    try {
+      parsed = parseXmi(dto.xml);
+    } catch (err) {
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'No se pudo interpretar el archivo XMI.',
+      );
+    }
+    return this.diagramsService.create({ name: parsed.name, model: parsed.model });
   }
 
   @Get(':id/xmi')

@@ -51,6 +51,11 @@ export async function downloadGeneratedBackend(diagramId: string): Promise<void>
   window.URL.revokeObjectURL(url);
 }
 
+export async function importXmi(xml: string): Promise<Diagram> {
+  const { data } = await api.post<Diagram>('/diagrams/import-xmi', { xml });
+  return data;
+}
+
 export async function downloadXmi(diagramId: string): Promise<void> {
   const response = await api.get(`/diagrams/${diagramId}/xmi`, {
     responseType: 'blob',
