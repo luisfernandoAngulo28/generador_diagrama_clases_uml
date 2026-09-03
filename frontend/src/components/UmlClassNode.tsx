@@ -6,19 +6,27 @@ import { VISIBILITY_SYMBOLS } from '../types/uml';
 export interface UmlClassNodeData extends Record<string, unknown> {
   umlClass: UmlClass;
   onEdit: (classId: string) => void;
+  /** Name of the collaborator currently editing this class, if any (not us). */
+  lockedBy?: string;
 }
 
 function UmlClassNodeImpl({ data, selected }: NodeProps) {
-  const { umlClass, onEdit } = data as unknown as UmlClassNodeData;
+  const { umlClass, onEdit, lockedBy } = data as unknown as UmlClassNodeData;
 
   return (
     <div
-      className={`uml-class-node${selected ? ' uml-class-node--selected' : ''}`}
+      className={`uml-class-node${selected ? ' uml-class-node--selected' : ''}${
+        lockedBy ? ' uml-class-node--locked' : ''
+      }`}
       onDoubleClick={() => onEdit(umlClass.id)}
+      title={lockedBy ? `${lockedBy} está editando esta clase` : undefined}
     >
       <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
 
+      {lockedBy && (
+        <div className="uml-class-node__lock">🔒 {lockedBy}</div>
+      )}
       <div className="uml-class-node__header">
         {umlClass.stereotype && (
           <div className="uml-class-node__stereotype">«{umlClass.stereotype}»</div>

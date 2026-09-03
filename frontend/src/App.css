@@ -217,6 +217,21 @@
   border-color: #63b3ed;
 }
 
+.uml-class-node--locked {
+  border-color: #ecc94b;
+  opacity: 0.75;
+}
+
+.uml-class-node__lock {
+  font-size: 11px;
+  color: #1a1a1a;
+  background: #ecc94b;
+  padding: 2px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .uml-class-node__header {
   background: #2d3748;
   color: white;

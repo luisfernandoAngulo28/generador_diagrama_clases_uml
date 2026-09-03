@@ -113,6 +113,7 @@ function AppInner() {
   const [validating, setValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showTour, setShowTour] = useState(false);
+  const [locks, setLocks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!window.localStorage.getItem(TOUR_SEEN_KEY)) {
@@ -128,8 +129,43 @@ function AppInner() {
   const isApplyingRemoteRef = useRef(false);
   const emitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const diagramIdRef = useRef<string | null>(null);
+  const locksRef = useRef<Record<string, string>>({});
+  const myLocksRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    diagramIdRef.current = diagramId;
+  }, [diagramId]);
+
+  useEffect(() => {
+    locksRef.current = locks;
+  }, [locks]);
+
+  // Releases a class lock I hold (no-op if I don't hold it or there's no
+  // room to notify yet). Kept as a plain function (not state-dependent) so
+  // it can be called from callbacks with stable identities.
+  function releaseLock(classId: string | null) {
+    if (!classId || !myLocksRef.current.has(classId)) return;
+    myLocksRef.current.delete(classId);
+    const currentDiagramId = diagramIdRef.current;
+    if (currentDiagramId) {
+      getSocket().emit('unlock-class', { diagramId: currentDiagramId, classId });
+    }
+  }
 
   const handleEditClass = useCallback((classId: string) => {
+    const lockedByOther = locksRef.current[classId];
+    if (lockedByOther && !myLocksRef.current.has(classId)) {
+      window.alert(
+        `${lockedByOther} está editando esta clase ahora mismo. Intenta de nuevo en un momento.`,
+      );
+      return;
+    }
+    const currentDiagramId = diagramIdRef.current;
+    if (currentDiagramId) {
+      getSocket().emit('lock-class', { diagramId: currentDiagramId, classId });
+      myLocksRef.current.add(classId);
+    }
     setEditingClassId(classId);
   }, []);
 
@@ -192,12 +228,18 @@ function AppInner() {
       setCollaboratorCount(data.count);
     }
 
+    function handleLocksUpdate(data: Record<string, { editorName: string }>) {
+      setLocks(Object.fromEntries(Object.entries(data).map(([id, l]) => [id, l.editorName])));
+    }
+
     socket.on('diagram-update', handleRemoteUpdate);
     socket.on('presence', handlePresence);
+    socket.on('locks-update', handleLocksUpdate);
 
     return () => {
       socket.off('diagram-update', handleRemoteUpdate);
       socket.off('presence', handlePresence);
+      socket.off('locks-update', handleLocksUpdate);
     };
   }, [diagramId, handleEditClass, setNodes, setEdges]);
 
@@ -251,6 +293,7 @@ function AppInner() {
     setEdges((eds) =>
       eds.filter((e) => e.source !== classId && e.target !== classId),
     );
+    releaseLock(classId);
     setEditingClassId(null);
   }
 
@@ -646,7 +689,13 @@ function AppInner() {
       <div className="app__body">
         <div className="canvas-wrapper">
           <ReactFlow
-            nodes={nodes}
+            nodes={nodes.map((n) => ({
+              ...n,
+              data: {
+                ...n.data,
+                lockedBy: myLocksRef.current.has(n.id) ? undefined : locks[n.id],
+              },
+            }))}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -668,7 +717,10 @@ function AppInner() {
           <ClassInspector
             umlClass={editingClass}
             onChange={updateClass}
-            onClose={() => setEditingClassId(null)}
+            onClose={() => {
+              releaseLock(editingClassId);
+              setEditingClassId(null);
+            }}
             onDelete={() => deleteClass(editingClass.id)}
           />
         )}
