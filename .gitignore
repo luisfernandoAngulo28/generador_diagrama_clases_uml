@@ -31,5 +31,5 @@ Thumbs.db
 # generated backend output (from the code generator engine)
 generated-output/
 
-# scratch dir used when editing docs/*.docx directly via XML
-docs_docwork/
+# scratch dir(s) used when editing docs/*.docx directly via XML
+docs_docwork*/
