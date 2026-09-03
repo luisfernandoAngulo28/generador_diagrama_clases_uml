@@ -22,6 +22,8 @@ import { ClassInspector } from './components/ClassInspector';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { DiagramsListPanel } from './components/DiagramsListPanel';
+import { TemplatesPanel } from './components/TemplatesPanel';
+import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
 import type {
   DiagramOperation,
@@ -121,6 +123,7 @@ function AppInner() {
   const [showTour, setShowTour] = useState(false);
   const [locks, setLocks] = useState<Record<string, string>>({});
   const [showDiagramsList, setShowDiagramsList] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [past, setPast] = useState<HistorySnapshot[]>([]);
   const [future, setFuture] = useState<HistorySnapshot[]>([]);
 
@@ -361,6 +364,38 @@ function AppInner() {
       data: { umlClass, onEdit: handleEditClass },
     };
     setNodes((nds) => [...nds, newNode]);
+  }
+
+  function applyTemplate(template: DiagramTemplate) {
+    pushHistory();
+    const columnOffset = nodes.length;
+    const ids = template.classes.map(() => crypto.randomUUID());
+
+    const newNodes: Node<UmlClassNodeData>[] = template.classes.map((cls, index) => ({
+      id: ids[index],
+      type: 'umlClass',
+      position: {
+        x: 120 + ((columnOffset + index) % 4) * 260,
+        y: 80 + Math.floor((columnOffset + index) / 4) * 220,
+      },
+      data: {
+        umlClass: { id: ids[index], name: cls.name, attributes: cls.attributes },
+        onEdit: handleEditClass,
+      },
+    }));
+
+    const newEdges: Edge[] = template.relations.map((rel) => ({
+      id: crypto.randomUUID(),
+      source: ids[rel.source],
+      target: ids[rel.target],
+      label: RELATION_LABELS[rel.type],
+      data: { type: rel.type },
+      markerEnd: { type: MarkerType.ArrowClosed },
+    }));
+
+    setNodes((nds) => [...nds, ...newNodes]);
+    setEdges((eds) => [...eds, ...newEdges]);
+    setShowTemplates(false);
   }
 
   function autoLayout() {
@@ -696,6 +731,7 @@ function AppInner() {
         <button data-tour="add-class" onClick={addClass}>
           + Clase
         </button>
+        <button onClick={() => setShowTemplates(true)}>🧩 Plantillas</button>
         <button
           data-tour="auto-layout"
           onClick={autoLayout}
@@ -850,6 +886,9 @@ function AppInner() {
           onOpen={openDiagramFromList}
           onClose={() => setShowDiagramsList(false)}
         />
+      )}
+      {showTemplates && (
+        <TemplatesPanel onApply={applyTemplate} onClose={() => setShowTemplates(false)} />
       )}
     </div>
   );
