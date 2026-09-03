@@ -36,6 +36,7 @@ import {
   Users,
   HelpCircle,
   X,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
@@ -50,6 +51,7 @@ import { TemplatesPanel } from './components/TemplatesPanel';
 import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
 import { ToolbarMenu } from './components/ToolbarMenu';
+import { exportDiagramAsImage } from './lib/exportImage';
 import type {
   DiagramOperation,
   RelationType,
@@ -137,7 +139,7 @@ function createDefaultClass(): UmlClass {
 function AppInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<UmlClassNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const { fitView, setCenter } = useReactFlow();
+  const { fitView, setCenter, getNodes, getNodesBounds } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -147,6 +149,7 @@ function AppInner() {
   const [generating, setGenerating] = useState(false);
   const [exportingXmi, setExportingXmi] = useState(false);
   const [generatingDocs, setGeneratingDocs] = useState(false);
+  const [exportingImage, setExportingImage] = useState(false);
   const [collaboratorCount, setCollaboratorCount] = useState(0);
   const [analyzingPhoto, setAnalyzingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -792,6 +795,21 @@ function AppInner() {
     }
   }
 
+  async function handleExportImage(format: 'png' | 'svg') {
+    setExportingImage(true);
+    try {
+      const fileName =
+        diagramName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') ||
+        'diagrama';
+      const bounds = getNodes().length > 0 ? getNodesBounds(getNodes()) : null;
+      await exportDiagramAsImage(bounds, format, fileName);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'No se pudo exportar la imagen.');
+    } finally {
+      setExportingImage(false);
+    }
+  }
+
   const editingClass = nodes.find((n) => n.id === editingClassId)?.data.umlClass;
 
   const editingEdgeRaw = edges.find((e) => e.id === editingEdgeId);
@@ -919,6 +937,20 @@ function AppInner() {
                 label: generatingDocs ? 'Generando…' : 'Documentación',
                 disabled: generatingDocs,
                 onClick: () => void openDocs(),
+              },
+              {
+                key: 'export-png',
+                icon: <ImageIcon size={15} />,
+                label: exportingImage ? 'Exportando…' : 'Exportar como PNG',
+                disabled: exportingImage || nodes.length === 0,
+                onClick: () => void handleExportImage('png'),
+              },
+              {
+                key: 'export-svg',
+                icon: <ImageIcon size={15} />,
+                label: exportingImage ? 'Exportando…' : 'Exportar como SVG',
+                disabled: exportingImage || nodes.length === 0,
+                onClick: () => void handleExportImage('svg'),
               },
             ]}
           />
