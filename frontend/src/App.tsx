@@ -49,6 +49,7 @@ import { DiagramsListPanel } from './components/DiagramsListPanel';
 import { TemplatesPanel } from './components/TemplatesPanel';
 import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
+import { ToolbarMenu } from './components/ToolbarMenu';
 import type {
   DiagramOperation,
   RelationType,
@@ -886,9 +887,6 @@ function AppInner() {
         <span className="toolbar__divider" />
 
         <div className="toolbar__group">
-          <button className="toolbar__btn" onClick={() => setShowDiagramsList(true)}>
-            <FolderOpen size={15} /> Mis diagramas
-          </button>
           <input
             ref={xmiInputRef}
             type="file"
@@ -896,14 +894,34 @@ function AppInner() {
             style={{ display: 'none' }}
             onChange={(e) => void handleXmiSelected(e)}
           />
-          <button
-            className="toolbar__btn"
-            onClick={() => xmiInputRef.current?.click()}
-            disabled={importingXmi}
-            title="Importar un diagrama desde un archivo XMI (exportado por esta u otra herramienta UML)"
-          >
-            <Upload size={15} /> {importingXmi ? 'Importando…' : 'Importar XMI'}
-          </button>
+          <ToolbarMenu
+            icon={<FolderOpen size={15} />}
+            label="Archivo"
+            items={[
+              {
+                key: 'my-diagrams',
+                icon: <FolderOpen size={15} />,
+                label: 'Mis diagramas',
+                onClick: () => setShowDiagramsList(true),
+              },
+              {
+                key: 'import-xmi',
+                icon: <Upload size={15} />,
+                label: importingXmi ? 'Importando…' : 'Importar XMI',
+                disabled: importingXmi,
+                title:
+                  'Importar un diagrama desde un archivo XMI (exportado por esta u otra herramienta UML)',
+                onClick: () => xmiInputRef.current?.click(),
+              },
+              {
+                key: 'documentation',
+                icon: <FileText size={15} />,
+                label: generatingDocs ? 'Generando…' : 'Documentación',
+                disabled: generatingDocs,
+                onClick: () => void openDocs(),
+              },
+            ]}
+          />
           <button className="toolbar__btn" onClick={() => void saveDiagram()} disabled={saving}>
             <Save size={15} /> {saving ? 'Guardando…' : 'Guardar diagrama'}
           </button>
@@ -950,14 +968,6 @@ function AppInner() {
             disabled={exportingXmi}
           >
             <Download size={15} /> {exportingXmi ? 'Exportando…' : 'Exportar XMI'}
-          </button>
-          <button
-            className="toolbar__btn"
-            data-tour="documentation"
-            onClick={() => void openDocs()}
-            disabled={generatingDocs}
-          >
-            <FileText size={15} /> {generatingDocs ? 'Generando…' : 'Documentación'}
           </button>
 
           <input
