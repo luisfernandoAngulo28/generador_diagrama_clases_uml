@@ -98,4 +98,49 @@ describe('parseXmi', () => {
 </xmi:XMI>`;
     expect(() => parseXmi(empty)).toThrow(/No se encontraron clases/);
   });
+
+  it('round-trips «enum», «abstract» and «interface» stereotypes', () => {
+    const model: UmlModel = {
+      classes: [
+        {
+          id: 'c1',
+          name: 'Persona',
+          stereotype: 'abstract',
+          attributes: [{ name: 'id', type: 'Long', visibility: 'private', isPrimaryKey: true }],
+        },
+        {
+          id: 'c2',
+          name: 'Estado',
+          stereotype: 'enum',
+          attributes: [
+            { name: 'ACTIVO', type: 'String', visibility: 'public' },
+            { name: 'INACTIVO', type: 'String', visibility: 'public' },
+          ],
+        },
+        {
+          id: 'c3',
+          name: 'Notificador',
+          stereotype: 'interface',
+          attributes: [],
+          operations: [{ name: 'enviar', returnType: 'void', visibility: 'public' }],
+        },
+      ],
+      relations: [],
+    };
+
+    const xml = renderXmi('Stereotypes', model);
+    const { model: parsed } = parseXmi(xml);
+
+    const persona = parsed.classes.find((c) => c.name === 'Persona');
+    const estado = parsed.classes.find((c) => c.name === 'Estado');
+    const notificador = parsed.classes.find((c) => c.name === 'Notificador');
+
+    expect(persona?.stereotype).toBe('abstract');
+    expect(estado?.stereotype).toBe('enum');
+    expect(estado?.attributes.map((a) => a.name)).toEqual(['ACTIVO', 'INACTIVO']);
+    expect(notificador?.stereotype).toBe('interface');
+    expect(notificador?.operations).toEqual([
+      { name: 'enviar', returnType: 'void', visibility: 'public' },
+    ]);
+  });
 });

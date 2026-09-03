@@ -95,7 +95,8 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
 
   for (const el of packagedElements) {
     const xmiType = el['@_xmi:type'];
-    if (xmiType !== 'uml:Class' && xmiType !== 'uml:Enumeration') continue;
+    if (xmiType !== 'uml:Class' && xmiType !== 'uml:Enumeration' && xmiType !== 'uml:Interface')
+      continue;
     const id = el['@_xmi:id'];
     if (!id || typeof id !== 'string') continue;
     classIds.add(id);
@@ -126,12 +127,21 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
       };
     });
 
+    const stereotype =
+      xmiType === 'uml:Enumeration'
+        ? 'enum'
+        : xmiType === 'uml:Interface'
+          ? 'interface'
+          : el['@_isAbstract'] === 'true' || el['@_isAbstract'] === true
+            ? 'abstract'
+            : undefined;
+
     classes.push({
       id,
       name: el['@_name'] ?? 'ClaseSinNombre',
       attributes,
       operations: operations.length > 0 ? operations : undefined,
-      stereotype: xmiType === 'uml:Enumeration' ? 'enum' : undefined,
+      stereotype,
     });
   }
 

@@ -10,7 +10,7 @@ import {
 import type { ClassStereotype, RelationType, Visibility } from '../uml.types.js';
 
 const VISIBILITIES: Visibility[] = ['public', 'private', 'protected', 'package'];
-const CLASS_STEREOTYPES: ClassStereotype[] = ['enum'];
+const CLASS_STEREOTYPES: ClassStereotype[] = ['enum', 'abstract', 'interface'];
 const RELATION_TYPES: RelationType[] = [
   'ASSOCIATION',
   'AGGREGATION',

@@ -86,31 +86,49 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
   const classElements = model.classes
     .map((cls) => {
       const classId = sanitizeId(cls.id);
-      const generalizations = inheritance
-        .filter((r) => r.sourceClassId === cls.id)
-        .map(
-          (r) =>
-            `      <generalization xmi:id="gen_${sanitizeId(r.id)}" xmi:type="uml:Generalization" general="${sanitizeId(r.targetClassId)}"/>`,
-        )
-        .join('\n');
+      const isEnum = cls.stereotype === 'enum';
+      const isInterface = cls.stereotype === 'interface';
+      const xmiType = isEnum ? 'uml:Enumeration' : isInterface ? 'uml:Interface' : 'uml:Class';
+      const abstractAttr = cls.stereotype === 'abstract' ? ' isAbstract="true"' : '';
 
-      const attributes = cls.attributes
-        .map(
-          (attr) =>
-            `      <ownedAttribute xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}" type="type_${sanitizeId(attr.type)}"/>`,
-        )
-        .join('\n');
+      const generalizations = isEnum
+        ? ''
+        : inheritance
+            .filter((r) => r.sourceClassId === cls.id)
+            .map(
+              (r) =>
+                `      <generalization xmi:id="gen_${sanitizeId(r.id)}" xmi:type="uml:Generalization" general="${sanitizeId(r.targetClassId)}"/>`,
+            )
+            .join('\n');
 
-      const operations = (cls.operations ?? [])
-        .map((op) => {
-          const opId = `${classId}_op_${sanitizeId(op.name)}`;
-          return `      <ownedOperation xmi:id="${opId}" name="${escapeXml(op.name)}" visibility="${op.visibility}">
+      const attributes = isEnum
+        ? cls.attributes
+            .map(
+              (attr) =>
+                `      <ownedLiteral xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}"/>`,
+            )
+            .join('\n')
+        : isInterface
+          ? ''
+          : cls.attributes
+              .map(
+                (attr) =>
+                  `      <ownedAttribute xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}" type="type_${sanitizeId(attr.type)}"/>`,
+              )
+              .join('\n');
+
+      const operations = isEnum
+        ? ''
+        : (cls.operations ?? [])
+            .map((op) => {
+              const opId = `${classId}_op_${sanitizeId(op.name)}`;
+              return `      <ownedOperation xmi:id="${opId}" name="${escapeXml(op.name)}" visibility="${op.visibility}">
         <ownedParameter xmi:id="${opId}_return" direction="return" type="type_${sanitizeId(op.returnType)}"/>
       </ownedOperation>`;
-        })
-        .join('\n');
+            })
+            .join('\n');
 
-      return `    <packagedElement xmi:type="uml:Class" xmi:id="${classId}" name="${escapeXml(cls.name)}">
+      return `    <packagedElement xmi:type="${xmiType}" xmi:id="${classId}" name="${escapeXml(cls.name)}"${abstractAttr}>
 ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${generalizations}
     </packagedElement>`;
     })

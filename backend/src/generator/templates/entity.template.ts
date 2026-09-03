@@ -104,9 +104,10 @@ export function renderEntity(
         '',
       ].join('\n');
 
+  const classKeyword = cls.stereotype === 'abstract' ? 'public abstract class' : 'public class';
   const classHeader = superclass
-    ? `public class ${cls.name} extends ${superclass.name} {`
-    : `public class ${cls.name} {`;
+    ? `${classKeyword} ${cls.name} extends ${superclass.name} {`
+    : `${classKeyword} ${cls.name} {`;
 
   const tableAnnotation = superclass ? '' : `@Table(name = "${toSnakeCase(cls.name)}s")\n`;
 
