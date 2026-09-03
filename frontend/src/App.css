@@ -114,6 +114,90 @@
   z-index: 1000;
 }
 
+.diagrams-list {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagrams-list__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.diagrams-list__panel {
+  position: relative;
+  width: 420px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #1e1e1e;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.diagrams-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.diagrams-list__close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.diagrams-list__error,
+.diagrams-list__empty {
+  color: #a0aec0;
+  font-size: 13px;
+}
+
+.diagrams-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.diagrams-list__item {
+  width: 100%;
+  text-align: left;
+  background: #161616;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diagrams-list__item:hover {
+  border-color: #63b3ed;
+}
+
+.diagrams-list__item-name {
+  font-weight: 600;
+}
+
+.diagrams-list__item-meta {
+  font-size: 11px;
+  color: #a0aec0;
+}
+
 .tour__backdrop {
   position: fixed;
   inset: 0;

@@ -21,6 +21,7 @@ import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
+import { DiagramsListPanel } from './components/DiagramsListPanel';
 import { Tour, type TourStep } from './components/Tour';
 import type {
   DiagramOperation,
@@ -43,6 +44,11 @@ import {
 import { getSocket } from './api/socket';
 
 const nodeTypes = { umlClass: UmlClassNode };
+
+interface HistorySnapshot {
+  nodes: Node<UmlClassNodeData>[];
+  edges: Edge[];
+}
 
 const TOUR_SEEN_KEY = 'case-tool-tour-seen';
 
@@ -114,6 +120,9 @@ function AppInner() {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showTour, setShowTour] = useState(false);
   const [locks, setLocks] = useState<Record<string, string>>({});
+  const [showDiagramsList, setShowDiagramsList] = useState(false);
+  const [past, setPast] = useState<HistorySnapshot[]>([]);
+  const [future, setFuture] = useState<HistorySnapshot[]>([]);
 
   useEffect(() => {
     if (!window.localStorage.getItem(TOUR_SEEN_KEY)) {
@@ -132,6 +141,8 @@ function AppInner() {
   const diagramIdRef = useRef<string | null>(null);
   const locksRef = useRef<Record<string, string>>({});
   const myLocksRef = useRef<Set<string>>(new Set());
+  const nodesRef = useRef<Node<UmlClassNodeData>[]>([]);
+  const edgesRef = useRef<Edge[]>([]);
 
   useEffect(() => {
     diagramIdRef.current = diagramId;
@@ -140,6 +151,70 @@ function AppInner() {
   useEffect(() => {
     locksRef.current = locks;
   }, [locks]);
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
+  // Snapshots the current diagram into the undo stack and clears redo —
+  // call this BEFORE making a structural change (add/delete/connect/AI
+  // edit/etc). Reads from refs (not closure state) so it stays correct
+  // even from stable-identity callbacks like handleEditClass.
+  function pushHistory() {
+    setPast((p) => [...p, { nodes: nodesRef.current, edges: edgesRef.current }].slice(-50));
+    setFuture([]);
+  }
+
+  function undo() {
+    setPast((p) => {
+      if (p.length === 0) return p;
+      const previous = p[p.length - 1];
+      setFuture((f) => [...f, { nodes: nodesRef.current, edges: edgesRef.current }]);
+      setNodes(previous.nodes);
+      setEdges(previous.edges);
+      return p.slice(0, -1);
+    });
+  }
+
+  function redo() {
+    setFuture((f) => {
+      if (f.length === 0) return f;
+      const next = f[f.length - 1];
+      setPast((p) => [...p, { nodes: nodesRef.current, edges: edgesRef.current }]);
+      setNodes(next.nodes);
+      setEdges(next.edges);
+      return f.slice(0, -1);
+    });
+  }
+
+  // Ctrl+Z / Ctrl+Y (or Ctrl+Shift+Z) undo/redo, ignored while typing in a
+  // text field so it doesn't fight the browser's native input undo.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable);
+      if (isTyping || !(e.ctrlKey || e.metaKey)) return;
+
+      if (e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Releases a class lock I hold (no-op if I don't hold it or there's no
   // room to notify yet). Kept as a plain function (not state-dependent) so
@@ -166,42 +241,56 @@ function AppInner() {
       getSocket().emit('lock-class', { diagramId: currentDiagramId, classId });
       myLocksRef.current.add(classId);
     }
+    pushHistory();
     setEditingClassId(classId);
+  }, []);
+
+  const loadDiagram = useCallback(async (id: string) => {
+    const diagram = await getDiagram(id);
+    setDiagramName(diagram.name);
+    setNodes(
+      diagram.model.classes.map((umlClass, index) => ({
+        id: umlClass.id,
+        type: 'umlClass',
+        position: umlClass.position ?? {
+          x: 120 + (index % 4) * 260,
+          y: 80 + Math.floor(index / 4) * 220,
+        },
+        data: { umlClass, onEdit: handleEditClass },
+      })),
+    );
+    setEdges(
+      diagram.model.relations.map((rel) => ({
+        id: rel.id,
+        source: rel.sourceClassId,
+        target: rel.targetClassId,
+        label: RELATION_LABELS[rel.type],
+        data: { type: rel.type },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      })),
+    );
+    setDiagramId(diagram.id);
+    setPast([]);
+    setFuture([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load an existing diagram when opened via a shared link (?diagram=<id>).
   useEffect(() => {
     const sharedId = new URLSearchParams(window.location.search).get('diagram');
     if (!sharedId) return;
-
-    getDiagram(sharedId).then((diagram) => {
-      setDiagramName(diagram.name);
-      setNodes(
-        diagram.model.classes.map((umlClass, index) => ({
-          id: umlClass.id,
-          type: 'umlClass',
-          position: umlClass.position ?? {
-            x: 120 + (index % 4) * 260,
-            y: 80 + Math.floor(index / 4) * 220,
-          },
-          data: { umlClass, onEdit: handleEditClass },
-        })),
-      );
-      setEdges(
-        diagram.model.relations.map((rel) => ({
-          id: rel.id,
-          source: rel.sourceClassId,
-          target: rel.targetClassId,
-          label: RELATION_LABELS[rel.type],
-          data: { type: rel.type },
-          markerEnd: { type: MarkerType.ArrowClosed },
-        })),
-      );
-      setDiagramId(diagram.id);
-    });
-    // Runs once on mount only; handleEditClass/setNodes/setEdges are stable.
+    loadDiagram(sharedId);
+    // Runs once on mount only; loadDiagram is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function openDiagramFromList(id: string) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('diagram', id);
+    window.history.replaceState({}, '', url);
+    loadDiagram(id);
+    setShowDiagramsList(false);
+  }
 
   // Join the diagram's collaboration room and react to remote changes.
   useEffect(() => {
@@ -263,6 +352,7 @@ function AppInner() {
   }, [nodes, edges, diagramId]);
 
   function addClass() {
+    pushHistory();
     const umlClass = createDefaultClass();
     const newNode: Node<UmlClassNodeData> = {
       id: umlClass.id,
@@ -274,6 +364,7 @@ function AppInner() {
   }
 
   function autoLayout() {
+    pushHistory();
     setNodes((nds) => layoutNodes(nds, edges));
     requestAnimationFrame(() => fitView({ duration: 300 }));
   }
@@ -289,6 +380,7 @@ function AppInner() {
   }
 
   function deleteClass(classId: string) {
+    pushHistory();
     setNodes((nds) => nds.filter((n) => n.id !== classId));
     setEdges((eds) =>
       eds.filter((e) => e.source !== classId && e.target !== classId),
@@ -298,6 +390,7 @@ function AppInner() {
   }
 
   function applyOperations(operations: DiagramOperation[]) {
+    pushHistory();
     let workingNodes = nodes;
     let workingEdges = edges;
     let didAutoLayout = false;
@@ -425,6 +518,7 @@ function AppInner() {
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      pushHistory();
       const label = RELATION_LABELS[nextRelationType];
       setEdges((eds) =>
         addEdge(
@@ -509,6 +603,7 @@ function AppInner() {
         return;
       }
 
+      pushHistory();
       const idMap = new Map<string, string>();
       for (const cls of model.classes) idMap.set(cls.id, crypto.randomUUID());
 
@@ -608,6 +703,13 @@ function AppInner() {
         >
           🧭 Auto-organizar
         </button>
+        <button onClick={undo} disabled={past.length === 0} title="Deshacer (Ctrl+Z)">
+          ↩️ Deshacer
+        </button>
+        <button onClick={redo} disabled={future.length === 0} title="Rehacer (Ctrl+Y)">
+          ↪️ Rehacer
+        </button>
+        <button onClick={() => setShowDiagramsList(true)}>📁 Mis diagramas</button>
 
         <select
           data-tour="relation-select"
@@ -697,9 +799,16 @@ function AppInner() {
               },
             }))}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={(changes) => {
+              if (changes.some((c) => c.type === 'remove')) pushHistory();
+              onNodesChange(changes);
+            }}
+            onEdgesChange={(changes) => {
+              if (changes.some((c) => c.type === 'remove')) pushHistory();
+              onEdgesChange(changes);
+            }}
             onConnect={onConnect}
+            onNodeDragStart={() => pushHistory()}
             nodeTypes={nodeTypes}
             fitView
           >
@@ -736,6 +845,12 @@ function AppInner() {
       </div>
 
       {showTour && <Tour steps={TOUR_STEPS} onFinish={finishTour} />}
+      {showDiagramsList && (
+        <DiagramsListPanel
+          onOpen={openDiagramFromList}
+          onClose={() => setShowDiagramsList(false)}
+        />
+      )}
     </div>
   );
 }
