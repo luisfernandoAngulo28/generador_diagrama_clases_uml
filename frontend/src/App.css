@@ -114,6 +114,138 @@
   z-index: 1000;
 }
 
+.template-builder {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-builder__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.template-builder__panel {
+  position: relative;
+  width: 720px;
+  max-width: 92vw;
+  height: 480px;
+  max-height: 80vh;
+  background: #1e1e1e;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.template-builder__header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #2d3748;
+}
+
+.template-builder__apply {
+  margin-left: auto;
+  background: #2b6cb0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.template-builder__close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.template-builder__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.template-builder__list {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid #2d3748;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.template-builder__list-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  color: inherit;
+  font-size: 13px;
+}
+
+.template-builder__list-item:hover {
+  background: #2d3748;
+}
+
+.template-builder__list-item--active {
+  background: #2b6cb0;
+  color: white;
+}
+
+.template-builder__detail {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.template-builder__detail h3 {
+  margin: 0 0 0.4rem;
+}
+
+.template-builder__detail h4 {
+  margin: 1rem 0 0.3rem;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #a0aec0;
+}
+
+.template-builder__description {
+  color: #cbd5e0;
+  font-style: italic;
+}
+
+.template-builder__detail ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.template-builder__detail li {
+  margin-bottom: 0.3rem;
+}
+
 .diagrams-list {
   position: fixed;
   inset: 0;
