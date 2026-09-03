@@ -22,7 +22,13 @@ import { ClassInspector } from './components/ClassInspector';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { Tour, type TourStep } from './components/Tour';
-import type { RelationType, UmlClass, UmlModel, ValidationResult } from './types/uml';
+import type {
+  DiagramOperation,
+  RelationType,
+  UmlClass,
+  UmlModel,
+  ValidationResult,
+} from './types/uml';
 import { RELATION_LABELS } from './types/uml';
 import {
   createDiagram,
@@ -246,6 +252,132 @@ function AppInner() {
       eds.filter((e) => e.source !== classId && e.target !== classId),
     );
     setEditingClassId(null);
+  }
+
+  function applyOperations(operations: DiagramOperation[]) {
+    let workingNodes = nodes;
+    let workingEdges = edges;
+    let didAutoLayout = false;
+
+    const findNodeByName = (name: string) =>
+      workingNodes.find((n) => n.data.umlClass.name === name);
+
+    for (const op of operations) {
+      switch (op.op) {
+        case 'CREATE_CLASS': {
+          const umlClass: UmlClass = {
+            id: crypto.randomUUID(),
+            name: op.name,
+            attributes:
+              op.attributes && op.attributes.length > 0
+                ? op.attributes
+                : [{ name: 'id', type: 'Long', visibility: 'private', isPrimaryKey: true }],
+          };
+          const newNode: Node<UmlClassNodeData> = {
+            id: umlClass.id,
+            type: 'umlClass',
+            position: { x: 120 + Math.random() * 400, y: 80 + Math.random() * 300 },
+            data: { umlClass, onEdit: handleEditClass },
+          };
+          workingNodes = [...workingNodes, newNode];
+          break;
+        }
+        case 'DELETE_CLASS': {
+          const target = findNodeByName(op.className);
+          if (!target) break;
+          workingNodes = workingNodes.filter((n) => n.id !== target.id);
+          workingEdges = workingEdges.filter(
+            (e) => e.source !== target.id && e.target !== target.id,
+          );
+          break;
+        }
+        case 'RENAME_CLASS': {
+          const target = findNodeByName(op.className);
+          if (!target) break;
+          workingNodes = workingNodes.map((n) =>
+            n.id === target.id
+              ? { ...n, data: { ...n.data, umlClass: { ...n.data.umlClass, name: op.newName } } }
+              : n,
+          );
+          break;
+        }
+        case 'ADD_ATTRIBUTE': {
+          const target = findNodeByName(op.className);
+          if (!target) break;
+          workingNodes = workingNodes.map((n) =>
+            n.id === target.id
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    umlClass: {
+                      ...n.data.umlClass,
+                      attributes: [...n.data.umlClass.attributes, op.attribute],
+                    },
+                  },
+                }
+              : n,
+          );
+          break;
+        }
+        case 'REMOVE_ATTRIBUTE': {
+          const target = findNodeByName(op.className);
+          if (!target) break;
+          workingNodes = workingNodes.map((n) =>
+            n.id === target.id
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    umlClass: {
+                      ...n.data.umlClass,
+                      attributes: n.data.umlClass.attributes.filter(
+                        (a) => a.name !== op.attributeName,
+                      ),
+                    },
+                  },
+                }
+              : n,
+          );
+          break;
+        }
+        case 'CREATE_RELATION': {
+          const source = findNodeByName(op.sourceClassName);
+          const target = findNodeByName(op.targetClassName);
+          if (!source || !target) break;
+          const newEdge: Edge = {
+            id: crypto.randomUUID(),
+            source: source.id,
+            target: target.id,
+            label: RELATION_LABELS[op.type],
+            data: { type: op.type },
+            markerEnd: { type: MarkerType.ArrowClosed },
+          };
+          workingEdges = [...workingEdges, newEdge];
+          break;
+        }
+        case 'DELETE_RELATION': {
+          const source = findNodeByName(op.sourceClassName);
+          const target = findNodeByName(op.targetClassName);
+          if (!source || !target) break;
+          workingEdges = workingEdges.filter(
+            (e) => !(e.source === source.id && e.target === target.id),
+          );
+          break;
+        }
+        case 'AUTO_LAYOUT': {
+          workingNodes = layoutNodes(workingNodes, workingEdges);
+          didAutoLayout = true;
+          break;
+        }
+      }
+    }
+
+    setNodes(workingNodes);
+    setEdges(workingEdges);
+    if (didAutoLayout) {
+      requestAnimationFrame(() => fitView({ duration: 300 }));
+    }
   }
 
   const onConnect = useCallback(
@@ -548,7 +680,7 @@ function AppInner() {
           />
         )}
 
-        <ChatPanel />
+        <ChatPanel model={buildModel()} onApplyOperations={applyOperations} />
       </div>
 
       {showTour && <Tour steps={TOUR_STEPS} onFinish={finishTour} />}

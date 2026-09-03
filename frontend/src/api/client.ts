@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Diagram, UmlModel, ValidationResult } from '../types/uml';
+import type { Diagram, EditDiagramResult, UmlModel, ValidationResult } from '../types/uml';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
@@ -86,9 +86,12 @@ export async function validateDiagram(diagramId: string): Promise<ValidationResu
   return data;
 }
 
-export async function sendChatMessage(message: string): Promise<string> {
-  const { data } = await api.post<{ reply: string }>('/ai/chat', { message });
-  return data.reply;
+export async function editDiagramWithAi(
+  message: string,
+  model: UmlModel,
+): Promise<EditDiagramResult> {
+  const { data } = await api.post<EditDiagramResult>('/ai/edit', { message, model });
+  return data;
 }
 
 export async function interpretDiagramPhoto(

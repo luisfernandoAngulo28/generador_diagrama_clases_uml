@@ -1,13 +1,19 @@
 import { useState } from 'react';
-import { sendChatMessage } from '../api/client';
+import { editDiagramWithAi } from '../api/client';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import type { DiagramOperation, UmlModel } from '../types/uml';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
 }
 
-export function ChatPanel() {
+interface ChatPanelProps {
+  model: UmlModel;
+  onApplyOperations: (operations: DiagramOperation[]) => void;
+}
+
+export function ChatPanel({ model, onApplyOperations }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,8 +26,20 @@ export function ChatPanel() {
     setInput('');
     setLoading(true);
     try {
-      const reply = await sendChatMessage(trimmed);
-      setMessages((prev) => [...prev, { role: 'assistant', text: reply }]);
+      const { reply, operations } = await editDiagramWithAi(trimmed, model);
+      if (operations.length > 0) {
+        onApplyOperations(operations);
+      }
+      const suffix =
+        operations.length > 0
+          ? ` (${operations.length} cambio${operations.length === 1 ? '' : 's'} aplicado${
+              operations.length === 1 ? '' : 's'
+            } al diagrama)`
+          : '';
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: `${reply}${suffix}` },
+      ]);
     } catch {
       setMessages((prev) => [
         ...prev,

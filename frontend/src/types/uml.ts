@@ -83,3 +83,24 @@ export const VISIBILITY_SYMBOLS: Record<Visibility, string> = {
   protected: '#',
   package: '~',
 };
+
+/** Atomic edits the AI assistant can propose against the current diagram. */
+export type DiagramOperation =
+  | { op: 'CREATE_CLASS'; name: string; attributes?: UmlAttribute[] }
+  | { op: 'DELETE_CLASS'; className: string }
+  | { op: 'RENAME_CLASS'; className: string; newName: string }
+  | { op: 'ADD_ATTRIBUTE'; className: string; attribute: UmlAttribute }
+  | { op: 'REMOVE_ATTRIBUTE'; className: string; attributeName: string }
+  | {
+      op: 'CREATE_RELATION';
+      sourceClassName: string;
+      targetClassName: string;
+      type: RelationType;
+    }
+  | { op: 'DELETE_RELATION'; sourceClassName: string; targetClassName: string }
+  | { op: 'AUTO_LAYOUT' };
+
+export interface EditDiagramResult {
+  reply: string;
+  operations: DiagramOperation[];
+}
