@@ -44,9 +44,9 @@ function sourceMultiplicity(type: RelationType): EndMultiplicity {
     case 'ONE_TO_ONE':
       return { lower: '1', upper: '1' };
     case 'ONE_TO_MANY':
+    case 'COMPOSITION':
       return { lower: '1', upper: '1' };
     case 'MANY_TO_ONE':
-    case 'COMPOSITION':
     case 'AGGREGATION':
     case 'ASSOCIATION':
       return { lower: '0', upper: '*' };
