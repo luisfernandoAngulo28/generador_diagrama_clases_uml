@@ -2,21 +2,11 @@ import { useEffect, useState } from 'react';
 import { History, X } from 'lucide-react';
 import { getDiagramHistory } from '../api/client';
 import type { DiagramHistoryEntry } from '../types/history';
+import { formatRelativeTime } from '../lib/format';
 
 interface HistoryPanelProps {
   diagramId: string;
   onClose: () => void;
-}
-
-function formatRelativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const diffMin = Math.round(diffMs / 60000);
-  if (diffMin < 1) return 'justo ahora';
-  if (diffMin < 60) return `hace ${diffMin} min`;
-  const diffHours = Math.round(diffMin / 60);
-  if (diffHours < 24) return `hace ${diffHours} h`;
-  const diffDays = Math.round(diffHours / 24);
-  return `hace ${diffDays} día${diffDays === 1 ? '' : 's'}`;
 }
 
 /** "Bitácora": audit trail of who changed this diagram and when. */

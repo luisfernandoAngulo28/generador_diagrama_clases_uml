@@ -8,6 +8,7 @@ import { GeneratorModule } from './generator/generator.module.js';
 import { AiModule } from './ai/ai.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AttachmentsModule } from './attachments/attachments.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AuthModule } from './auth/auth.module.js';
     DiagramsModule,
     GeneratorModule,
     AiModule,
+    AttachmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

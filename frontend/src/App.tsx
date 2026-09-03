@@ -40,6 +40,7 @@ import {
   User as UserIcon,
   LogOut,
   History,
+  Paperclip,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
@@ -51,6 +52,7 @@ import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { DiagramsListPanel } from './components/DiagramsListPanel';
 import { HistoryPanel } from './components/HistoryPanel';
+import { AttachmentsPanel } from './components/AttachmentsPanel';
 import { TemplatesPanel } from './components/TemplatesPanel';
 import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
@@ -169,6 +171,7 @@ function AppInner() {
   const [locks, setLocks] = useState<Record<string, string>>({});
   const [showDiagramsList, setShowDiagramsList] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [past, setPast] = useState<HistorySnapshot[]>([]);
@@ -961,6 +964,16 @@ function AppInner() {
                 onClick: () => setShowHistory(true),
               },
               {
+                key: 'attachments',
+                icon: <Paperclip size={15} />,
+                label: 'Documentos adjuntos',
+                disabled: !diagramId,
+                title: diagramId
+                  ? undefined
+                  : 'Guarda el diagrama al menos una vez para adjuntar archivos',
+                onClick: () => setShowAttachments(true),
+              },
+              {
                 key: 'export-png',
                 icon: <ImageIcon size={15} />,
                 label: exportingImage ? 'Exportando…' : 'Exportar como PNG',
@@ -1179,6 +1192,9 @@ function AppInner() {
       )}
       {showHistory && diagramId && (
         <HistoryPanel diagramId={diagramId} onClose={() => setShowHistory(false)} />
+      )}
+      {showAttachments && diagramId && (
+        <AttachmentsPanel diagramId={diagramId} onClose={() => setShowAttachments(false)} />
       )}
     </div>
   );

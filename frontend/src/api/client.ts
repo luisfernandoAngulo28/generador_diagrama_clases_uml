@@ -2,6 +2,7 @@ import axios from 'axios';
 import type { Diagram, EditDiagramResult, UmlModel, ValidationResult } from '../types/uml';
 import type { AuthResult } from '../types/auth';
 import type { DiagramHistoryEntry } from '../types/history';
+import type { Attachment } from '../types/attachment';
 
 export const AUTH_TOKEN_KEY = 'case-tool.auth-token';
 
@@ -61,6 +62,29 @@ export async function getDiagram(id: string): Promise<Diagram> {
 export async function getDiagramHistory(id: string): Promise<DiagramHistoryEntry[]> {
   const { data } = await api.get<DiagramHistoryEntry[]>(`/diagrams/${id}/history`);
   return data;
+}
+
+export async function listAttachments(diagramId: string): Promise<Attachment[]> {
+  const { data } = await api.get<Attachment[]>(`/diagrams/${diagramId}/attachments`);
+  return data;
+}
+
+export async function uploadAttachment(diagramId: string, file: File): Promise<Attachment> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<Attachment>(`/diagrams/${diagramId}/attachments`, formData);
+  return data;
+}
+
+export async function getAttachmentDownloadUrl(
+  id: string,
+): Promise<{ url: string; fileName: string }> {
+  const { data } = await api.get<{ url: string; fileName: string }>(`/attachments/${id}/url`);
+  return data;
+}
+
+export async function deleteAttachment(id: string): Promise<void> {
+  await api.delete(`/attachments/${id}`);
 }
 
 export async function createDiagram(

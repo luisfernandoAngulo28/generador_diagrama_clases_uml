@@ -1228,3 +1228,56 @@
   font-size: 12px;
   color: #a0aec0;
 }
+
+.attachments-panel__upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #2b6cb0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.45rem 0.7rem;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.attachments-panel__upload:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.attachments-panel__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.attachments-panel__item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachments-panel__actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.attachments-panel__actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #2d3748;
+  border-radius: 5px;
+  color: inherit;
+  padding: 0.35rem;
+  cursor: pointer;
+}
+
+.attachments-panel__actions button:hover {
+  background: #2d3748;
+}
