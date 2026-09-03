@@ -19,6 +19,7 @@ import './App.css';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
+import { FeaturesPanel } from './components/FeaturesPanel';
 import { RelationInspector } from './components/RelationInspector';
 import { ClassTreePanel } from './components/ClassTreePanel';
 import { ChatPanel } from './components/ChatPanel';
@@ -913,6 +914,8 @@ function AppInner() {
               nodeColor="#4a5568"
             />
           </ReactFlow>
+
+          {editingClass && <FeaturesPanel umlClass={editingClass} onChange={updateClass} />}
         </div>
 
         {editingClass && (
