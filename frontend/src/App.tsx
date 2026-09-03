@@ -38,6 +38,8 @@ import {
   X,
   Image as ImageIcon,
   Trash2,
+  User as UserIcon,
+  LogOut,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
@@ -53,6 +55,8 @@ import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
 import { ToolbarMenu } from './components/ToolbarMenu';
 import { exportDiagramAsImage } from './lib/exportImage';
+import { LoginPage } from './components/LoginPage';
+import { useAuth } from './context/AuthContext';
 import type {
   DiagramOperation,
   RelationType,
@@ -138,6 +142,7 @@ function createDefaultClass(): UmlClass {
 }
 
 function AppInner() {
+  const { user, logout } = useAuth();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<UmlClassNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { fitView, setCenter, getNodes, getNodesBounds, deleteElements } = useReactFlow();
@@ -363,7 +368,7 @@ function AppInner() {
     if (!diagramId) return;
 
     const socket = getSocket();
-    socket.emit('join-diagram', diagramId);
+    socket.emit('join-diagram', { diagramId, userName: user?.name });
 
     function handleRemoteUpdate(payload: { nodes: Node<UmlClassNodeData>[]; edges: Edge[] }) {
       isApplyingRemoteRef.current = true;
@@ -396,7 +401,7 @@ function AppInner() {
       socket.off('presence', handlePresence);
       socket.off('locks-update', handleLocksUpdate);
     };
-  }, [diagramId, handleEditClass, setNodes, setEdges]);
+  }, [diagramId, handleEditClass, setNodes, setEdges, user]);
 
   // Broadcast local changes to other collaborators (debounced).
   useEffect(() => {
@@ -1045,6 +1050,13 @@ function AppInner() {
         <button className="toolbar__btn toolbar__help" onClick={() => setShowTour(true)}>
           <HelpCircle size={15} /> Recorrido
         </button>
+
+        <span className="toolbar__user">
+          <UserIcon size={14} /> {user?.name}
+          <button onClick={logout} title="Cerrar sesión">
+            <LogOut size={14} />
+          </button>
+        </span>
       </header>
 
       {photoError && (
@@ -1160,6 +1172,12 @@ function AppInner() {
 }
 
 export default function App() {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
   return (
     <ReactFlowProvider>
       <AppInner />

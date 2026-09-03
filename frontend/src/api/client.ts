@@ -1,9 +1,51 @@
 import axios from 'axios';
 import type { Diagram, EditDiagramResult, UmlModel, ValidationResult } from '../types/uml';
+import type { AuthResult } from '../types/auth';
+
+export const AUTH_TOKEN_KEY = 'case-tool.auth-token';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
 });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+let onUnauthorized: (() => void) | null = null;
+
+/** Registered by AuthContext so a 401 anywhere logs the user out and shows the login screen. */
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      onUnauthorized?.();
+    }
+    return Promise.reject(error);
+  },
+);
+
+export async function registerUser(
+  name: string,
+  email: string,
+  password: string,
+): Promise<AuthResult> {
+  const { data } = await api.post<AuthResult>('/auth/register', { name, email, password });
+  return data;
+}
+
+export async function loginUser(email: string, password: string): Promise<AuthResult> {
+  const { data } = await api.post<AuthResult>('/auth/login', { email, password });
+  return data;
+}
 
 export async function listDiagrams(): Promise<Diagram[]> {
   const { data } = await api.get<Diagram[]>('/diagrams');

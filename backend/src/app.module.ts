@@ -6,6 +6,8 @@ import { AppService } from './app.service.js';
 import { DiagramsModule } from './diagrams/diagrams.module.js';
 import { GeneratorModule } from './generator/generator.module.js';
 import { AiModule } from './ai/ai.module.js';
+import { UsersModule } from './users/users.module.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { AiModule } from './ai/ai.module.js';
         synchronize: config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
       }),
     }),
+    UsersModule,
+    AuthModule,
     DiagramsModule,
     GeneratorModule,
     AiModule,

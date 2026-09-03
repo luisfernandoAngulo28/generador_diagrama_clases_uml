@@ -41,10 +41,13 @@ export class DiagramsGateway implements OnGatewayDisconnect {
   @SubscribeMessage('join-diagram')
   handleJoin(
     @ConnectedSocket() client: Socket,
-    @MessageBody() diagramId: string,
+    @MessageBody() payload: string | { diagramId: string; userName?: string },
   ) {
+    const diagramId = typeof payload === 'string' ? payload : payload.diagramId;
+    const userName = typeof payload === 'string' ? undefined : payload.userName?.trim();
+
     client.data.diagramId = diagramId;
-    client.data.editorName = `Usuario ${client.id.slice(0, 4).toUpperCase()}`;
+    client.data.editorName = userName || `Usuario ${client.id.slice(0, 4).toUpperCase()}`;
     client.join(diagramId);
     this.broadcastPresence(diagramId);
     client.emit('locks-update', this.serializeLocks(diagramId));
