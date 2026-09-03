@@ -92,6 +92,17 @@ export function ClassInspector({
         «enum» (genera un enum de Java en vez de una entidad)
       </label>
 
+      <label className="inspector__field">
+        Notas
+        <textarea
+          className="inspector__notes"
+          rows={2}
+          placeholder="Describe el propósito de esta clase (aparece en la documentación generada)…"
+          value={umlClass.description ?? ''}
+          onChange={(e) => onChange({ ...umlClass, description: e.target.value })}
+        />
+      </label>
+
       <h4 className="inspector__section-title">{isEnum ? 'Valores' : 'Atributos'}</h4>
       <table className="inspector__table">
         <thead>

@@ -25,6 +25,8 @@ export interface UmlClass {
   operations?: UmlOperation[];
   /** «enum»: generates a plain Java enum (attribute names become literals) instead of a JPA entity. */
   stereotype?: ClassStereotype;
+  /** Free-text description of the class's purpose; shown in the inspector and the documentation report. */
+  description?: string;
   /** Canvas position; not used by the generator, kept only for the frontend layout. */
   position?: { x: number; y: number };
 }

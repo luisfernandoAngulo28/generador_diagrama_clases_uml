@@ -85,6 +85,10 @@ export class UmlClassDto {
   stereotype?: ClassStereotype;
 
   @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
   @ValidateNested()
   @Type(() => PositionDto)
   position?: PositionDto;

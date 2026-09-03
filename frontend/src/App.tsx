@@ -20,6 +20,7 @@ import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
 import { RelationInspector } from './components/RelationInspector';
+import { ClassTreePanel } from './components/ClassTreePanel';
 import { ChatPanel } from './components/ChatPanel';
 import { ValidationPanel } from './components/ValidationPanel';
 import { DiagramsListPanel } from './components/DiagramsListPanel';
@@ -107,7 +108,7 @@ function createDefaultClass(): UmlClass {
 function AppInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<UmlClassNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const { fitView } = useReactFlow();
+  const { fitView, setCenter } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -404,6 +405,17 @@ function AppInner() {
     pushHistory();
     setNodes((nds) => layoutNodes(nds, edges));
     requestAnimationFrame(() => fitView({ duration: 300 }));
+  }
+
+  function focusClass(nodeId: string) {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    const width = node.measured?.width ?? 200;
+    const height = node.measured?.height ?? 100;
+    setCenter(node.position.x + width / 2, node.position.y + height / 2, {
+      zoom: 1,
+      duration: 400,
+    });
   }
 
   function updateClass(updated: UmlClass) {
@@ -865,6 +877,7 @@ function AppInner() {
       )}
 
       <div className="app__body">
+        <ClassTreePanel nodes={nodes} onSelect={focusClass} />
         <div className="canvas-wrapper">
           <ReactFlow
             nodes={nodes.map((n) => ({

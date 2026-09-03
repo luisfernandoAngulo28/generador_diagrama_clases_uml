@@ -59,8 +59,13 @@ export function renderDocumentationHtml(name: string, model: UmlModel): string {
           </tbody>
         </table>`;
 
+      const description = cls.description
+        ? `<p class="class-description">${esc(cls.description)}</p>`
+        : '';
+
       return `<section class="class-card">
         <h3>${stereotype}${esc(cls.name)}</h3>
+        ${description}
         <table>
           <thead><tr><th>Atributo</th><th>Tipo</th><th>Visibilidad</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -109,6 +114,7 @@ export function renderDocumentationHtml(name: string, model: UmlModel): string {
   h2 { margin-top: 2.5rem; color: #2d3748; }
   .class-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
   .class-card table.operations { margin-top: 0.75rem; }
+  .class-description { color: #4a5568; font-size: 13px; margin: 0 0 0.75rem; }
   .class-card h3 { margin: 0 0 0.75rem; }
   .stereotype { color: #718096; font-style: italic; font-weight: 400; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
