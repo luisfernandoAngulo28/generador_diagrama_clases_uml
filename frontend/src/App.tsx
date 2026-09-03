@@ -57,6 +57,7 @@ import { exportDiagramAsImage } from './lib/exportImage';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { UmlMarkerDefs } from './components/UmlMarkerDefs';
+import { UmlLegend } from './components/UmlLegend';
 import { UmlRelationEdge } from './components/UmlRelationEdge';
 import { edgeAppearance } from './lib/multiplicity';
 import type {
@@ -1107,6 +1108,8 @@ function AppInner() {
               nodeColor="#4a5568"
             />
           </ReactFlow>
+
+          <UmlLegend />
 
           {selectedNodeIds.length > 1 && (
             <div className="multi-select-bar">
