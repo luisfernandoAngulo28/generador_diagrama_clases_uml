@@ -10,4 +10,5 @@ export const RELATION_LABELS: Record<RelationType, string> = {
   ONE_TO_MANY: '1 : N',
   MANY_TO_ONE: 'N : 1',
   MANY_TO_MANY: 'N : M',
+  DEPENDENCY: 'Dependencia',
 };

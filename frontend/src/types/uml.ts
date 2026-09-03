@@ -39,7 +39,9 @@ export type RelationType =
   | 'ONE_TO_ONE'
   | 'ONE_TO_MANY'
   | 'MANY_TO_ONE'
-  | 'MANY_TO_MANY';
+  | 'MANY_TO_MANY'
+  /** UML "uses" relation: A depends on B without owning/persisting a reference to it. No JPA field is generated. */
+  | 'DEPENDENCY';
 
 export interface UmlRelation {
   id: string;
@@ -72,7 +74,11 @@ export const RELATION_LABELS: Record<RelationType, string> = {
   ONE_TO_MANY: '1 : N',
   MANY_TO_ONE: 'N : 1',
   MANY_TO_MANY: 'N : M',
+  DEPENDENCY: 'Dependencia',
 };
+
+/** Relation types rendered as a dashed line (standard UML notation for a Dependency). */
+export const DASHED_RELATION_TYPES: ReadonlySet<RelationType> = new Set(['DEPENDENCY']);
 
 export interface ValidationIssue {
   severity: 'error' | 'warning';

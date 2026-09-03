@@ -20,6 +20,7 @@ const RELATION_TYPES: RelationType[] = [
   'ONE_TO_MANY',
   'MANY_TO_ONE',
   'MANY_TO_MANY',
+  'DEPENDENCY',
 ];
 
 export class UmlAttributeDto {

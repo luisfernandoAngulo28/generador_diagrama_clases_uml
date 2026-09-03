@@ -35,7 +35,7 @@ import type {
   UmlModel,
   ValidationResult,
 } from './types/uml';
-import { RELATION_LABELS } from './types/uml';
+import { RELATION_LABELS, DASHED_RELATION_TYPES } from './types/uml';
 import {
   createDiagram,
   downloadGeneratedBackend,
@@ -95,6 +95,11 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
+/** Dashed stroke for Dependency relations, matching standard UML notation. */
+function edgeStyle(type: RelationType): { strokeDasharray?: string } | undefined {
+  return DASHED_RELATION_TYPES.has(type) ? { strokeDasharray: '5 5' } : undefined;
+}
+
 function createDefaultClass(): UmlClass {
   const id = crypto.randomUUID();
   return {
@@ -128,6 +133,7 @@ function AppInner() {
   const [locks, setLocks] = useState<Record<string, string>>({});
   const [showDiagramsList, setShowDiagramsList] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [snapToGrid, setSnapToGrid] = useState(false);
   const [past, setPast] = useState<HistorySnapshot[]>([]);
   const [future, setFuture] = useState<HistorySnapshot[]>([]);
 
@@ -273,6 +279,7 @@ function AppInner() {
         target: rel.targetClassId,
         label: RELATION_LABELS[rel.type],
         data: { type: rel.type, sourceRole: rel.sourceRole, targetRole: rel.targetRole },
+        style: edgeStyle(rel.type),
         markerEnd: { type: MarkerType.ArrowClosed },
       })),
     );
@@ -394,6 +401,7 @@ function AppInner() {
       target: ids[rel.target],
       label: RELATION_LABELS[rel.type],
       data: { type: rel.type },
+      style: edgeStyle(rel.type),
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
 
@@ -537,6 +545,7 @@ function AppInner() {
             target: target.id,
             label: RELATION_LABELS[op.type],
             data: { type: op.type },
+            style: edgeStyle(op.type),
             markerEnd: { type: MarkerType.ArrowClosed },
           };
           workingEdges = [...workingEdges, newEdge];
@@ -577,6 +586,7 @@ function AppInner() {
             id: crypto.randomUUID(),
             label,
             data: { type: nextRelationType },
+            style: edgeStyle(nextRelationType),
             markerEnd: { type: MarkerType.ArrowClosed },
           },
           eds,
@@ -681,6 +691,7 @@ function AppInner() {
           target: idMap.get(rel.targetClassId)!,
           label: RELATION_LABELS[rel.type],
           data: { type: rel.type },
+          style: edgeStyle(rel.type),
           markerEnd: { type: MarkerType.ArrowClosed },
         }));
 
@@ -760,6 +771,7 @@ function AppInner() {
         return {
           ...e,
           label: RELATION_LABELS[newType],
+          style: edgeStyle(newType),
           data: { ...e.data, ...patch, type: newType },
         };
       }),
@@ -791,6 +803,14 @@ function AppInner() {
           disabled={nodes.length === 0}
         >
           🧭 Auto-organizar
+        </button>
+        <button
+          onClick={() => setSnapToGrid((v) => !v)}
+          title="Ajustar las clases a una cuadrícula al moverlas"
+          aria-pressed={snapToGrid}
+          className={snapToGrid ? 'toolbar__toggle--active' : ''}
+        >
+          ▦ Cuadrícula
         </button>
         <button onClick={undo} disabled={past.length === 0} title="Deshacer (Ctrl+Z)">
           ↩️ Deshacer
@@ -904,9 +924,11 @@ function AppInner() {
               setEditingEdgeId(edge.id);
             }}
             nodeTypes={nodeTypes}
+            snapToGrid={snapToGrid}
+            snapGrid={[20, 20]}
             fitView
           >
-            <Background />
+            <Background gap={20} />
             <Controls />
             <MiniMap
               style={{ backgroundColor: '#1e1e1e' }}

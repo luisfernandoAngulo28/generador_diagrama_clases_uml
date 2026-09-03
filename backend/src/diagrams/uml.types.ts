@@ -39,7 +39,9 @@ export type RelationType =
   | 'ONE_TO_ONE'
   | 'ONE_TO_MANY'
   | 'MANY_TO_ONE'
-  | 'MANY_TO_MANY';
+  | 'MANY_TO_MANY'
+  /** UML "uses" relation: A depends on B without owning/persisting a reference to it. No JPA field is generated. */
+  | 'DEPENDENCY';
 
 export interface UmlRelation {
   id: string;

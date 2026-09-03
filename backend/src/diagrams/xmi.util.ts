@@ -64,8 +64,11 @@ function aggregationKind(type: RelationType): string | null {
 }
 
 export function renderXmi(diagramName: string, model: UmlModel): string {
-  const nonInheritance = model.relations.filter((r) => r.type !== 'INHERITANCE');
   const inheritance = model.relations.filter((r) => r.type === 'INHERITANCE');
+  const dependencies = model.relations.filter((r) => r.type === 'DEPENDENCY');
+  const nonInheritance = model.relations.filter(
+    (r) => r.type !== 'INHERITANCE' && r.type !== 'DEPENDENCY',
+  );
 
   const distinctTypes = new Set<string>();
   for (const cls of model.classes) {
@@ -141,12 +144,20 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
     })
     .join('\n');
 
+  const dependencyElements = dependencies
+    .map((rel: UmlRelation) => {
+      const relId = sanitizeId(rel.id);
+      return `    <packagedElement xmi:type="uml:Dependency" xmi:id="${relId}" name="dependencia" client="${sanitizeId(rel.sourceClassId)}" supplier="${sanitizeId(rel.targetClassId)}"/>`;
+    })
+    .join('\n');
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <xmi:XMI xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
   <uml:Model xmi:type="uml:Model" xmi:id="model_1" name="${escapeXml(diagramName)}">
 ${typeDeclarations}
 ${classElements}
 ${associationElements}
+${dependencyElements}
   </uml:Model>
 </xmi:XMI>
 `;
