@@ -86,13 +86,18 @@ Parámetros, Retorna, Visibilidad, eliminar), con alta/baja de filas en
 vivo. Además el formulario de login/registro, el inspector de clase y el
 de relación son formularios de texto estándar.
 
-## 7. ¿S3 en AWS para documentos/imágenes? — ❌ Falta
+## 7. ¿S3 en AWS para documentos/imágenes? — ✅ Cumple
 
-Verificado con grep en todo `backend/src` y `package.json`: cero
-referencias a `s3`, `aws-sdk`, `@aws-sdk` o `multer`. No existe ningún
-mecanismo de subida de archivos en el backend todavía. Hay que decidir
-qué se sube (¿fotos de pizarra ya capturadas por la IA? ¿adjuntos por
-clase? ¿el PDF de documentación?) y agregar un endpoint + bucket S3.
+Resuelto: bucket real creado en tu cuenta de AWS
+(`diagramador-uml-adjuntos-fernando`, `us-east-1`), con un usuario IAM
+limitado solo a ese bucket (política `DiagramadorUmlS3Access`: ListBucket
++ PutObject/GetObject/DeleteObject, nada más). Backend nuevo
+`backend/src/attachments/` — subir/listar/descargar (URL firmada,
+expira en 5 min)/eliminar archivos por diagrama, con límite de 15MB y
+lista blanca de tipos (imágenes, PDF, Word, Excel, PowerPoint, texto).
+Accesible desde Archivo → "Documentos adjuntos". Verificado en vivo
+contra S3 real: subida, descarga (el contenido coincide byte a byte),
+eliminación confirmada, y rechazo de un `.exe` por tipo no permitido.
 
 ## 8. ¿Documentación colaborativa con bitácora de quién modificó? — ✅ Cumple
 
@@ -119,9 +124,10 @@ punto 5 (Scrum, diagramas de EA).
 | 1 | Reemplazar las 2 imágenes de diagramas (4.3 y 6.3) por capturas reales de EA | 🔴 Alta — el docente lo pidió explícitamente | Bajo (lo haces tú en EA) |
 | 2 | Desplegar en AWS (aunque sea una EC2 simple con el docker-compose que ya existe) | 🔴 Alta | Medio — necesitas la cuenta AWS |
 | 3 | Agregar sección de Scrum a la documentación (backlog, sprints) | 🟡 Media | Bajo-medio |
-| 4 | S3 para subir archivos | 🟡 Media | Medio |
+| ~~4~~ | ~~S3 para subir archivos~~ — ✅ hecho | — | — |
 | ~~5~~ | ~~Bitácora de cambios (quién modificó qué)~~ — ✅ hecho | — | — |
 | 6 | Probar `flutter_gemma` y `offline_sync_service` en un celular real | 🟢 Baja (ya funciona en el emulador/build) | Bajo — solo necesitas el celular |
 
-Los puntos 2, 4, 5 y 8 (imágenes, ML, formularios/datagrid, bitácora) del
-rúbrico ya están cumplidos y verificados contra el código real.
+Los puntos 2, 4, 5, 6, 7 y 8 (imágenes, ML, formularios/datagrid, S3,
+bitácora) del rúbrico ya están cumplidos y verificados contra el código
+real y, en el caso de S3, contra tu bucket real de AWS.
