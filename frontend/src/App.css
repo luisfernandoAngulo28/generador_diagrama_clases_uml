@@ -225,6 +225,22 @@
   padding: 6px;
 }
 
+.uml-class-node__stereotype {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 11px;
+  color: #a0aec0;
+}
+
+.inspector__stereotype {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 0.75rem;
+  color: #cbd5e0;
+}
+
 .uml-class-node__attributes {
   padding: 4px 8px;
 }

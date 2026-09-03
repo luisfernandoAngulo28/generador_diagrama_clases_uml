@@ -9,6 +9,9 @@ export function renderEntity(
 ): string {
   const superclass = findSuperclass(cls, model);
   const relationFields = resolveRelationFields(cls, model);
+  const enumClassNames = new Set(
+    model.classes.filter((c) => c.stereotype === 'enum').map((c) => c.name),
+  );
 
   const imports = new Set<string>([
     'jakarta.persistence.Entity',
@@ -31,6 +34,11 @@ export function renderEntity(
     if (javaType === 'LocalDateTime') imports.add('java.time.LocalDateTime');
     if (javaType === 'BigDecimal') imports.add('java.math.BigDecimal');
     if (javaType === 'UUID') imports.add('java.util.UUID');
+    if (enumClassNames.has(attr.type)) {
+      imports.add('jakarta.persistence.Enumerated');
+      imports.add('jakarta.persistence.EnumType');
+      imports.add(`${packageName}.model.${attr.type}`);
+    }
   }
 
   const idAttribute = cls.attributes.find((a) => a.isPrimaryKey);
@@ -38,7 +46,12 @@ export function renderEntity(
 
   const fields = cls.attributes
     .filter((a) => !a.isPrimaryKey)
-    .map((attr) => `    private ${toJavaType(attr.type)} ${attr.name};`)
+    .map((attr) => {
+      const annotation = enumClassNames.has(attr.type)
+        ? '    @Enumerated(EnumType.STRING)\n'
+        : '';
+      return `${annotation}    private ${toJavaType(attr.type)} ${attr.name};`;
+    })
     .join('\n');
 
   const relationFieldsCode = relationFields

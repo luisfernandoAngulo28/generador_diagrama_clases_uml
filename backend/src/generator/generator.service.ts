@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { UmlModel } from '../diagrams/uml.types.js';
 import { renderEntity } from './templates/entity.template.js';
+import { renderEnum } from './templates/enum.template.js';
 import { renderRepository } from './templates/repository.template.js';
 import { renderService } from './templates/service.template.js';
 import { renderController } from './templates/controller.template.js';
@@ -43,6 +44,12 @@ export class GeneratorService {
       renderJacksonConfig(packageName);
 
     for (const cls of model.classes) {
+      if (cls.stereotype === 'enum') {
+        files[`src/main/java/${packagePath}/model/${cls.name}.java`] =
+          renderEnum(cls, packageName);
+        continue;
+      }
+
       files[`src/main/java/${packagePath}/entity/${cls.name}.java`] =
         renderEntity(cls, model, packageName);
       files[`src/main/java/${packagePath}/repository/${cls.name}Repository.java`] =

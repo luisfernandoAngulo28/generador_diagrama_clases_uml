@@ -7,10 +7,14 @@ export interface UmlAttribute {
   isPrimaryKey?: boolean;
 }
 
+export type ClassStereotype = 'enum';
+
 export interface UmlClass {
   id: string;
   name: string;
   attributes: UmlAttribute[];
+  /** «enum»: generates a plain Java enum (attribute names become literals) instead of a JPA entity. */
+  stereotype?: ClassStereotype;
   /** Canvas position, persisted so a reloaded/shared diagram keeps its layout. */
   position?: { x: number; y: number };
 }

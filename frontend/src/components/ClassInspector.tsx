@@ -27,7 +27,9 @@ export function ClassInspector({
       ...umlClass,
       attributes: [
         ...umlClass.attributes,
-        { name: 'nuevoAtributo', type: 'String', visibility: 'private' },
+        isEnum
+          ? { name: 'NUEVO_VALOR', type: 'String', visibility: 'public' }
+          : { name: 'nuevoAtributo', type: 'String', visibility: 'private' },
       ],
     });
   }
@@ -38,6 +40,8 @@ export function ClassInspector({
       attributes: umlClass.attributes.filter((_, i) => i !== index),
     });
   }
+
+  const isEnum = umlClass.stereotype === 'enum';
 
   return (
     <aside className="inspector">
@@ -52,56 +56,86 @@ export function ClassInspector({
         </button>
       </div>
 
+      <label className="inspector__stereotype">
+        <input
+          type="checkbox"
+          checked={isEnum}
+          onChange={(e) =>
+            onChange({
+              ...umlClass,
+              stereotype: e.target.checked ? 'enum' : undefined,
+            })
+          }
+        />
+        «enum» (genera un enum de Java en vez de una entidad)
+      </label>
+
       <div className="inspector__attributes">
-        {umlClass.attributes.map((attr, index) => (
-          <div className="inspector__attribute-row" key={index}>
-            <input
-              className="inspector__input inspector__input--name"
-              value={attr.name}
-              onChange={(e) => updateAttribute(index, { name: e.target.value })}
-            />
-            <input
-              className="inspector__input inspector__input--type"
-              value={attr.type}
-              onChange={(e) => updateAttribute(index, { type: e.target.value })}
-            />
-            <select
-              className="inspector__input inspector__input--visibility"
-              value={attr.visibility}
-              onChange={(e) =>
-                updateAttribute(index, {
-                  visibility: e.target.value as Visibility,
-                })
-              }
-            >
-              {VISIBILITIES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-            <label className="inspector__pk">
+        {umlClass.attributes.map((attr, index) =>
+          isEnum ? (
+            <div className="inspector__attribute-row" key={index}>
               <input
-                type="checkbox"
-                checked={!!attr.isPrimaryKey}
-                onChange={(e) =>
-                  updateAttribute(index, { isPrimaryKey: e.target.checked })
-                }
+                className="inspector__input inspector__input--name"
+                value={attr.name}
+                onChange={(e) => updateAttribute(index, { name: e.target.value })}
               />
-              PK
-            </label>
-            <button
-              className="inspector__remove"
-              onClick={() => removeAttribute(index)}
-            >
-              🗑
-            </button>
-          </div>
-        ))}
+              <button
+                className="inspector__remove"
+                onClick={() => removeAttribute(index)}
+              >
+                🗑
+              </button>
+            </div>
+          ) : (
+            <div className="inspector__attribute-row" key={index}>
+              <input
+                className="inspector__input inspector__input--name"
+                value={attr.name}
+                onChange={(e) => updateAttribute(index, { name: e.target.value })}
+              />
+              <input
+                className="inspector__input inspector__input--type"
+                value={attr.type}
+                onChange={(e) => updateAttribute(index, { type: e.target.value })}
+              />
+              <select
+                className="inspector__input inspector__input--visibility"
+                value={attr.visibility}
+                onChange={(e) =>
+                  updateAttribute(index, {
+                    visibility: e.target.value as Visibility,
+                  })
+                }
+              >
+                {VISIBILITIES.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+              <label className="inspector__pk">
+                <input
+                  type="checkbox"
+                  checked={!!attr.isPrimaryKey}
+                  onChange={(e) =>
+                    updateAttribute(index, { isPrimaryKey: e.target.checked })
+                  }
+                />
+                PK
+              </label>
+              <button
+                className="inspector__remove"
+                onClick={() => removeAttribute(index)}
+              >
+                🗑
+              </button>
+            </div>
+          ),
+        )}
       </div>
 
       <button className="inspector__add" onClick={addAttribute}>
-        + Atributo
+        {isEnum ? '+ Valor' : '+ Atributo'}
       </button>
 
       <button className="inspector__delete" onClick={onDelete}>

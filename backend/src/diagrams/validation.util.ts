@@ -46,7 +46,7 @@ function checkStructuralIntegrity(model: UmlModel): ValidationIssue[] {
     }
 
     const hasPrimaryKey = cls.attributes.some((a) => a.isPrimaryKey);
-    if (!hasPrimaryKey) {
+    if (cls.stereotype !== 'enum' && !hasPrimaryKey) {
       issues.push({
         severity: 'error',
         code: 'NO_PRIMARY_KEY',

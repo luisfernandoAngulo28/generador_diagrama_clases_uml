@@ -120,6 +120,26 @@ describe('validateModel — integridad estructural', () => {
     expect(codes(result.errors)).toContain('DUPLICATE_CLASS_NAME');
   });
 
+  it('no exige clave primaria en una clase con estereotipo «enum»', () => {
+    const result = validateModel(
+      model({
+        classes: [
+          {
+            id: 'c1',
+            name: 'EstadoTramite',
+            stereotype: 'enum',
+            attributes: [
+              { name: 'pendiente', type: 'String', visibility: 'public' },
+              { name: 'aprobado', type: 'String', visibility: 'public' },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(codes(result.errors)).not.toContain('NO_PRIMARY_KEY');
+    expect(result.valid).toBe(true);
+  });
+
   it('detecta una relación que apunta a una clase inexistente', () => {
     const result = validateModel(
       model({

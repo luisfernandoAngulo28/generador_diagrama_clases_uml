@@ -7,9 +7,10 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import type { RelationType, Visibility } from '../uml.types.js';
+import type { ClassStereotype, RelationType, Visibility } from '../uml.types.js';
 
 const VISIBILITIES: Visibility[] = ['public', 'private', 'protected', 'package'];
+const CLASS_STEREOTYPES: ClassStereotype[] = ['enum'];
 const RELATION_TYPES: RelationType[] = [
   'ASSOCIATION',
   'AGGREGATION',
@@ -55,6 +56,10 @@ export class UmlClassDto {
   @ValidateNested({ each: true })
   @Type(() => UmlAttributeDto)
   attributes: UmlAttributeDto[];
+
+  @IsOptional()
+  @IsIn(CLASS_STEREOTYPES)
+  stereotype?: ClassStereotype;
 
   @IsOptional()
   @ValidateNested()

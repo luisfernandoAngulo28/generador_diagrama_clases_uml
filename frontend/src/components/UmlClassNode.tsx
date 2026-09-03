@@ -19,23 +19,36 @@ function UmlClassNodeImpl({ data, selected }: NodeProps) {
       <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
 
-      <div className="uml-class-node__header">{umlClass.name}</div>
+      <div className="uml-class-node__header">
+        {umlClass.stereotype && (
+          <div className="uml-class-node__stereotype">«{umlClass.stereotype}»</div>
+        )}
+        {umlClass.name}
+      </div>
       <div className="uml-class-node__attributes">
         {umlClass.attributes.length === 0 && (
-          <div className="uml-class-node__empty">sin atributos</div>
-        )}
-        {umlClass.attributes.map((attr) => (
-          <div key={attr.name} className="uml-class-node__attribute">
-            <span className="uml-class-node__visibility">
-              {VISIBILITY_SYMBOLS[attr.visibility]}
-            </span>
-            <span className="uml-class-node__attr-name">
-              {attr.name}
-              {attr.isPrimaryKey ? ' (PK)' : ''}
-            </span>
-            <span className="uml-class-node__attr-type">: {attr.type}</span>
+          <div className="uml-class-node__empty">
+            {umlClass.stereotype === 'enum' ? 'sin valores' : 'sin atributos'}
           </div>
-        ))}
+        )}
+        {umlClass.stereotype === 'enum'
+          ? umlClass.attributes.map((attr) => (
+              <div key={attr.name} className="uml-class-node__attribute">
+                <span className="uml-class-node__attr-name">{attr.name}</span>
+              </div>
+            ))
+          : umlClass.attributes.map((attr) => (
+              <div key={attr.name} className="uml-class-node__attribute">
+                <span className="uml-class-node__visibility">
+                  {VISIBILITY_SYMBOLS[attr.visibility]}
+                </span>
+                <span className="uml-class-node__attr-name">
+                  {attr.name}
+                  {attr.isPrimaryKey ? ' (PK)' : ''}
+                </span>
+                <span className="uml-class-node__attr-type">: {attr.type}</span>
+              </div>
+            ))}
       </div>
     </div>
   );
