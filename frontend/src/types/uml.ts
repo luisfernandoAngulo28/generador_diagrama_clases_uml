@@ -77,9 +77,6 @@ export const RELATION_LABELS: Record<RelationType, string> = {
   DEPENDENCY: 'Dependencia',
 };
 
-/** Relation types rendered as a dashed line (standard UML notation for a Dependency). */
-export const DASHED_RELATION_TYPES: ReadonlySet<RelationType> = new Set(['DEPENDENCY']);
-
 export interface ValidationIssue {
   severity: 'error' | 'warning';
   code: string;

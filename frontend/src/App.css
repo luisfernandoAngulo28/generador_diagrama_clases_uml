@@ -754,6 +754,20 @@
   margin-bottom: 0.75rem;
 }
 
+.inspector__hint {
+  font-size: 11px;
+  color: #a0aec0;
+  background: #1e1e1e;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  margin: 0 0 0.75rem;
+}
+
+.inspector__hint strong {
+  color: #cbd5e0;
+}
+
 .inspector__notes {
   background: #1e1e1e;
   border: 1px solid #2d3748;
@@ -1074,4 +1088,17 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+.uml-edge-label {
+  position: absolute;
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 1.3;
+  color: #cbd5e0;
+  background: #1a1a1a;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  text-align: center;
 }

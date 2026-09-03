@@ -1,6 +1,12 @@
 import { ArrowRight, Trash2, X } from 'lucide-react';
 import type { RelationType } from '../types/uml';
 import { RELATION_LABELS } from '../types/uml';
+import {
+  MULTIPLICITY_RELATION_TYPES,
+  formatMultiplicity,
+  sourceMultiplicity,
+  targetMultiplicity,
+} from '../lib/multiplicity';
 
 export interface RelationEditState {
   id: string;
@@ -51,6 +57,15 @@ export function RelationInspector({
           ))}
         </select>
       </label>
+
+      {MULTIPLICITY_RELATION_TYPES.has(relation.type) && (
+        <p className="inspector__hint">
+          Multiplicidad automática: {relation.sourceClassName}{' '}
+          <strong>{formatMultiplicity(sourceMultiplicity(relation.type))}</strong> —{' '}
+          {relation.targetClassName}{' '}
+          <strong>{formatMultiplicity(targetMultiplicity(relation.type))}</strong>
+        </p>
+      )}
 
       <label className="inspector__field">
         Rol en {relation.sourceClassName} (opcional)

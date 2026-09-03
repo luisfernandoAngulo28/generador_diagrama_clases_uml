@@ -10,7 +10,6 @@ import {
   useNodesState,
   useEdgesState,
   useReactFlow,
-  MarkerType,
   type Node,
   type Edge,
   type Connection,
@@ -57,6 +56,9 @@ import { ToolbarMenu } from './components/ToolbarMenu';
 import { exportDiagramAsImage } from './lib/exportImage';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
+import { UmlMarkerDefs } from './components/UmlMarkerDefs';
+import { UmlRelationEdge } from './components/UmlRelationEdge';
+import { edgeAppearance } from './lib/multiplicity';
 import type {
   DiagramOperation,
   RelationType,
@@ -64,7 +66,7 @@ import type {
   UmlModel,
   ValidationResult,
 } from './types/uml';
-import { RELATION_LABELS, DASHED_RELATION_TYPES } from './types/uml';
+import { RELATION_LABELS } from './types/uml';
 import {
   createDiagram,
   downloadGeneratedBackend,
@@ -79,6 +81,7 @@ import {
 import { getSocket } from './api/socket';
 
 const nodeTypes = { umlClass: UmlClassNode };
+const edgeTypes = { umlRelation: UmlRelationEdge };
 
 interface HistorySnapshot {
   nodes: Node<UmlClassNodeData>[];
@@ -126,10 +129,6 @@ const TOUR_STEPS: TourStep[] = [
 ];
 
 /** Dashed stroke for Dependency relations, matching standard UML notation. */
-function edgeStyle(type: RelationType): { strokeDasharray?: string } | undefined {
-  return DASHED_RELATION_TYPES.has(type) ? { strokeDasharray: '5 5' } : undefined;
-}
-
 function createDefaultClass(): UmlClass {
   const id = crypto.randomUUID();
   return {
@@ -312,10 +311,9 @@ function AppInner() {
         id: rel.id,
         source: rel.sourceClassId,
         target: rel.targetClassId,
-        label: RELATION_LABELS[rel.type],
+        type: 'umlRelation' as const,
         data: { type: rel.type, sourceRole: rel.sourceRole, targetRole: rel.targetRole },
-        style: edgeStyle(rel.type),
-        markerEnd: { type: MarkerType.ArrowClosed },
+        ...edgeAppearance(rel.type),
       })),
     );
     setDiagramId(diagram.id);
@@ -456,10 +454,9 @@ function AppInner() {
       id: crypto.randomUUID(),
       source: ids[rel.source],
       target: ids[rel.target],
-      label: RELATION_LABELS[rel.type],
+      type: 'umlRelation' as const,
       data: { type: rel.type },
-      style: edgeStyle(rel.type),
-      markerEnd: { type: MarkerType.ArrowClosed },
+      ...edgeAppearance(rel.type),
     }));
 
     setNodes((nds) => [...nds, ...newNodes]);
@@ -600,10 +597,9 @@ function AppInner() {
             id: crypto.randomUUID(),
             source: source.id,
             target: target.id,
-            label: RELATION_LABELS[op.type],
+            type: 'umlRelation',
             data: { type: op.type },
-            style: edgeStyle(op.type),
-            markerEnd: { type: MarkerType.ArrowClosed },
+            ...edgeAppearance(op.type),
           };
           workingEdges = [...workingEdges, newEdge];
           break;
@@ -635,16 +631,14 @@ function AppInner() {
   const onConnect = useCallback(
     (connection: Connection) => {
       pushHistory();
-      const label = RELATION_LABELS[nextRelationType];
       setEdges((eds) =>
         addEdge(
           {
             ...connection,
             id: crypto.randomUUID(),
-            label,
+            type: 'umlRelation',
             data: { type: nextRelationType },
-            style: edgeStyle(nextRelationType),
-            markerEnd: { type: MarkerType.ArrowClosed },
+            ...edgeAppearance(nextRelationType),
           },
           eds,
         ),
@@ -746,10 +740,9 @@ function AppInner() {
           id: crypto.randomUUID(),
           source: idMap.get(rel.sourceClassId)!,
           target: idMap.get(rel.targetClassId)!,
-          label: RELATION_LABELS[rel.type],
+          type: 'umlRelation' as const,
           data: { type: rel.type },
-          style: edgeStyle(rel.type),
-          markerEnd: { type: MarkerType.ArrowClosed },
+          ...edgeAppearance(rel.type),
         }));
 
       setNodes((nds) => [...nds, ...newNodes]);
@@ -842,8 +835,7 @@ function AppInner() {
         const newType = patch.type ?? (e.data?.type as RelationType) ?? 'ASSOCIATION';
         return {
           ...e,
-          label: RELATION_LABELS[newType],
-          style: edgeStyle(newType),
+          ...edgeAppearance(newType),
           data: { ...e.data, ...patch, type: newType },
         };
       }),
@@ -1101,10 +1093,12 @@ function AppInner() {
               );
             }}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             snapToGrid={snapToGrid}
             snapGrid={[20, 20]}
             fitView
           >
+            <UmlMarkerDefs />
             <Background gap={20} />
             <Controls />
             <MiniMap
