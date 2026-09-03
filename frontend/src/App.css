@@ -8,7 +8,9 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  row-gap: 0.35rem;
+  gap: 0.35rem;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid #2a2a2a;
   background: #1a1a1a;
@@ -25,9 +27,49 @@
   cursor: pointer;
 }
 
+.toolbar__group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.toolbar__divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.2rem 0.1rem;
+  background: #2f2f2f;
+}
+
+.toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.toolbar__btn svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
 .toolbar__toggle--active {
   background: #2b6cb0;
   color: white;
+}
+
+.panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.validation-panel__close,
+.diagrams-list__close,
+.template-builder__close,
+.inspector__close,
+.photo-error button {
+  display: inline-flex;
+  align-items: center;
 }
 
 .photo-error {
@@ -410,8 +452,15 @@
 
 .toolbar__presence {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 12px;
   color: #a0aec0;
+}
+
+.toolbar__presence svg {
+  color: #48bb78;
 }
 
 .app__body {
@@ -493,11 +542,13 @@
 
 .class-tree__collapse,
 .class-tree__expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: inherit;
   cursor: pointer;
-  font-size: 11px;
 }
 
 .class-tree__expand {
@@ -525,6 +576,9 @@
 
 .class-tree__item {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   text-align: left;
   background: transparent;
   border: none;
@@ -544,7 +598,7 @@
 
 .class-tree__icon {
   color: #63b3ed;
-  font-size: 11px;
+  flex-shrink: 0;
 }
 
 .class-tree__stereotype {
@@ -573,6 +627,9 @@
 }
 
 .uml-class-node__lock {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 11px;
   color: #1a1a1a;
   background: #ecc94b;
@@ -684,6 +741,9 @@
 }
 
 .inspector__class-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   flex: 1;
   font-weight: 700;
   padding: 0.3rem;
@@ -737,6 +797,8 @@
 }
 
 .inspector__remove {
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
   background: transparent;
   border: none;
@@ -749,6 +811,10 @@
 }
 
 .inspector__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   margin-top: auto;
   color: #f56565;
   cursor: pointer;
@@ -796,6 +862,9 @@
 }
 
 .chat-panel__send {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   cursor: pointer;
 }
 

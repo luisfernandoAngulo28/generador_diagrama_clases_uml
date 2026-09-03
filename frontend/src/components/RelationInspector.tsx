@@ -1,3 +1,4 @@
+import { ArrowRight, Trash2, X } from 'lucide-react';
 import type { RelationType } from '../types/uml';
 import { RELATION_LABELS } from '../types/uml';
 
@@ -29,10 +30,10 @@ export function RelationInspector({
     <aside className="inspector inspector--relation">
       <div className="inspector__header">
         <span className="inspector__class-name">
-          {relation.sourceClassName} → {relation.targetClassName}
+          {relation.sourceClassName} <ArrowRight size={14} /> {relation.targetClassName}
         </span>
         <button className="inspector__close" onClick={onClose}>
-          ×
+          <X size={16} />
         </button>
       </div>
 
@@ -72,7 +73,7 @@ export function RelationInspector({
       </label>
 
       <button className="inspector__delete" onClick={onDelete}>
-        Eliminar relación
+        <Trash2 size={14} /> Eliminar relación
       </button>
     </aside>
   );

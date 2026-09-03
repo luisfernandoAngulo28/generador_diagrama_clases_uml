@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Mic, Send } from 'lucide-react';
 import { editDiagramWithAi } from '../api/client';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { DiagramOperation, UmlModel } from '../types/uml';
@@ -82,7 +83,7 @@ export function ChatPanel({ model, onApplyOperations }: ChatPanelProps) {
         )}
         {isListening && (
           <div className="chat-panel__message chat-panel__message--assistant">
-            🎤 Escuchando…
+            <Mic size={14} /> Escuchando…
           </div>
         )}
       </div>
@@ -95,7 +96,7 @@ export function ChatPanel({ model, onApplyOperations }: ChatPanelProps) {
             disabled={isListening || loading}
             title="Dictar comando por voz"
           >
-            🎤
+            <Mic size={16} />
           </button>
         )}
         <input
@@ -106,7 +107,7 @@ export function ChatPanel({ model, onApplyOperations }: ChatPanelProps) {
           onKeyDown={handleKeyDown}
         />
         <button className="chat-panel__send" onClick={() => void handleSend()}>
-          Enviar
+          <Send size={14} /> Enviar
         </button>
       </div>
     </aside>

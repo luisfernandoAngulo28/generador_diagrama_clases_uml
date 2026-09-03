@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import type { UmlAttribute, UmlClass, UmlOperation, Visibility } from '../types/uml';
 
 interface FeaturesPanelProps {
@@ -150,7 +151,7 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
                     )}
                     <td className="inspector__cell-center">
                       <button className="inspector__remove" onClick={() => removeAttribute(index)}>
-                        🗑
+                        <Trash2 size={14} />
                       </button>
                     </td>
                   </tr>
@@ -215,7 +216,7 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
                     </td>
                     <td className="inspector__cell-center">
                       <button className="inspector__remove" onClick={() => removeOperation(index)}>
-                        🗑
+                        <Trash2 size={14} />
                       </button>
                     </td>
                   </tr>

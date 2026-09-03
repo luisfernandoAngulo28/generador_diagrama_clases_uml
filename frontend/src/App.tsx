@@ -17,6 +17,26 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import './App.css';
+import {
+  Plus,
+  LayoutTemplate,
+  Workflow,
+  Grid3x3,
+  Undo2,
+  Redo2,
+  FolderOpen,
+  Upload,
+  Download,
+  Save,
+  ShieldCheck,
+  Server,
+  FileText,
+  Camera,
+  Link2,
+  Users,
+  HelpCircle,
+  X,
+} from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
@@ -819,46 +839,77 @@ function AppInner() {
           value={diagramName}
           onChange={(e) => setDiagramName(e.target.value)}
         />
-        <button data-tour="add-class" onClick={addClass}>
-          + Clase
-        </button>
-        <button onClick={() => setShowTemplates(true)}>🧩 Plantillas</button>
-        <button
-          data-tour="auto-layout"
-          onClick={autoLayout}
-          disabled={nodes.length === 0}
-        >
-          🧭 Auto-organizar
-        </button>
-        <button
-          onClick={() => setSnapToGrid((v) => !v)}
-          title="Ajustar las clases a una cuadrícula al moverlas"
-          aria-pressed={snapToGrid}
-          className={snapToGrid ? 'toolbar__toggle--active' : ''}
-        >
-          ▦ Cuadrícula
-        </button>
-        <button onClick={undo} disabled={past.length === 0} title="Deshacer (Ctrl+Z)">
-          ↩️ Deshacer
-        </button>
-        <button onClick={redo} disabled={future.length === 0} title="Rehacer (Ctrl+Y)">
-          ↪️ Rehacer
-        </button>
-        <button onClick={() => setShowDiagramsList(true)}>📁 Mis diagramas</button>
-        <input
-          ref={xmiInputRef}
-          type="file"
-          accept=".xmi,.xml,application/xml,text/xml"
-          style={{ display: 'none' }}
-          onChange={(e) => void handleXmiSelected(e)}
-        />
-        <button
-          onClick={() => xmiInputRef.current?.click()}
-          disabled={importingXmi}
-          title="Importar un diagrama desde un archivo XMI (exportado por esta u otra herramienta UML)"
-        >
-          {importingXmi ? 'Importando…' : '📥 Importar XMI'}
-        </button>
+
+        <div className="toolbar__group">
+          <button className="toolbar__btn" data-tour="add-class" onClick={addClass}>
+            <Plus size={15} /> Clase
+          </button>
+          <button className="toolbar__btn" onClick={() => setShowTemplates(true)}>
+            <LayoutTemplate size={15} /> Plantillas
+          </button>
+          <button
+            className="toolbar__btn"
+            data-tour="auto-layout"
+            onClick={autoLayout}
+            disabled={nodes.length === 0}
+          >
+            <Workflow size={15} /> Auto-organizar
+          </button>
+          <button
+            className={
+              snapToGrid ? 'toolbar__btn toolbar__toggle--active' : 'toolbar__btn'
+            }
+            onClick={() => setSnapToGrid((v) => !v)}
+            title="Ajustar las clases a una cuadrícula al moverlas"
+            aria-pressed={snapToGrid}
+          >
+            <Grid3x3 size={15} /> Cuadrícula
+          </button>
+          <button
+            className="toolbar__btn"
+            onClick={undo}
+            disabled={past.length === 0}
+            title="Deshacer (Ctrl+Z)"
+          >
+            <Undo2 size={15} /> Deshacer
+          </button>
+          <button
+            className="toolbar__btn"
+            onClick={redo}
+            disabled={future.length === 0}
+            title="Rehacer (Ctrl+Y)"
+          >
+            <Redo2 size={15} /> Rehacer
+          </button>
+        </div>
+
+        <span className="toolbar__divider" />
+
+        <div className="toolbar__group">
+          <button className="toolbar__btn" onClick={() => setShowDiagramsList(true)}>
+            <FolderOpen size={15} /> Mis diagramas
+          </button>
+          <input
+            ref={xmiInputRef}
+            type="file"
+            accept=".xmi,.xml,application/xml,text/xml"
+            style={{ display: 'none' }}
+            onChange={(e) => void handleXmiSelected(e)}
+          />
+          <button
+            className="toolbar__btn"
+            onClick={() => xmiInputRef.current?.click()}
+            disabled={importingXmi}
+            title="Importar un diagrama desde un archivo XMI (exportado por esta u otra herramienta UML)"
+          >
+            <Upload size={15} /> {importingXmi ? 'Importando…' : 'Importar XMI'}
+          </button>
+          <button className="toolbar__btn" onClick={() => void saveDiagram()} disabled={saving}>
+            <Save size={15} /> {saving ? 'Guardando…' : 'Guardar diagrama'}
+          </button>
+        </div>
+
+        <span className="toolbar__divider" />
 
         <select
           data-tour="relation-select"
@@ -873,67 +924,82 @@ function AppInner() {
           ))}
         </select>
 
-        <button onClick={() => void saveDiagram()} disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar diagrama'}
-        </button>
-        <button
-          data-tour="validate"
-          onClick={() => void validateCurrentDiagram()}
-          disabled={validating}
-        >
-          {validating ? 'Validando…' : '✅ Validar diagrama'}
-        </button>
-        <button
-          data-tour="generate-backend"
-          onClick={() => void generateBackend()}
-          disabled={generating}
-        >
-          {generating ? 'Generando…' : 'Generar backend Spring Boot'}
-        </button>
-        <button data-tour="export-xmi" onClick={() => void exportXmi()} disabled={exportingXmi}>
-          {exportingXmi ? 'Exportando…' : '📤 Exportar XMI'}
-        </button>
-        <button
-          data-tour="documentation"
-          onClick={() => void openDocs()}
-          disabled={generatingDocs}
-        >
-          {generatingDocs ? 'Generando…' : '📄 Documentación'}
-        </button>
+        <span className="toolbar__divider" />
 
-        <input
-          ref={photoInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          style={{ display: 'none' }}
-          onChange={(e) => void handlePhotoSelected(e)}
-        />
-        <button
-          onClick={() => photoInputRef.current?.click()}
-          disabled={analyzingPhoto}
-        >
-          {analyzingPhoto ? 'Analizando foto…' : '📷 Foto de pizarra'}
-        </button>
+        <div className="toolbar__group">
+          <button
+            className="toolbar__btn"
+            data-tour="validate"
+            onClick={() => void validateCurrentDiagram()}
+            disabled={validating}
+          >
+            <ShieldCheck size={15} /> {validating ? 'Validando…' : 'Validar diagrama'}
+          </button>
+          <button
+            className="toolbar__btn"
+            data-tour="generate-backend"
+            onClick={() => void generateBackend()}
+            disabled={generating}
+          >
+            <Server size={15} /> {generating ? 'Generando…' : 'Generar backend Spring Boot'}
+          </button>
+          <button
+            className="toolbar__btn"
+            data-tour="export-xmi"
+            onClick={() => void exportXmi()}
+            disabled={exportingXmi}
+          >
+            <Download size={15} /> {exportingXmi ? 'Exportando…' : 'Exportar XMI'}
+          </button>
+          <button
+            className="toolbar__btn"
+            data-tour="documentation"
+            onClick={() => void openDocs()}
+            disabled={generatingDocs}
+          >
+            <FileText size={15} /> {generatingDocs ? 'Generando…' : 'Documentación'}
+          </button>
+
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={(e) => void handlePhotoSelected(e)}
+          />
+          <button
+            className="toolbar__btn"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={analyzingPhoto}
+          >
+            <Camera size={15} /> {analyzingPhoto ? 'Analizando foto…' : 'Foto de pizarra'}
+          </button>
+        </div>
 
         {diagramId && (
           <>
-            <button onClick={() => void copyShareLink()}>🔗 Copiar enlace</button>
+            <span className="toolbar__divider" />
+            <button className="toolbar__btn" onClick={() => void copyShareLink()}>
+              <Link2 size={15} /> Copiar enlace
+            </button>
             <span className="toolbar__presence">
-              🟢 {collaboratorCount} conectado{collaboratorCount === 1 ? '' : 's'}
+              <Users size={13} /> {collaboratorCount} conectado{collaboratorCount === 1 ? '' : 's'}
             </span>
           </>
         )}
 
-        <button className="toolbar__help" onClick={() => setShowTour(true)}>
-          ❓ Recorrido
+        <button className="toolbar__btn toolbar__help" onClick={() => setShowTour(true)}>
+          <HelpCircle size={15} /> Recorrido
         </button>
       </header>
 
       {photoError && (
         <div className="photo-error">
           {photoError}
-          <button onClick={() => setPhotoError(null)}>×</button>
+          <button onClick={() => setPhotoError(null)}>
+            <X size={15} />
+          </button>
         </div>
       )}
 

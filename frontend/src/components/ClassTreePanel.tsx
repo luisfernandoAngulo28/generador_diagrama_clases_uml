@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Node } from '@xyflow/react';
+import { ChevronLeft, ChevronRight, Component } from 'lucide-react';
 import type { UmlClassNodeData } from './UmlClassNode';
 
 interface ClassTreePanelProps {
@@ -13,7 +14,7 @@ export function ClassTreePanel({ nodes, onSelect }: ClassTreePanelProps) {
   if (collapsed) {
     return (
       <button className="class-tree__expand" onClick={() => setCollapsed(false)} title="Mostrar árbol de clases">
-        ▶
+        <ChevronRight size={16} />
       </button>
     );
   }
@@ -23,7 +24,7 @@ export function ClassTreePanel({ nodes, onSelect }: ClassTreePanelProps) {
       <div className="class-tree__header">
         <span>Modelo</span>
         <button className="class-tree__collapse" onClick={() => setCollapsed(true)} title="Ocultar">
-          ◀
+          <ChevronLeft size={16} />
         </button>
       </div>
       {nodes.length === 0 ? (
@@ -33,7 +34,7 @@ export function ClassTreePanel({ nodes, onSelect }: ClassTreePanelProps) {
           {nodes.map((n) => (
             <li key={n.id}>
               <button className="class-tree__item" onClick={() => onSelect(n.id)}>
-                <span className="class-tree__icon">▭</span>
+                <Component size={13} className="class-tree__icon" />
                 {n.data.umlClass.name}
                 {n.data.umlClass.stereotype && (
                   <span className="class-tree__stereotype">«{n.data.umlClass.stereotype}»</span>

@@ -32,7 +32,7 @@ export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     nextSteps: [
       'Cambia los nombres de las clases y atributos para que reflejen tu dominio real.',
       'Agrega más subclases si tu dominio tiene más de dos variantes de la clase base.',
-      'Usa "✅ Validar diagrama" para confirmar que no quedó ninguna clase sin clave primaria tras los cambios.',
+      'Usa "Validar diagrama" para confirmar que no quedó ninguna clase sin clave primaria tras los cambios.',
       'Cuando esté listo, usa "Generar backend Spring Boot" — el generador crea automáticamente la jerarquía de herencia con JPA (@Inheritance).',
     ],
     classes: [
@@ -58,7 +58,7 @@ export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
       'Renombra las clases según tu dominio, manteniendo la relación de composición entre ellas.',
       'Agrega los atributos propios de cada línea/detalle en la clase "parte".',
       'El generador aplica cascade = ALL y orphanRemoval = true automáticamente en esta relación — revisa el código generado para entender esa garantía.',
-      'Usa "📄 Documentación" para generar un resumen del modelo y confirmar que la relación se interpretó como esperabas.',
+      'Usa "Documentación" para generar un resumen del modelo y confirmar que la relación se interpretó como esperabas.',
     ],
     classes: [
       { name: 'Pedido', attributes: [priv('id', 'Long', true), priv('fecha', 'LocalDate')] },
@@ -100,7 +100,7 @@ export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     nextSteps: [
       'Cambia los nombres y atributos de ambas clases según tu dominio real.',
       'Agrega más clases "hijo" repitiendo este mismo patrón si el padre necesita varias relaciones 1:N distintas.',
-      'Usa "🧭 Auto-organizar" si el diagrama crece y las clases empiezan a superponerse.',
+      'Usa "Auto-organizar" si el diagrama crece y las clases empiezan a superponerse.',
       'Genera el backend y pruébalo en vivo conectando la plantilla Flutter antes del día de la defensa.',
     ],
     classes: [

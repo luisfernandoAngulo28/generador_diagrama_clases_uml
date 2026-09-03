@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Lock } from 'lucide-react';
 import type { UmlClass } from '../types/uml';
 import { VISIBILITY_SYMBOLS } from '../types/uml';
 
@@ -25,7 +26,9 @@ function UmlClassNodeImpl({ data, selected }: NodeProps) {
       <Handle type="source" position={Position.Bottom} />
 
       {lockedBy && (
-        <div className="uml-class-node__lock">🔒 {lockedBy}</div>
+        <div className="uml-class-node__lock">
+          <Lock size={11} /> {lockedBy}
+        </div>
       )}
       <div className="uml-class-node__header">
         {umlClass.stereotype && (

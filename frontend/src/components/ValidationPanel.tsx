@@ -1,3 +1,4 @@
+import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import type { ValidationResult } from '../types/uml';
 
 interface ValidationPanelProps {
@@ -11,11 +12,16 @@ export function ValidationPanel({ result, onClose }: ValidationPanelProps) {
   return (
     <aside className="validation-panel">
       <div className="validation-panel__header">
-        <span>
-          {result.valid ? '✅ Validación lógica' : '⚠️ Validación lógica'}
+        <span className="panel-title">
+          {result.valid ? (
+            <CheckCircle2 size={16} color="#68d391" />
+          ) : (
+            <AlertTriangle size={16} color="#f6e05e" />
+          )}
+          Validación lógica
         </span>
         <button className="validation-panel__close" onClick={onClose}>
-          ×
+          <X size={16} />
         </button>
       </div>
 

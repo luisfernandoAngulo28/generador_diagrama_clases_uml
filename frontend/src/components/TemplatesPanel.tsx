@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { LayoutTemplate, X } from 'lucide-react';
 import { DIAGRAM_TEMPLATES, type DiagramTemplate } from '../lib/templates';
 
 interface TemplatesPanelProps {
@@ -15,12 +16,14 @@ export function TemplatesPanel({ onApply, onClose }: TemplatesPanelProps) {
       <div className="template-builder__backdrop" onClick={onClose} />
       <div className="template-builder__panel">
         <div className="template-builder__header">
-          <span>🧩 Plantillas</span>
+          <span className="panel-title">
+            <LayoutTemplate size={16} /> Plantillas
+          </span>
           <button className="template-builder__apply" onClick={() => onApply(selected)}>
             Crear diagrama
           </button>
           <button className="template-builder__close" onClick={onClose}>
-            ×
+            <X size={16} />
           </button>
         </div>
 

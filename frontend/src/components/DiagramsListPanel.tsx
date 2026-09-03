@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { FolderOpen, X } from 'lucide-react';
 import { listDiagrams } from '../api/client';
 import type { Diagram } from '../types/uml';
 
@@ -22,9 +23,11 @@ export function DiagramsListPanel({ onOpen, onClose }: DiagramsListPanelProps) {
       <div className="diagrams-list__backdrop" onClick={onClose} />
       <div className="diagrams-list__panel">
         <div className="diagrams-list__header">
-          <span>📁 Mis diagramas</span>
+          <span className="panel-title">
+            <FolderOpen size={16} /> Mis diagramas
+          </span>
           <button className="diagrams-list__close" onClick={onClose}>
-            ×
+            <X size={16} />
           </button>
         </div>
 

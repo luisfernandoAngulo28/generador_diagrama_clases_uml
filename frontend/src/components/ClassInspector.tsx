@@ -1,3 +1,4 @@
+import { Trash2, X } from 'lucide-react';
 import type { UmlClass } from '../types/uml';
 
 interface ClassInspectorProps {
@@ -30,7 +31,7 @@ export function ClassInspector({
           onChange={(e) => onChange({ ...umlClass, name: e.target.value })}
         />
         <button className="inspector__close" onClick={onClose}>
-          ×
+          <X size={16} />
         </button>
       </div>
 
@@ -60,7 +61,7 @@ export function ClassInspector({
       </label>
 
       <button className="inspector__delete" onClick={onDelete}>
-        Eliminar clase
+        <Trash2 size={14} /> Eliminar clase
       </button>
     </aside>
   );
