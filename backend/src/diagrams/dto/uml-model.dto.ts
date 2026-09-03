@@ -38,6 +38,23 @@ export class UmlAttributeDto {
   isPrimaryKey?: boolean;
 }
 
+export class UmlOperationDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  returnType: string;
+
+  @IsIn(VISIBILITIES)
+  visibility: Visibility;
+
+  @IsOptional()
+  @IsString()
+  parameters?: string;
+}
+
 class PositionDto {
   x: number;
   y: number;
@@ -56,6 +73,12 @@ export class UmlClassDto {
   @ValidateNested({ each: true })
   @Type(() => UmlAttributeDto)
   attributes: UmlAttributeDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UmlOperationDto)
+  operations?: UmlOperationDto[];
 
   @IsOptional()
   @IsIn(CLASS_STEREOTYPES)

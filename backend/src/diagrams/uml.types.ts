@@ -7,12 +7,22 @@ export interface UmlAttribute {
   isPrimaryKey?: boolean;
 }
 
+export interface UmlOperation {
+  name: string;
+  returnType: string;
+  visibility: Visibility;
+  /** Free-text parameter list, e.g. "id: Long, nombre: String" — kept simple, not code-generated. */
+  parameters?: string;
+}
+
 export type ClassStereotype = 'enum';
 
 export interface UmlClass {
   id: string;
   name: string;
   attributes: UmlAttribute[];
+  /** Operations (methods) shown in the UML notation and exported to XMI; not used by the code generator. */
+  operations?: UmlOperation[];
   /** «enum»: generates a plain Java enum (attribute names become literals) instead of a JPA entity. */
   stereotype?: ClassStereotype;
   /** Canvas position; not used by the generator, kept only for the frontend layout. */

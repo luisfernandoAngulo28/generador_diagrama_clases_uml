@@ -40,12 +40,32 @@ export function renderDocumentationHtml(name: string, model: UmlModel): string {
             </tr>`,
               )
               .join('\n');
+      const operationRows =
+        (cls.operations ?? []).length === 0
+          ? ''
+          : `<table class="operations">
+          <thead><tr><th>Operación</th><th>Parámetros</th><th>Retorna</th><th>Visibilidad</th></tr></thead>
+          <tbody>
+            ${cls.operations!
+              .map(
+                (op) => `<tr>
+              <td>${esc(op.name)}()</td>
+              <td>${esc(op.parameters ?? '')}</td>
+              <td>${esc(op.returnType)}</td>
+              <td>${esc(op.visibility)}</td>
+            </tr>`,
+              )
+              .join('\n')}
+          </tbody>
+        </table>`;
+
       return `<section class="class-card">
         <h3>${stereotype}${esc(cls.name)}</h3>
         <table>
           <thead><tr><th>Atributo</th><th>Tipo</th><th>Visibilidad</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
+        ${operationRows}
       </section>`;
     })
     .join('\n');
@@ -88,6 +108,7 @@ export function renderDocumentationHtml(name: string, model: UmlModel): string {
   .meta { color: #718096; font-size: 13px; margin-bottom: 2rem; }
   h2 { margin-top: 2.5rem; color: #2d3748; }
   .class-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  .class-card table.operations { margin-top: 0.75rem; }
   .class-card h3 { margin: 0 0 0.75rem; }
   .stereotype { color: #718096; font-style: italic; font-weight: 400; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }

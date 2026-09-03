@@ -476,6 +476,11 @@
   padding: 4px 8px;
 }
 
+.uml-class-node__operations {
+  padding: 4px 8px;
+  border-top: 1px solid #4a5568;
+}
+
 .uml-class-node__attribute {
   display: flex;
   gap: 4px;
@@ -497,7 +502,6 @@
 
 .inspector,
 .chat-panel {
-  width: 300px;
   flex-shrink: 0;
   border-left: 1px solid #2a2a2a;
   background: #161616;
@@ -505,6 +509,14 @@
   flex-direction: column;
   padding: 0.75rem;
   overflow-y: auto;
+}
+
+.chat-panel {
+  width: 300px;
+}
+
+.inspector {
+  width: 520px;
 }
 
 .inspector__header {
@@ -523,34 +535,54 @@
   cursor: pointer;
 }
 
-.inspector__attribute-row {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 4px;
-  align-items: center;
+.inspector__section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #a0aec0;
+  margin: 0.75rem 0 0.4rem;
 }
 
-.inspector__input {
-  padding: 0.25rem;
+.inspector__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
 }
 
-.inspector__input--name {
-  width: 90px;
+.inspector__table th {
+  text-align: left;
+  font-weight: 600;
+  color: #a0aec0;
+  padding: 2px 4px;
+  border-bottom: 1px solid #2d3748;
 }
 
-.inspector__input--type {
-  width: 70px;
+.inspector__table td {
+  padding: 2px 4px;
+  border-bottom: 1px solid #232323;
 }
 
-.inspector__pk {
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
+.inspector__cell-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #1e1e1e;
+  border: 1px solid #2d3748;
+  color: inherit;
+  padding: 3px 4px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.inspector__cell-center {
+  text-align: center;
+  white-space: nowrap;
 }
 
 .inspector__remove {
   cursor: pointer;
+  background: transparent;
+  border: none;
+  color: inherit;
 }
 
 .inspector__add {

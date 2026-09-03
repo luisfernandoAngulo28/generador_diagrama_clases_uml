@@ -70,6 +70,7 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
   const distinctTypes = new Set<string>();
   for (const cls of model.classes) {
     for (const attr of cls.attributes) distinctTypes.add(attr.type);
+    for (const op of cls.operations ?? []) distinctTypes.add(op.returnType);
   }
 
   const typeDeclarations = [...distinctTypes]
@@ -97,8 +98,17 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
         )
         .join('\n');
 
+      const operations = (cls.operations ?? [])
+        .map((op) => {
+          const opId = `${classId}_op_${sanitizeId(op.name)}`;
+          return `      <ownedOperation xmi:id="${opId}" name="${escapeXml(op.name)}" visibility="${op.visibility}">
+        <ownedParameter xmi:id="${opId}_return" direction="return" type="type_${sanitizeId(op.returnType)}"/>
+      </ownedOperation>`;
+        })
+        .join('\n');
+
       return `    <packagedElement xmi:type="uml:Class" xmi:id="${classId}" name="${escapeXml(cls.name)}">
-${attributes}${attributes ? '\n' : ''}${generalizations}
+${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${generalizations}
     </packagedElement>`;
     })
     .join('\n');

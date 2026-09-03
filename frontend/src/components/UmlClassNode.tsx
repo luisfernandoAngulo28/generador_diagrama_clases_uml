@@ -58,6 +58,21 @@ function UmlClassNodeImpl({ data, selected }: NodeProps) {
               </div>
             ))}
       </div>
+      {umlClass.stereotype !== 'enum' && !!umlClass.operations?.length && (
+        <div className="uml-class-node__operations">
+          {umlClass.operations.map((op, i) => (
+            <div key={i} className="uml-class-node__attribute">
+              <span className="uml-class-node__visibility">
+                {VISIBILITY_SYMBOLS[op.visibility]}
+              </span>
+              <span className="uml-class-node__attr-name">
+                {op.name}({op.parameters ?? ''})
+              </span>
+              <span className="uml-class-node__attr-type">: {op.returnType}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
