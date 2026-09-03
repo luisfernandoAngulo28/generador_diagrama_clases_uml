@@ -34,14 +34,24 @@ y el import/export XMI están terminados y probados. Lo que falta para el
   comando de voz también.
 - **Modelo local**: ver punto 4.
 
-## 3. ¿Aplicación en producción cumpliendo factores de calidad? — ❌ Falta
+## 3. ¿Aplicación en producción cumpliendo factores de calidad? — ✅ Cumple
 
-Verificado: no hay carpeta `infra/`, `terraform/`, `.aws/` ni
-`cloudformation` en el repo. `backend/.env.example` solo tiene
-configuración de Postgres local y la API key de Gemini — cero referencias
-a AWS. `docker-compose.prod.yml` es un stack self-hosted (Postgres +
-backend + frontend con nginx), no apunta a ninguna infraestructura de AWS.
-**Nada está desplegado todavía.** Esto es lo más urgente de la lista.
+Resuelto: desplegado en una instancia EC2 real (`t3.micro`, Ubuntu 24.04,
+`us-east-1`) con IP fija — **http://34.231.176.225**. Los 3 contenedores
+(Postgres, backend NestJS, frontend Nginx) corren vía Docker Compose,
+`restart: unless-stopped` + Docker habilitado al arranque, así que
+sobrevive a un reinicio del servidor sin intervención manual. Se detectó
+y corrigió un problema real antes de desplegar: `nginx.conf` no
+reenviaba `/auth` ni `/attachments` al backend (se agregaron después de
+crear ese archivo) — sin el fix, login y adjuntos habrían estado rotos
+en producción aunque funcionaran en desarrollo. También se corrigió una
+incompatibilidad Node 22/npm 10 vs Node 24/npm 11 en los Dockerfiles que
+rompía `npm ci` en el build.
+
+Verificado en vivo contra la IP pública real (no localhost): registro,
+login, creación de diagrama, bitácora, subida a S3 real desde dentro de
+AWS, y generación del backend Spring Boot — los 5 funcionando de punta a
+punta. Ver `deploy/README.md` para instrucciones de redespliegue.
 
 ## 4. ¿IA con modelos locales? — ✅ Cumple (implementado) / ⚠️ (sin probar en dispositivo)
 
@@ -122,12 +132,16 @@ punto 5 (Scrum, diagramas de EA).
 | # | Falta | Urgencia | Esfuerzo |
 |---|---|---|---|
 | 1 | Reemplazar las 2 imágenes de diagramas (4.3 y 6.3) por capturas reales de EA | 🔴 Alta — el docente lo pidió explícitamente | Bajo (lo haces tú en EA) |
-| 2 | Desplegar en AWS (aunque sea una EC2 simple con el docker-compose que ya existe) | 🔴 Alta | Medio — necesitas la cuenta AWS |
+| ~~2~~ | ~~Desplegar en AWS~~ — ✅ hecho (http://34.231.176.225) | — | — |
 | 3 | Agregar sección de Scrum a la documentación (backlog, sprints) | 🟡 Media | Bajo-medio |
 | ~~4~~ | ~~S3 para subir archivos~~ — ✅ hecho | — | — |
 | ~~5~~ | ~~Bitácora de cambios (quién modificó qué)~~ — ✅ hecho | — | — |
 | 6 | Probar `flutter_gemma` y `offline_sync_service` en un celular real | 🟢 Baja (ya funciona en el emulador/build) | Bajo — solo necesitas el celular |
 
-Los puntos 2, 4, 5, 6, 7 y 8 (imágenes, ML, formularios/datagrid, S3,
-bitácora) del rúbrico ya están cumplidos y verificados contra el código
-real y, en el caso de S3, contra tu bucket real de AWS.
+Los puntos 2, 3, 4, 5, 6, 7 y 8 (producción en AWS, imágenes, ML,
+formularios/datagrid, S3, bitácora) del rúbrico ya están cumplidos y
+verificados contra el código real, contra tu bucket real de AWS, y
+contra el servidor real desplegado. Solo queda el punto 1 (reemplazar
+las 2 imágenes por capturas de EA) y el 6 de esta tabla (Scrum en la
+documentación) como pendientes de contenido, más probar la IA local en
+un celular físico.
