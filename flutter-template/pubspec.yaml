@@ -37,6 +37,8 @@ dependencies:
   http: ^1.6.0
   flutter_gemma: ^0.16.5
   file_picker: ^12.1.2
+  connectivity_plus: ^7.0.0
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
