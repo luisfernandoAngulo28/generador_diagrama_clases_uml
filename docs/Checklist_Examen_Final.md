@@ -37,7 +37,9 @@ y el import/export XMI están terminados y probados. Lo que falta para el
 ## 3. ¿Aplicación en producción cumpliendo factores de calidad? — ✅ Cumple
 
 Resuelto: desplegado en una instancia EC2 real (`t3.micro`, Ubuntu 24.04,
-`us-east-1`) con IP fija — **http://34.231.176.225**. Los 3 contenedores
+`us-east-1`) con IP fija — **https://diagramasw1pracial100.duckdns.org**
+(dominio DuckDNS + certificado real de Let's Encrypt, HTTP redirige
+automáticamente a HTTPS, renovación automática verificada). Los 3 contenedores
 (Postgres, backend NestJS, frontend Nginx) corren vía Docker Compose,
 `restart: unless-stopped` + Docker habilitado al arranque, así que
 sobrevive a un reinicio del servidor sin intervención manual. Se detectó

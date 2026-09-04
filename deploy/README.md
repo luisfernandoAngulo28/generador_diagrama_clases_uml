@@ -4,7 +4,10 @@
 
 - **Servidor**: EC2 `t3.micro`, **Ubuntu 24.04 LTS**, región `us-east-1`.
 - **IP pública fija (Elastic IP)**: `34.231.176.225`
-- **URL**: http://34.231.176.225
+- **Dominio**: `diagramasw1pracial100.duckdns.org` (DuckDNS, gratuito),
+  apuntando a la Elastic IP de arriba.
+- **URL**: **https://diagramasw1pracial100.duckdns.org** (HTTP
+  redirige automáticamente a HTTPS).
 - **Usuario SSH**: `ubuntu` (no `ec2-user` — es Ubuntu, no Amazon Linux)
 - **Llave SSH**: `.deploy/diagramador-uml-key.pem` en este repo,
   gitignored — nunca se sube.
@@ -25,9 +28,34 @@ Una sola instancia EC2 corre 3 contenedores vía Docker Compose:
 
 - `frontend`: Nginx sirviendo el build de React y actuando de reverse
   proxy hacia `backend` para `/diagrams`, `/generator`, `/ai`, `/auth`,
-  `/attachments` y `/socket.io` (así solo el puerto 80 queda expuesto).
+  `/attachments` y `/socket.io`. Escucha en 80 (redirige todo a HTTPS,
+  salvo el reto ACME de Certbot) y en 443 (TLS real).
 - `backend`: NestJS.
 - `db`: PostgreSQL con volumen persistente.
+
+## HTTPS (Let's Encrypt)
+
+- Certificado real emitido por Let's Encrypt para
+  `diagramasw1pracial100.duckdns.org`, obtenido con Certbot en modo
+  `--webroot` (sin detener el servicio). Vive en el host en
+  `/etc/letsencrypt/live/diagramasw1pracial100.duckdns.org/` y se monta
+  de solo lectura dentro del contenedor `frontend`.
+- **Renovación automática**: el paquete `certbot` de Ubuntu instala un
+  timer de systemd (`certbot.timer`) que corre `certbot renew` dos
+  veces al día. Verificado con `certbot renew --dry-run` (exitoso).
+- **Hook post-renovación**: `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`
+  reinicia el contenedor `app-frontend-1` después de cada renovación
+  real, para que Nginx cargue el certificado nuevo (el contenedor solo
+  lee los archivos al arrancar, no los vigila).
+- Si se cambia de dominio o se recrea el servidor desde cero, hay que
+  volver a pedir el certificado:
+  ```bash
+  sudo certbot certonly --webroot -w /var/www/certbot \
+    -d TU_DOMINIO.duckdns.org --agree-tos -m TU_EMAIL --non-interactive
+  ```
+  (el directorio `/var/www/certbot` debe existir en el host antes, y
+  Nginx debe estar corriendo con la ruta `/.well-known/acme-challenge/`
+  ya configurada — ver `frontend/nginx.conf`).
 
 ## Conectarse por SSH
 
@@ -104,7 +132,5 @@ completa: `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `GEMINI_API_KEY`,
   cada servicio en `docker-compose.prod.yml` tiene
   `restart: unless-stopped` — un reinicio del servidor recupera la
   aplicación sin intervención manual.
-- HTTPS (certificado) no está configurado — para la defensa alcanza con
-  HTTP sobre la IP pública. Si se quiere HTTPS, hace falta un dominio +
-  Let's Encrypt/Certbot en el nginx del contenedor `frontend` (opcional,
-  no crítico para el examen).
+- HTTPS ya está configurado con un certificado real (ver sección
+  "HTTPS" arriba) — no hace falta usar la IP ni HTTP para la defensa.
