@@ -62,17 +62,22 @@ funcional (`FlutterGemma.initialize/installModel/createChat`) accesible
 desde `main.dart` vía el botón "Asistente offline". Falta: probarlo en un
 celular real con el modelo `.task` cargado.
 
-## 5. ¿Documentación completa según Scrum + UML 2.5? — ⚠️ Parcial, con un problema urgente
+## 5. ¿Documentación completa según Scrum + UML 2.5? — ⚠️ Solo falta lo de EA
 
 - La sección de modelado UML 2.5+ existe (sección 4 del documento) y el
   resto de secciones (arquitectura, requisitos, diseño, implementación,
   manual de usuario) están escritas.
-- **No hay ningún artefacto de Scrum** — se buscó "Scrum", "Sprint",
-  "Backlog", "Retrospectiva", "Historia de usuario", "Product Owner" en
-  todo el documento y no aparece ninguno. Si el docente pidió
-  documentación "de acuerdo al Scrum", esto falta agregarlo (product
-  backlog, sprints, alguna ceremonia).
-- **Problema urgente y explícito del docente**: dijiste que el ingeniero
+- **Scrum: resuelto.** Se agregó **PARTE 4 — Gestión ágil del proyecto
+  con Scrum** (antes de Anexos): roles (Product Owner / Scrum Master +
+  Dev Team), un Product Backlog de 13 historias de usuario en tabla
+  (ID, historia, prioridad, estado), 5 sprints reales con objetivo y
+  entregables cada uno, y las ceremonias aplicadas (Sprint Planning,
+  integración continua, Sprint Review, retrospectiva vía el checklist
+  vivo). Todo grounded en el trabajo real de esta sesión, no inventado
+  — verificado con `validate.py` (paragraph diff +93, sin romper el
+  documento original) y revisado con pandoc para confirmar acentos y
+  estructura correctos.
+- **Problema urgente y explícito del docente (todavía pendiente)**: dijiste que el ingeniero
   **no quiere diagramas generados por IA, quiere los diagramas hechos en
   Architect**. Revisé las imágenes embebidas en el .docx:
   - La sección **4.3** ("Notación UML 2.5+ utilizada en el proyecto")
@@ -119,11 +124,12 @@ autenticado del login. Accesible desde Archivo → "Bitácora de cambios" en
 el toolbar (`frontend/src/components/HistoryPanel.tsx`), endpoint
 `GET /diagrams/:id/history`. Verificado en vivo end-to-end.
 
-## 9. ¿Está completa la documentación? — ⚠️ Parcial
+## 9. ¿Está completa la documentación? — ⚠️ Casi — solo falta lo de EA
 
 Completa en estructura (perfil, requisitos, análisis, diseño,
-implementación, manual de usuario, anexos), pero todavía bloqueada por el
-punto 5 (Scrum, diagramas de EA).
+implementación, manual de usuario, gestión ágil con Scrum, anexos).
+Solo queda pendiente el punto 1 del resumen: reemplazar las 2 imágenes
+por capturas reales de tu Enterprise Architect.
 
 ---
 
@@ -133,12 +139,12 @@ punto 5 (Scrum, diagramas de EA).
 |---|---|---|---|
 | 1 | Reemplazar las 2 imágenes de diagramas (4.3 y 6.3) por capturas reales de EA | 🔴 Alta — el docente lo pidió explícitamente | Bajo (lo haces tú en EA) |
 | ~~2~~ | ~~Desplegar en AWS~~ — ✅ hecho (http://34.231.176.225) | — | — |
-| 3 | Agregar sección de Scrum a la documentación (backlog, sprints) | 🟡 Media | Bajo-medio |
+| ~~3~~ | ~~Agregar sección de Scrum a la documentación~~ — ✅ hecho (PARTE 4, antes de Anexos) | — | — |
 | ~~4~~ | ~~S3 para subir archivos~~ — ✅ hecho | — | — |
 | ~~5~~ | ~~Bitácora de cambios (quién modificó qué)~~ — ✅ hecho | — | — |
 | 6 | Probar `flutter_gemma` y `offline_sync_service` en un celular real | 🟢 Baja (ya funciona en el emulador/build) | Bajo — solo necesitas el celular |
 
-Los puntos 2, 3, 4, 5, 6, 7 y 8 (producción en AWS, imágenes, ML,
+Los puntos 2, 3, 4, 5, 6, 7 y 8 (producción en AWS, Scrum, imágenes, ML,
 formularios/datagrid, S3, bitácora) del rúbrico ya están cumplidos y
 verificados contra el código real, contra tu bucket real de AWS, y
 contra el servidor real desplegado. Solo queda el punto 1 (reemplazar
