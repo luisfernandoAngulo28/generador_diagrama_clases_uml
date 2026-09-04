@@ -49,6 +49,8 @@ services:
       - backend
     ports:
       - "80:80"
+    volumes:
+      - /var/www/certbot:/var/www/certbot:ro
 
 volumes:
   db_data:
