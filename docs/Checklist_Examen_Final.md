@@ -62,21 +62,20 @@ funcional (`FlutterGemma.initialize/installModel/createChat`) accesible
 desde `main.dart` vía el botón "Asistente offline". Falta: probarlo en un
 celular real con el modelo `.task` cargado.
 
-## 5. ¿Documentación completa según Scrum + UML 2.5? — ⚠️ Solo falta lo de EA
+## 5. ¿Documentación completa según UML 2.5 y el proceso de desarrollo? — ⚠️ Solo falta lo de EA
 
 - La sección de modelado UML 2.5+ existe (sección 4 del documento) y el
-  resto de secciones (arquitectura, requisitos, diseño, implementación,
-  manual de usuario) están escritas.
-- **Scrum: resuelto.** Se agregó **PARTE 4 — Gestión ágil del proyecto
-  con Scrum** (antes de Anexos): roles (Product Owner / Scrum Master +
-  Dev Team), un Product Backlog de 13 historias de usuario en tabla
-  (ID, historia, prioridad, estado), 5 sprints reales con objetivo y
-  entregables cada uno, y las ceremonias aplicadas (Sprint Planning,
-  integración continua, Sprint Review, retrospectiva vía el checklist
-  vivo). Todo grounded en el trabajo real de esta sesión, no inventado
-  — verificado con `validate.py` (paragraph diff +93, sin romper el
-  documento original) y revisado con pandoc para confirmar acentos y
-  estructura correctos.
+  resto de secciones (arquitectura, requisitos, análisis, diseño,
+  implementación, pruebas, manual de usuario) están escritas.
+- **Proceso de desarrollo: solo PUDS, sin Scrum.** Por indicación
+  explícita, se retiró por completo la sección de Scrum (roles, product
+  backlog, sprints, ceremonias) que se había agregado antes en este
+  checklist — la documentación describe el proceso de desarrollo
+  exclusivamente en términos del PUDS (teoría en la Parte I, sección 7,
+  y aplicación práctica en la Parte II con Perfil, Requisitos, Análisis,
+  Diseño, Implementación y Pruebas). Verificado con `validate.py` y
+  revisado con pandoc para confirmar que no quedó ninguna referencia a
+  Scrum ni a la parte eliminada.
 - **Problema urgente y explícito del docente (todavía pendiente)**: dijiste que el ingeniero
   **no quiere diagramas generados por IA, quiere los diagramas hechos en
   Architect**. Revisé las imágenes embebidas en el .docx:
@@ -139,15 +138,14 @@ por capturas reales de tu Enterprise Architect.
 |---|---|---|---|
 | 1 | Reemplazar las 2 imágenes de diagramas (4.3 y 6.3) por capturas reales de EA | 🔴 Alta — el docente lo pidió explícitamente | Bajo (lo haces tú en EA) |
 | ~~2~~ | ~~Desplegar en AWS~~ — ✅ hecho (http://34.231.176.225) | — | — |
-| ~~3~~ | ~~Agregar sección de Scrum a la documentación~~ — ✅ hecho (PARTE 4, antes de Anexos) | — | — |
+| ~~3~~ | ~~Capítulo de Pruebas en la documentación (Parte II)~~ — ✅ hecho (PUDS únicamente, sin Scrum) | — | — |
 | ~~4~~ | ~~S3 para subir archivos~~ — ✅ hecho | — | — |
 | ~~5~~ | ~~Bitácora de cambios (quién modificó qué)~~ — ✅ hecho | — | — |
 | 6 | Probar `flutter_gemma` y `offline_sync_service` en un celular real | 🟢 Baja (ya funciona en el emulador/build) | Bajo — solo necesitas el celular |
 
-Los puntos 2, 3, 4, 5, 6, 7 y 8 (producción en AWS, Scrum, imágenes, ML,
-formularios/datagrid, S3, bitácora) del rúbrico ya están cumplidos y
-verificados contra el código real, contra tu bucket real de AWS, y
-contra el servidor real desplegado. Solo queda el punto 1 (reemplazar
-las 2 imágenes por capturas de EA) y el 6 de esta tabla (Scrum en la
-documentación) como pendientes de contenido, más probar la IA local en
-un celular físico.
+Los puntos 2, 3, 4, 5, 6, 7 y 8 (producción en AWS, proceso de
+desarrollo/PUDS, imágenes, ML, formularios/datagrid, S3, bitácora) del
+rúbrico ya están cumplidos y verificados contra el código real, contra
+tu bucket real de AWS, y contra el servidor real desplegado. Solo queda
+el punto 1 (reemplazar las 2 imágenes por capturas de EA), más probar la
+IA local en un celular físico (punto 6 de esta tabla).
