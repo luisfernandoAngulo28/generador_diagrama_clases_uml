@@ -41,8 +41,11 @@ Resuelto: desplegado en una instancia EC2 real (`t3.micro`, Ubuntu 24.04,
 (dominio DuckDNS + certificado real de Let's Encrypt, HTTP redirige
 automáticamente a HTTPS, renovación automática verificada). Los 3 contenedores
 (Postgres, backend NestJS, frontend Nginx) corren vía Docker Compose,
-`restart: unless-stopped` + Docker habilitado al arranque, así que
-sobrevive a un reinicio del servidor sin intervención manual. Se detectó
+`restart: unless-stopped` + Docker habilitado al arranque. **Verificado
+con un reinicio real de la instancia** (`aws ec2 reboot-instances`, no
+solo inferido de la config): tras el reboot, los 3 contenedores volvieron
+a levantarse solos sin ningún comando manual, y el sitio respondió `200`
+con certificado TLS válido. Se detectó
 y corrigió un problema real antes de desplegar: `nginx.conf` no
 reenviaba `/auth` ni `/attachments` al backend (se agregaron después de
 crear ese archivo) — sin el fix, login y adjuntos habrían estado rotos
