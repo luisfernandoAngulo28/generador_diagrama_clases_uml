@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import 'offline_chat_screen.dart';
 import 'offline_sync_service.dart';
@@ -15,11 +16,48 @@ import 'offline_sync_service.dart';
 //   - Celular físico en la misma WiFi que tu PC:            http://<IP-LAN-DE-TU-PC>:8080
 //     (revisa tu IP con `ipconfig`, ej: http://192.168.0.7:8080)
 //
-// Durante el examen NO necesitas tocar este archivo: el nombre del endpoint
-// (ej. "clientes", "barberos") y el JSON para crear registros se escriben
-// directamente en la pantalla, en tiempo de ejecución.
+// ATAJOS DE EXAMEN:
+//   • Botones de PRESET: rellenan el endpoint + JSON de prueba con un tap.
+//   • Botón de MICRÓFONO: dicta el JSON por voz (evita escribir llaves/comillas).
 // ============================================================================
-const String baseUrl = 'http://localhost:8080';
+const String baseUrl = 'https://diagramasw1pracial100.duckdns.org';
+
+// ---------------------------------------------------------------------------
+// Presets de ejemplo — ajusta los nombres de entidades el día del examen.
+// Puedes agregar más filas aquí antes de compilar el APK.
+// ---------------------------------------------------------------------------
+const List<Map<String, String>> _presets = [
+  {
+    'label': 'Cliente',
+    'endpoint': 'clientes',
+    'json': '{\n  "nombre": "Carlos Mamani",\n  "telefono": "70012345",\n  "email": "carlos@example.com"\n}',
+  },
+  {
+    'label': 'Barbero',
+    'endpoint': 'barberos',
+    'json': '{\n  "nombre": "Luis Quispe",\n  "especialidad": "Corte clasico"\n}',
+  },
+  {
+    'label': 'Turno',
+    'endpoint': 'turnos',
+    'json': '{\n  "fecha": "2026-09-23",\n  "hora": "10:00",\n  "clienteId": 1,\n  "barberoId": 1\n}',
+  },
+  {
+    'label': 'Servicio',
+    'endpoint': 'servicios',
+    'json': '{\n  "nombre": "Corte de cabello",\n  "precio": 50.0,\n  "duracionMinutos": 30\n}',
+  },
+  {
+    'label': 'Producto',
+    'endpoint': 'productos',
+    'json': '{\n  "nombre": "Shampoo Pro",\n  "precio": 35.0,\n  "stock": 100\n}',
+  },
+  {
+    'label': 'Pedido',
+    'endpoint': 'pedidos',
+    'json': '{\n  "clienteId": 1,\n  "total": 150.0,\n  "estado": "PENDIENTE"\n}',
+  },
+];
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,8 +73,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cliente API',
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
+      title: 'Cliente API — Examen SW1',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.indigo,
+        brightness: Brightness.light,
+      ),
       home: const ApiScreen(),
     );
   }
@@ -54,6 +97,11 @@ class _ApiScreenState extends State<ApiScreen> {
   final jsonController =
       TextEditingController(text: '{\n  "nombre": "Ejemplo"\n}');
   final _sync = OfflineSyncService.instance;
+
+  // Voz
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechAvailable = false;
+  bool _listening = false;
 
   List<dynamic> items = [];
   String? error;
@@ -83,6 +131,52 @@ class _ApiScreenState extends State<ApiScreen> {
       setState(() => pendingCount = value);
     });
     fetchItems();
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    final available = await _speech.initialize(
+      onError: (e) => debugPrint('Speech error: $e'),
+    );
+    if (mounted) setState(() => _speechAvailable = available);
+  }
+
+  Future<void> _toggleListening() async {
+    if (_listening) {
+      await _speech.stop();
+      setState(() => _listening = false);
+      return;
+    }
+    setState(() => _listening = true);
+    await _speech.listen(
+      onResult: (result) {
+        if (result.finalResult) {
+          final words = result.recognizedWords.trim();
+          setState(() {
+            if (words.startsWith('{')) {
+              jsonController.text = words;
+            } else {
+              jsonController.text = _wordsToJson(words);
+            }
+            _listening = false;
+          });
+        }
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 4),
+      localeId: 'es_BO',
+    );
+  }
+
+  /// Convierte "nombre Carlos telefono 70012345" -> {"nombre":"Carlos","telefono":"70012345"}
+  String _wordsToJson(String words) {
+    final parts = words.split(RegExp(r'\s+'));
+    final map = <String, String>{};
+    for (var i = 0; i + 1 < parts.length; i += 2) {
+      map[parts[i]] = parts[i + 1];
+    }
+    const encoder = JsonEncoder.withIndent('  ');
+    return encoder.convert(map);
   }
 
   Future<void> fetchItems() async {
@@ -105,8 +199,6 @@ class _ApiScreenState extends State<ApiScreen> {
         showingCached = false;
       });
     } catch (e) {
-      // Sin conexión (o el backend no responde): mostramos la última copia
-      // guardada localmente en vez de una pantalla vacía.
       final cached = await _sync.getCachedItems(endpoint);
       if (!mounted) return;
       setState(() {
@@ -136,8 +228,6 @@ class _ApiScreenState extends State<ApiScreen> {
           )
           .timeout(const Duration(seconds: 6));
     } catch (_) {
-      // Fallo a nivel de red (sin internet, timeout, host inalcanzable):
-      // no fue un error del servidor, así que se puede reintentar luego.
       await _queueOffline(body);
       if (mounted) setState(() => loading = false);
       return;
@@ -161,8 +251,8 @@ class _ApiScreenState extends State<ApiScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Sin conexión: el registro se guardó localmente y se enviará '
-          'automáticamente cuando vuelvas a tener internet.',
+          'Sin conexion: el registro se guardo localmente y se enviara '
+          'automaticamente cuando vuelvas a tener internet.',
         ),
       ),
     );
@@ -174,14 +264,66 @@ class _ApiScreenState extends State<ApiScreen> {
     jsonController.dispose();
     _onlineSub?.cancel();
     _pendingSub?.cancel();
+    _speech.cancel();
     super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Widget helpers
+  // ---------------------------------------------------------------------------
+
+  /// Fila de chips de preset — un tap rellena endpoint + JSON automáticamente.
+  Widget _buildPresets() {
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _presets.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, i) {
+          final p = _presets[i];
+          return ActionChip(
+            label: Text(p['label']!),
+            avatar: const Icon(Icons.flash_on, size: 14),
+            onPressed: () {
+              endpointController.text = p['endpoint']!;
+              jsonController.text = p['json']!;
+              setState(() {});
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// Botón de micrófono animado.
+  Widget _buildMicButton() {
+    return Tooltip(
+      message: _speechAvailable
+          ? (_listening ? 'Detener dictado' : 'Dictar JSON por voz')
+          : 'Microfono no disponible',
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _listening ? Colors.red.shade100 : Colors.indigo.shade50,
+        ),
+        child: IconButton(
+          icon: Icon(
+            _listening ? Icons.mic : Icons.mic_none,
+            color: _listening ? Colors.red : Colors.indigo,
+          ),
+          onPressed: _speechAvailable ? _toggleListening : null,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cliente API genérico'),
+        title: const Text('Cliente API — Examen'),
         actions: [
           IconButton(
             icon: const Icon(Icons.smart_toy_outlined),
@@ -197,11 +339,12 @@ class _ApiScreenState extends State<ApiScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ── Banner offline / sync ──────────────────────────────────────
             if (!online || pendingCount > 0)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(10),
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
                   color: online ? Colors.orange.shade100 : Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(8),
@@ -217,22 +360,34 @@ class _ApiScreenState extends State<ApiScreen> {
                     Expanded(
                       child: Text(
                         online
-                            ? 'En línea — sincronizando $pendingCount registro(s) pendiente(s)…'
+                            ? 'En linea — sincronizando $pendingCount registro(s)...'
                             : showingCached
-                                ? 'Sin conexión — mostrando datos guardados localmente'
-                                    '${pendingCount > 0 ? ' ($pendingCount pendiente(s) por enviar)' : ''}'
-                                : 'Sin conexión',
+                                ? 'Sin conexion — mostrando datos guardados localmente'
+                                    '${pendingCount > 0 ? ' ($pendingCount pendiente(s))' : ''}'
+                                : 'Sin conexion',
                         style: const TextStyle(fontSize: 13),
                       ),
                     ),
                   ],
                 ),
               ),
+
+            // ── PRESETS ────────────────────────────────────────────────────
+            const Text(
+              'Presets rapidos',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            _buildPresets(),
+            const SizedBox(height: 10),
+
+            // ── Endpoint ──────────────────────────────────────────────────
             TextField(
               controller: endpointController,
               decoration: const InputDecoration(
                 labelText: 'Endpoint (ej: clientes, barberos, pedidos)',
                 border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.link),
               ),
             ),
             const SizedBox(height: 8),
@@ -241,51 +396,96 @@ class _ApiScreenState extends State<ApiScreen> {
               icon: const Icon(Icons.download),
               label: const Text('Cargar lista (GET)'),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: jsonController,
-              maxLines: 3,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-              decoration: const InputDecoration(
-                labelText: 'JSON para crear (POST)',
-                border: OutlineInputBorder(),
-              ),
+            const SizedBox(height: 10),
+
+            // ── JSON con botón de voz ──────────────────────────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: jsonController,
+                    maxLines: 4,
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    decoration: InputDecoration(
+                      labelText: 'JSON para crear (POST)',
+                      border: const OutlineInputBorder(),
+                      filled: _listening,
+                      fillColor: Colors.red.shade50,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: _buildMicButton(),
+                ),
+              ],
             ),
+
+            // Leyenda de escucha activa
+            if (_listening)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, left: 2),
+                child: Row(
+                  children: [
+                    const Icon(Icons.fiber_manual_record,
+                        size: 10, color: Colors.red),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Escuchando... Di: "nombre Carlos telefono 70012345"',
+                      style: TextStyle(
+                          fontSize: 11, color: Colors.red.shade700),
+                    ),
+                  ],
+                ),
+              ),
+
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: loading ? null : createItem,
               icon: const Icon(Icons.add),
               label: const Text('Crear (POST)'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+
             if (loading) const LinearProgressIndicator(),
             if (error != null)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(8),
-                margin: const EdgeInsets.only(top: 8),
-                color: Colors.red.shade100,
+                margin: const EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 child: Text(
                   error!,
-                  style: const TextStyle(color: Colors.red),
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
                 ),
               ),
-            const Divider(height: 24),
+            const Divider(height: 20),
+
+            // ── Lista de resultados ────────────────────────────────────────
             Expanded(
               child: items.isEmpty
-                  ? const Center(child: Text('Sin datos cargados aún'))
+                  ? const Center(child: Text('Sin datos cargados aun'))
                   : ListView.builder(
                       itemCount: items.length,
                       itemBuilder: (context, index) {
                         final raw = items[index];
                         final text = raw is Map<String, dynamic>
                             ? raw.entries
-                                .where((e) => e.value is! List && e.value is! Map)
+                                .where(
+                                    (e) => e.value is! List && e.value is! Map)
                                 .map((e) => '${e.key}: ${e.value}')
                                 .join('   •   ')
                             : raw.toString();
                         return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 3),
                           child: ListTile(
+                            dense: true,
                             title: Text(text.isEmpty ? raw.toString() : text),
                           ),
                         );

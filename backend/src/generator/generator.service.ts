@@ -9,10 +9,14 @@ import { renderController } from './templates/controller.template.js';
 import {
   renderApplicationClass,
   renderApplicationProperties,
+  renderDockerCompose,
+  renderDockerfile,
   renderPomXml,
+  renderProjectReadme,
 } from './templates/project-files.template.js';
 import { renderJacksonConfig } from './templates/jackson-config.template.js';
-import { capitalize } from './java-type.util.js';
+import { renderOpenApiConfig } from './templates/openapi-config.template.js';
+import { capitalize, decapitalize, pluralize } from './java-type.util.js';
 
 export interface GeneratorOptions {
   projectName: string;
@@ -34,15 +38,24 @@ export class GeneratorService {
     const packagePath = packageName.replace(/\./g, '/');
     const appClassName = `${capitalize(sanitizePackageSegment(options.projectName))}Application`;
 
+    const endpoints = model.classes
+      .filter((c) => !c.stereotype || (c.stereotype !== 'enum' && c.stereotype !== 'interface'))
+      .map((c) => pluralize(decapitalize(c.name)));
+
     const files: GeneratedProject = {};
 
     files[`pom.xml`] = renderPomXml(options.projectName, groupId);
+    files[`docker-compose.yml`] = renderDockerCompose(options.projectName);
+    files[`Dockerfile`] = renderDockerfile();
+    files[`README.md`] = renderProjectReadme(options.projectName, endpoints);
     files[`src/main/resources/application.properties`] =
       renderApplicationProperties(options.projectName);
     files[`src/main/java/${packagePath}/${appClassName}.java`] =
       renderApplicationClass(packageName, appClassName);
     files[`src/main/java/${packagePath}/config/JacksonConfig.java`] =
       renderJacksonConfig(packageName);
+    files[`src/main/java/${packagePath}/config/OpenApiConfig.java`] =
+      renderOpenApiConfig(packageName, options.projectName);
 
     for (const cls of model.classes) {
       if (cls.stereotype === 'enum') {
