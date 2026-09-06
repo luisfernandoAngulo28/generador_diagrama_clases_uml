@@ -168,9 +168,11 @@ class _ApiScreenState extends State<ApiScreen> {
           });
         }
       },
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 4),
-      localeId: 'es_BO',
+      listenOptions: SpeechListenOptions(
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 4),
+        localeId: 'es_BO',
+      ),
     );
   }
 
@@ -285,7 +287,7 @@ class _ApiScreenState extends State<ApiScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _presets.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        separatorBuilder: (_, _r) => const SizedBox(width: 6),
         itemBuilder: (context, i) {
           final p = _presets[i];
           return ActionChip(
