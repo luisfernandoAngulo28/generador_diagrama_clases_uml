@@ -20,7 +20,13 @@ import 'offline_sync_service.dart';
 //   • Botones de PRESET: rellenan el endpoint + JSON de prueba con un tap.
 //   • Botón de MICRÓFONO: dicta el JSON por voz (evita escribir llaves/comillas).
 // ============================================================================
-const String baseUrl = 'https://diagramasw1pracial100.duckdns.org';
+// URL del backend Spring Boot generado (editable en tiempo de ejecución).
+// Defaults:
+//   Emulador Android  → http://10.0.2.2:8080
+//   Celular físico    → http://<IP-LAN-DE-TU-PC>:8080  (ej: http://192.168.0.7:8080)
+//   Flutter Web       → http://localhost:8080
+String _baseUrl = 'http://10.0.2.2:8080';
+String get baseUrl => _baseUrl;
 
 // ---------------------------------------------------------------------------
 // Presets de ejemplo — ajusta los nombres de entidades el día del examen.
@@ -62,7 +68,7 @@ const List<Map<String, String>> _presets = [
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   OfflineSyncService.instance
-      .configureUrlBuilder((endpoint) => '$baseUrl/api/$endpoint');
+      .configureUrlBuilder((endpoint) => '$_baseUrl/api/$endpoint');
   await OfflineSyncService.instance.init();
   runApp(const MyApp());
 }
@@ -319,12 +325,91 @@ class _ApiScreenState extends State<ApiScreen> {
     );
   }
 
+  /// Diálogo para cambiar la URL base en tiempo de ejecución.
+  /// Útil durante el examen para apuntar al Spring Boot generado sin recompilar.
+  Future<void> _showUrlDialog() async {
+    final ctrl = TextEditingController(text: _baseUrl);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Configurar servidor'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'URL del Spring Boot generado:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Emulador Android:\nhttp://10.0.2.2:8080\n\n'
+              'Celular fisico (misma WiFi):\nhttp://192.168.X.X:8080\n\n'
+              'Flutter Web / misma PC:\nhttp://localhost:8080',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'URL base',
+                hintText: 'http://10.0.2.2:8080',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newUrl =
+                  ctrl.text.trim().replaceAll(RegExp(r'/$'), '');
+              if (newUrl.isNotEmpty) {
+                setState(() => _baseUrl = newUrl);
+                OfflineSyncService.instance
+                    .configureUrlBuilder((ep) => '$_baseUrl/api/$ep');
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Guardar y reconectar'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cliente API — Examen'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Cliente API — Examen', style: TextStyle(fontSize: 16)),
+            Text(
+              _baseUrl,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.indigo.shade200,
+                fontFamily: 'monospace',
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Cambiar URL del servidor',
+            onPressed: _showUrlDialog,
+          ),
           IconButton(
             icon: const Icon(Icons.smart_toy_outlined),
             tooltip: 'Asistente offline',
