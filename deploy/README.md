@@ -65,10 +65,31 @@ ssh -i .deploy/diagramador-uml-key.pem ubuntu@34.231.176.225
 
 ## Redesplegar tras un cambio (git push a `main`)
 
-```bash
-ssh -i .deploy/diagramador-uml-key.pem ubuntu@34.231.176.225 '
-  cd app && git pull && bash deploy/deploy.sh
-'
+> ⚠️ El servidor no puede hacer `git pull` directamente sin credenciales (GitHub bloquea HTTPS no-interactivo). Usa el método SCP:
+
+### Método rápido: SCP + deploy.sh (recomendado)
+
+```powershell
+# 1. Desde la raíz del repo en tu PC — sube solo los archivos del backend:
+scp -i ".deploy/diagramador-uml-key.pem" `
+  backend/src/generator/generator.service.ts `
+  backend/src/generator/generator.service.spec.ts `
+  ubuntu@34.231.176.225:app/backend/src/generator/
+
+scp -i ".deploy/diagramador-uml-key.pem" `
+  backend/src/generator/templates/controller.template.ts `
+  backend/src/generator/templates/project-files.template.ts `
+  backend/src/generator/templates/openapi-config.template.ts `
+  ubuntu@34.231.176.225:app/backend/src/generator/templates/
+
+# 2. Rebuild y restart del contenedor backend:
+ssh -i ".deploy/diagramador-uml-key.pem" ubuntu@34.231.176.225 `
+  "cd app && bash deploy/deploy.sh"
+```
+
+### Nota: primero arregla los permisos del .pem en Windows
+```powershell
+icacls ".deploy\diagramador-uml-key.pem" /inheritance:r /grant:r "$($env:USERNAME):(R)"
 ```
 
 ## Ver logs / diagnosticar
