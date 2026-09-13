@@ -5,6 +5,7 @@ import type { EditDiagramResult } from './operations.types.js';
 import type { AiProvider } from './providers/ai-provider.interface.js';
 import { GeminiProvider } from './providers/gemini.provider.js';
 import { OllamaProvider } from './providers/ollama.provider.js';
+import { validateOperations } from './validate-operations.js';
 
 /**
  * Fachada: elige el proveedor de IA segun AI_PROVIDER ("gemini" por
@@ -24,8 +25,9 @@ export class AiService {
         : new GeminiProvider(this.configService);
   }
 
-  editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
-    return this.provider.editDiagram(message, model);
+  async editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
+    const result = await this.provider.editDiagram(message, model);
+    return validateOperations(result, model);
   }
 
   interpretDiagramPhoto(

@@ -24,7 +24,7 @@ punta contra `http://localhost`, sin internet.
 
 - **Adjuntar documentos (S3)** — es una llamada a AWS S3. Sin internet,
   sin importar dónde corra el backend, esto **siempre** va a fallar.
-- **Chat/voz/foto con IA (Gemini) — parcialmente cubierto, ver abajo.**
+- **Chat de edición de diagramas con IA — SÍ tiene un fallback local viable, ver abajo.** Voz y foto (Gemini) siguen sin cobertura local.
 
 Si el profesor corta la conexión y pide ver TODO funcionando (incluida
 la IA), la única forma de que eso siga funcionando es tener **algún**
@@ -38,7 +38,7 @@ ese caso. Este Plan B local es específicamente para el escenario de
 "cero internet en absoluto" (ni WiFi ni datos), donde solo puedes
 demostrar la parte no-IA/no-S3 del proyecto.
 
-## IA local (Ollama) para el chat del editor — resultado real, no optimista
+## IA local (Ollama) para el chat del editor — SÍ es viable (con condiciones)
 
 Se construyó soporte real para que el chat de edición de diagramas
 (`/ai/edit`) hable con un **Ollama local** en vez de Gemini
@@ -47,40 +47,60 @@ exactamente el mismo esquema de operaciones atómicas
 (`CREATE_CLASS`/`ADD_ATTRIBUTE`/`CREATE_RELATION`/etc. — ver
 `backend/src/ai/prompts.ts`), para que el frontend no note diferencia.
 
-**Se probó en vivo contra esta laptop (GPU integrada Intel UHD 620, sin
-aceleración por hardware — solo CPU) con los modelos ya disponibles:**
+**Primera ronda de pruebas (falló):** con la config por defecto de
+Ollama (temperatura 0.8) y sin ejemplo en el prompt, tanto `gemma2:2b`
+como `qwen2.5:1.5b-instruct` fallaban de forma consistente — formato
+roto, atributos faltantes, y en un caso una relación inventada con una
+clase ("Propietario") que nadie pidió.
 
-| Modelo | Tiempo total | Resultado |
+**Tres arreglos concretos, no cosméticos:**
+1. **`temperature: 0, top_p: 0.1`** en la llamada a Ollama — decodificación
+   determinista en vez de creativa. Los modelos pequeños con temperatura
+   por defecto improvisan contenido que no se les pidió; en modo
+   determinista, no.
+2. **Un ejemplo concreto (few-shot)** agregado al prompt (solo para
+   Ollama, no toca el prompt de Gemini que ya funcionaba bien) — un
+   modelo pequeño sigue un patrón mostrado mucho mejor que una regla
+   abstracta.
+3. **Red de seguridad en el servidor** (`backend/src/ai/validate-operations.ts`,
+   aplica a CUALQUIER proveedor, incluido Gemini): descarta cualquier
+   operación que referencie una clase que no existe en el modelo actual
+   ni fue creada en el mismo batch — si el modelo alucina una relación
+   con una clase inventada, esa operación nunca llega al diagrama.
+
+**Segunda ronda de pruebas, con los tres arreglos — 3 de 3 correctas:**
+
+| Caso | Tiempo total | Resultado |
 |---|---|---|
-| `gemma2:2b` | ~205 s (3.4 min) | Formato roto: anidó la relación dentro del `CREATE_CLASS` en vez de como operación separada, y duplicó contenido en `reply`. |
-| `qwen2.5:1.5b-instruct` (petición compuesta: 2 clases + relación) | ~40 s | No creó ninguna de las dos clases pedidas; solo alucinó una relación entre nombres que nunca definió. |
-| `qwen2.5:1.5b-instruct` (petición simple: 1 sola clase con 2 atributos) | ~22 s | Creó la clase pero **sin los atributos pedidos**, y además **inventó una relación con una clase "Propietario" que nadie mencionó**. |
+| 1 clase, 2 atributos (`Cliente`: nombre, email) | 82 s | ✅ Exacto |
+| 2 clases + relación (`Cliente`→`Pedido`, 1:N) | 59 s | ✅ Exacto, las 3 operaciones correctas |
+| Modificar clase existente (`ADD_ATTRIBUTE telefono` a `Cliente`) | 32 s | ✅ Exacto |
 
-**Conclusión honesta: no es confiable, ni siquiera en el caso más
-simple posible.** No es un problema de prompt — es que un modelo de
-~1.5-2B parámetros corriendo por CPU pura, sin GPU, no sigue de forma
-consistente un esquema JSON con varios campos anidados. Además, aun
-cuando responde "bien" en velocidad (~20-40s), sigue siendo 10-20x más
-lento que Gemini.
+**Detalle importante sobre el tiempo:** el costo alto (~60-80s) es
+sobre todo procesar el prompt la PRIMERA vez; Ollama cachea ese
+contexto, así que el segundo mensaje de la prueba compuesta reusó la
+mayor parte del prompt de la anterior y su fase de "leer el prompt"
+bajó de 61s a 1.7s. En la práctica esto significa: el primer mensaje de
+una sesión es el lento, los siguientes son notablemente más rápidos.
 
-**Recomendación para el examen: no demuestres esta integración en
-vivo.** El código queda en el repo (`AiProvider`, `GeminiProvider`,
-`OllamaProvider` — arquitectura real e intercambiable, buena para
-mostrar diseño si el ingeniero pregunta), pero el riesgo de que el
-modelo invente una clase o relación que no pediste, en vivo, frente al
-profesor, es real y ya ocurrió en las pruebas.
+**Recomendación actualizada: si vas a demostrarlo en vivo, "caliéntalo"
+antes** — manda un mensaje cualquiera al asistente (modo Ollama) uno o
+dos minutos antes de que el profesor mire, para pagar el costo del
+primer prompt fuera de cámara. Aun así, sigue siendo notablemente más
+lento que Gemini (30-80s por respuesta vs. 1-3s) — avísale al profesor
+que es la versión "sin internet" y que por eso tarda más, en vez de
+dejar que parezca que se colgó.
 
-**La demostración confiable de "IA con modelo local" sigue siendo el
-asistente offline de `flutter_gemma` en el celular** (ver checklist,
-punto 4) — ese SÍ se probó y funciona, porque es una tarea mucho más
-simple para un modelo pequeño (conversación libre en texto, sin tener
-que producir una estructura JSON exacta con nombres de clases exactos
-que coincidan con un modelo externo).
+**Antes de confiar en esto para el examen, pruébalo tú mismo en la UI
+real** (no solo en estas pruebas con curl): activa
+`docker-compose.local.yml`, abre el chat del asistente, y prueba 2-3
+mensajes variados con tus propios nombres de clase.
 
-Si más adelante quieres reintentar esto con un modelo más grande
-(7B+), vas a necesitar más tiempo por respuesta (varios minutos en esta
-laptop) o una máquina con GPU dedicada — ninguna de las dos es viable
-para una demo en vivo de 5-10 minutos.
+Si el resultado no es consistente en tus propias pruebas, la
+alternativa de respaldo sigue siendo el asistente offline de
+`flutter_gemma` en el celular (ver checklist, punto 4), que no necesita
+seguir un esquema JSON exacto y por eso es inherentemente más robusto
+para un modelo pequeño.
 
 ## Cómo levantarlo
 

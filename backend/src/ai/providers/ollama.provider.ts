@@ -47,6 +47,10 @@ export class OllamaProvider implements AiProvider {
           images: params.images,
           format: 'json',
           stream: false,
+          // temperature 0 (greedy, determinista): en pruebas, la temperatura
+          // por defecto de Ollama (0.8) hacía que modelos pequeños
+          // inventaran clases/relaciones que nadie pidió.
+          options: { temperature: 0, top_p: 0.1 },
         }),
       });
     } catch (err) {
@@ -65,7 +69,14 @@ export class OllamaProvider implements AiProvider {
   }
 
   async editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
-    const prompt = `Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
+    // Los modelos pequeños siguen un ejemplo concreto mucho mejor que una
+    // regla abstracta. Este ejemplo vive solo aqui (no en prompts.ts) para
+    // no arriesgar el comportamiento ya probado de Gemini.
+    const fewShotExample =
+      'Ejemplo — mensaje del usuario: "Crea una clase Producto con nombre y precio" con modelo actual {"classes":[],"relations":[]} ' +
+      '-> respuesta correcta: {"reply":"Cree la clase Producto.","operations":[{"op":"CREATE_CLASS","name":"Producto","attributes":[{"name":"nombre","type":"String","visibility":"private"},{"name":"precio","type":"Double","visibility":"private"}]}]}\n' +
+      'Nota: "reply" es SIEMPRE un string, nunca un objeto. NUNCA agregues una clase o relación que el usuario no haya pedido explícitamente.\n\n';
+    const prompt = `${fewShotExample}Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
     const raw = await this.generate({ model: this.textModel, system: EDIT_SYSTEM_PROMPT, prompt });
     const jsonText = stripJsonFences(raw);
 
