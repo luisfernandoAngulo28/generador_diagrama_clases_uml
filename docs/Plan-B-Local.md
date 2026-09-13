@@ -22,10 +22,9 @@ punta contra `http://localhost`, sin internet.
 
 ## Qué NO funciona sin internet (y no depende de dónde corra el backend)
 
-- **Chat/voz/foto con IA** (Google Gemini) — es una llamada a una API en
-  la nube de Google. Sin internet, sin importar si el backend corre en
-  AWS o en tu laptop, esta función **siempre** va a fallar.
-- **Adjuntar documentos (S3)** — igual, es una llamada a AWS S3.
+- **Adjuntar documentos (S3)** — es una llamada a AWS S3. Sin internet,
+  sin importar dónde corra el backend, esto **siempre** va a fallar.
+- **Chat/voz/foto con IA (Gemini) — parcialmente cubierto, ver abajo.**
 
 Si el profesor corta la conexión y pide ver TODO funcionando (incluida
 la IA), la única forma de que eso siga funcionando es tener **algún**
@@ -38,6 +37,50 @@ AWS como siempre — ni siquiera necesitas activar este Plan B local en
 ese caso. Este Plan B local es específicamente para el escenario de
 "cero internet en absoluto" (ni WiFi ni datos), donde solo puedes
 demostrar la parte no-IA/no-S3 del proyecto.
+
+## IA local (Ollama) para el chat del editor — resultado real, no optimista
+
+Se construyó soporte real para que el chat de edición de diagramas
+(`/ai/edit`) hable con un **Ollama local** en vez de Gemini
+(`AI_PROVIDER=ollama` en `docker-compose.local.yml`), reusando
+exactamente el mismo esquema de operaciones atómicas
+(`CREATE_CLASS`/`ADD_ATTRIBUTE`/`CREATE_RELATION`/etc. — ver
+`backend/src/ai/prompts.ts`), para que el frontend no note diferencia.
+
+**Se probó en vivo contra esta laptop (GPU integrada Intel UHD 620, sin
+aceleración por hardware — solo CPU) con los modelos ya disponibles:**
+
+| Modelo | Tiempo total | Resultado |
+|---|---|---|
+| `gemma2:2b` | ~205 s (3.4 min) | Formato roto: anidó la relación dentro del `CREATE_CLASS` en vez de como operación separada, y duplicó contenido en `reply`. |
+| `qwen2.5:1.5b-instruct` (petición compuesta: 2 clases + relación) | ~40 s | No creó ninguna de las dos clases pedidas; solo alucinó una relación entre nombres que nunca definió. |
+| `qwen2.5:1.5b-instruct` (petición simple: 1 sola clase con 2 atributos) | ~22 s | Creó la clase pero **sin los atributos pedidos**, y además **inventó una relación con una clase "Propietario" que nadie mencionó**. |
+
+**Conclusión honesta: no es confiable, ni siquiera en el caso más
+simple posible.** No es un problema de prompt — es que un modelo de
+~1.5-2B parámetros corriendo por CPU pura, sin GPU, no sigue de forma
+consistente un esquema JSON con varios campos anidados. Además, aun
+cuando responde "bien" en velocidad (~20-40s), sigue siendo 10-20x más
+lento que Gemini.
+
+**Recomendación para el examen: no demuestres esta integración en
+vivo.** El código queda en el repo (`AiProvider`, `GeminiProvider`,
+`OllamaProvider` — arquitectura real e intercambiable, buena para
+mostrar diseño si el ingeniero pregunta), pero el riesgo de que el
+modelo invente una clase o relación que no pediste, en vivo, frente al
+profesor, es real y ya ocurrió en las pruebas.
+
+**La demostración confiable de "IA con modelo local" sigue siendo el
+asistente offline de `flutter_gemma` en el celular** (ver checklist,
+punto 4) — ese SÍ se probó y funciona, porque es una tarea mucho más
+simple para un modelo pequeño (conversación libre en texto, sin tener
+que producir una estructura JSON exacta con nombres de clases exactos
+que coincidan con un modelo externo).
+
+Si más adelante quieres reintentar esto con un modelo más grande
+(7B+), vas a necesitar más tiempo por respuesta (varios minutos en esta
+laptop) o una máquina con GPU dedicada — ninguna de las dos es viable
+para una demo en vivo de 5-10 minutos.
 
 ## Cómo levantarlo
 
