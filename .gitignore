@@ -30,6 +30,11 @@ Thumbs.db
 
 # generated backend output (from the code generator engine)
 generated-output/
+generated-out/
+
+# APK builds (demasiado grandes para git — 280+ MB; se regeneran con flutter build)
+*.apk
+*.aab
 
 # scratch dir(s) used when editing docs/*.docx directly via XML
 docs_docwork*/

@@ -1,0 +1,17 @@
+# Dockerfile de PRODUCCION — sin compilacion en el servidor.
+# El dist/ se compila localmente (npm run build) y se sube via SCP.
+# Resuelve el OOM Kill en t3.micro (1 GB RAM) que congela "nest build".
+
+FROM node:24-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Solo dependencias de runtime (sin devDependencies)
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
+# Copiar el dist/ precompilado desde la PC local (subido por SCP)
+COPY dist ./dist
+
+EXPOSE 3000
+CMD ["node", "dist/main.js"]

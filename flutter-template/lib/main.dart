@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:speech_to_text/speech_to_text.dart' show SpeechListenOptions;
 
 import 'offline_chat_screen.dart';
 import 'offline_sync_service.dart';
@@ -25,43 +26,45 @@ import 'offline_sync_service.dart';
 //   Emulador Android  → http://10.0.2.2:8080
 //   Celular físico    → http://<IP-LAN-DE-TU-PC>:8080  (ej: http://192.168.0.7:8080)
 //   Flutter Web       → http://localhost:8080
-String _baseUrl = 'http://10.0.2.2:8080';
+// URL default: para Flutter Web en Chrome → localhost:8080
+String _baseUrl = 'http://192.168.0.7:8085';
 String get baseUrl => _baseUrl;
 
 // ---------------------------------------------------------------------------
-// Presets de ejemplo — ajusta los nombres de entidades el día del examen.
-// Puedes agregar más filas aquí antes de compilar el APK.
+// Presets del RESTAURANTE (simulacro) — ajusta el día del examen según
+// las entidades que el profesor pida.
 // ---------------------------------------------------------------------------
 const List<Map<String, String>> _presets = [
   {
+    'label': 'Mesa',
+    'endpoint': 'mesas',
+    'json': '{\n  "numero": 1,\n  "capacidad": 4\n}',
+  },
+  {
     'label': 'Cliente',
     'endpoint': 'clientes',
-    'json': '{\n  "nombre": "Carlos Mamani",\n  "telefono": "70012345",\n  "email": "carlos@example.com"\n}',
-  },
-  {
-    'label': 'Barbero',
-    'endpoint': 'barberos',
-    'json': '{\n  "nombre": "Luis Quispe",\n  "especialidad": "Corte clasico"\n}',
-  },
-  {
-    'label': 'Turno',
-    'endpoint': 'turnos',
-    'json': '{\n  "fecha": "2026-09-23",\n  "hora": "10:00",\n  "clienteId": 1,\n  "barberoId": 1\n}',
-  },
-  {
-    'label': 'Servicio',
-    'endpoint': 'servicios',
-    'json': '{\n  "nombre": "Corte de cabello",\n  "precio": 50.0,\n  "duracionMinutos": 30\n}',
-  },
-  {
-    'label': 'Producto',
-    'endpoint': 'productos',
-    'json': '{\n  "nombre": "Shampoo Pro",\n  "precio": 35.0,\n  "stock": 100\n}',
+    'json': '{\n  "nombre": "Carlos Mamani",\n  "telefono": "70012345"\n}',
   },
   {
     'label': 'Pedido',
     'endpoint': 'pedidos',
-    'json': '{\n  "clienteId": 1,\n  "total": 150.0,\n  "estado": "PENDIENTE"\n}',
+    'json': '{\n  "fecha": "2026-09-23",\n  "total": 150.0\n}',
+  },
+  {
+    'label': 'Producto',
+    'endpoint': 'productos',
+    'json': '{\n  "nombre": "Hamburguesa",\n  "precio": 45.0\n}',
+  },
+  // ---- Presets genéricos (útiles para cualquier sistema) ----
+  {
+    'label': 'Empleado',
+    'endpoint': 'empleados',
+    'json': '{\n  "nombre": "Ana Flores",\n  "cargo": "Vendedor"\n}',
+  },
+  {
+    'label': 'Venta',
+    'endpoint': 'ventas',
+    'json': '{\n  "fecha": "2026-09-23",\n  "total": 200.0\n}',
   },
 ];
 
@@ -335,49 +338,52 @@ class _ApiScreenState extends State<ApiScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Configurar servidor'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'URL del Spring Boot generado:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Emulador Android:\nhttp://10.0.2.2:8080\n\n'
-              'Celular fisico (misma WiFi):\nhttp://192.168.X.X:8080\n\n'
-              'Flutter Web / misma PC:\nhttp://localhost:8080',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              keyboardType: TextInputType.url,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'URL base',
-                hintText: 'http://10.0.2.2:8080',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'URL del Spring Boot generado:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              const Text(
+                'Emulador Android:\nhttp://10.0.2.2:8080\n\n'
+                'Celular fisico (misma WiFi):\nhttp://192.168.0.7:8085\n\n'
+                'Flutter Web / misma PC:\nhttp://localhost:8085',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                keyboardType: TextInputType.url,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'URL base',
+                  hintText: 'http://192.168.0.7:8085',
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
               final newUrl =
                   ctrl.text.trim().replaceAll(RegExp(r'/$'), '');
-              if (newUrl.isNotEmpty) {
+              Navigator.of(ctx).pop();
+              if (newUrl.isNotEmpty && mounted) {
                 setState(() => _baseUrl = newUrl);
                 OfflineSyncService.instance
                     .configureUrlBuilder((ep) => '$_baseUrl/api/$ep');
+                fetchItems();
               }
-              Navigator.pop(ctx);
             },
             child: const Text('Guardar y reconectar'),
           ),
@@ -421,7 +427,7 @@ class _ApiScreenState extends State<ApiScreen> {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -555,30 +561,34 @@ class _ApiScreenState extends State<ApiScreen> {
             const Divider(height: 20),
 
             // ── Lista de resultados ────────────────────────────────────────
-            Expanded(
-              child: items.isEmpty
-                  ? const Center(child: Text('Sin datos cargados aun'))
-                  : ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final raw = items[index];
-                        final text = raw is Map<String, dynamic>
-                            ? raw.entries
-                                .where(
-                                    (e) => e.value is! List && e.value is! Map)
-                                .map((e) => '${e.key}: ${e.value}')
-                                .join('   •   ')
-                            : raw.toString();
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 3),
-                          child: ListTile(
-                            dense: true,
-                            title: Text(text.isEmpty ? raw.toString() : text),
-                          ),
-                        );
-                      },
+            if (items.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: Text('Sin datos cargados aun')),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final raw = items[index];
+                  final text = raw is Map<String, dynamic>
+                      ? raw.entries
+                          .where(
+                              (e) => e.value is! List && e.value is! Map)
+                          .map((e) => '${e.key}: ${e.value}')
+                          .join('   •   ')
+                      : raw.toString();
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 3),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(text.isEmpty ? raw.toString() : text),
                     ),
-            ),
+                  );
+                },
+              ),
           ],
         ),
       ),

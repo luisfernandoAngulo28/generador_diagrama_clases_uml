@@ -1052,7 +1052,17 @@ function AppInner() {
           >
             <Camera size={15} /> {analyzingPhoto ? 'Analizando foto…' : 'Foto de pizarra'}
           </button>
+          <button
+            className="toolbar__btn toolbar__btn--accent"
+            id="btn-export-png"
+            title="Descargar el diagrama como imagen PNG (para el examen)"
+            onClick={() => void handleExportImage('png')}
+            disabled={exportingImage || nodes.length === 0}
+          >
+            <ImageIcon size={15} /> {exportingImage ? 'Exportando…' : 'Exportar PNG'}
+          </button>
         </div>
+
 
         {diagramId && (
           <>
