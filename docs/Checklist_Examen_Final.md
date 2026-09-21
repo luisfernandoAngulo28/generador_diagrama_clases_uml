@@ -58,14 +58,24 @@ login, creación de diagrama, bitácora, subida a S3 real desde dentro de
 AWS, y generación del backend Spring Boot — los 5 funcionando de punta a
 punta. Ver `deploy/README.md` para instrucciones de redespliegue.
 
-## 4. ¿IA con modelos locales? — ✅ Cumple (implementado) / ⚠️ (sin probar en dispositivo)
+## 4. ¿IA con modelos locales? — ✅ Cumple (verificado en dispositivo físico, 21/09/2026)
 
 `flutter-template/pubspec.yaml` declara `flutter_gemma` (inferencia LLM
 on-device, no una llamada a la nube). Está realmente conectado, no es
 código muerto: `lib/offline_chat_screen.dart` implementa una pantalla
 funcional (`FlutterGemma.initialize/installModel/createChat`) accesible
-desde `main.dart` vía el botón "Asistente offline". Falta: probarlo en un
-celular real con el modelo `.task` cargado.
+desde `main.dart` vía el botón "Asistente offline".
+
+**✅ Probado en celular real (21/09/2026)** con el modelo
+`Qwen2.5-1.5B-Instruct ... .task` (1.6 GB) cargado desde Descargas:
+- El indicador "🟢 Sin conexión" confirmó que el modelo se instaló y creó
+  el chat on-device.
+- Respondió correctamente a una pregunta de dominio ("¿qué es una clase en
+  UML?") con texto generado por el modelo, en 2-3 oraciones.
+- El filtro local de temas (`offline_guard.dart`) rechazó al instante un
+  saludo fuera de dominio ("holaa") sin invocar al modelo.
+- Se detectó y corrigió que "springboot" (escrito junto) caía en el filtro
+  por no estar en la lista de palabras clave — ya agregado.
 
 ## 5. ¿Documentación completa según UML 2.5 y el proceso de desarrollo? — ⚠️ Solo falta lo de EA
 
@@ -146,7 +156,7 @@ por capturas reales de tu Enterprise Architect.
 | ~~3~~ | ~~Capítulo de Pruebas en la documentación (Parte II)~~ — ✅ hecho (PUDS únicamente, sin Scrum) | — | — |
 | ~~4~~ | ~~S3 para subir archivos~~ — ✅ hecho | — | — |
 | ~~5~~ | ~~Bitácora de cambios (quién modificó qué)~~ — ✅ hecho | — | — |
-| 6 | Probar `flutter_gemma` y `offline_sync_service` en un celular real | 🟢 Baja (ya funciona en el emulador/build) | Bajo — solo necesitas el celular |
+| ~~6~~ | ~~Probar `flutter_gemma` en un celular real~~ — ✅ hecho (21/09, modelo Qwen 1.5B, respuesta de dominio + filtro verificados) | — | — |
 
 Los puntos 2, 3, 4, 5, 6, 7 y 8 (producción en AWS, proceso de
 desarrollo/PUDS, imágenes, ML, formularios/datagrid, S3, bitácora) del

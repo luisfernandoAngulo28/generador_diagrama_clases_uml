@@ -11,7 +11,7 @@ const List<String> kSoftwareEngineeringKeywords = [
   'uml', 'clase', 'clases', 'atributo', 'atributos', 'relacion', 'relación',
   'herencia', 'agregacion', 'agregación', 'composicion', 'composición',
   'asociacion', 'asociación', 'base de datos', 'tabla', 'entidad', 'entidades',
-  'spring', 'boot', 'api', 'backend', 'arquitectura', 'capas', 'controlador',
+  'spring', 'boot', 'springboot', 'api', 'backend', 'arquitectura', 'capas', 'controlador',
   'servicio', 'repositorio', 'normalizacion', 'normalización', 'sql',
   'postgresql', 'diagrama', 'modelo', 'patron', 'patrón', 'java',
   'interfaz', 'multiplicidad', 'xmi', 'generador', 'codigo', 'código',

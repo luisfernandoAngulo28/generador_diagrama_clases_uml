@@ -46,7 +46,7 @@ class _OfflineChatScreenState extends State<OfflineChatScreen> {
     });
 
     final result = await FilePicker.pickFiles(type: FileType.any);
-    if (result == null || result.isEmpty) return;
+    if (result.isEmpty) return;
     final picked = result.single;
     final path = picked.path;
     if (path == null) return;
