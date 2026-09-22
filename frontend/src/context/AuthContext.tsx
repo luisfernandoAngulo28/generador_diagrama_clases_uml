@@ -7,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { AUTH_TOKEN_KEY, loginUser, registerUser, setUnauthorizedHandler } from '../api/client';
-import type { AuthUser } from '../types/auth';
+import { AUTH_TOKEN_KEY, loginUser, registerUser, setUnauthorizedHandler, updateUserProfile } from '../api/client';
+import type { AuthUser, UpdateProfileDto } from '../types/auth';
 
 const USER_STORAGE_KEY = 'case-tool.auth-user';
 
@@ -17,6 +17,7 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  updateProfile: (dto: UpdateProfileDto) => Promise<void>;
   logout: () => void;
 }
 
@@ -78,9 +79,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persistSession],
   );
 
+  const updateProfile = useCallback(
+    async (dto: UpdateProfileDto) => {
+      setLoading(true);
+      try {
+        const { token, user: nextUser } = await updateUserProfile(dto);
+        persistSession(token, nextUser);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [persistSession],
+  );
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, register, updateProfile, logout }),
+    [user, loading, login, register, updateProfile, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

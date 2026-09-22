@@ -81,6 +81,7 @@ import { ToastProvider, useToast } from './context/ToastContext';
 import { CanvasEmptyState } from './components/CanvasEmptyState';
 import { ContextMenu, type ContextMenuData } from './components/ContextMenu';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
+import { ProfileModal } from './components/ProfileModal';
 import { StatusBar } from './components/StatusBar';
 import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
@@ -223,6 +224,7 @@ function AppInner() {
   const [connected, setConnected] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [past, setPast] = useState<HistorySnapshot[]>([]);
   const [future, setFuture] = useState<HistorySnapshot[]>([]);
 
@@ -1463,12 +1465,30 @@ function AppInner() {
           <HelpCircle size={15} /> Recorrido
         </button>
 
-        <span className="toolbar__user">
-          <UserIcon size={14} /> {user?.name}
-          <button onClick={logout} title="Cerrar sesión">
+        <div className="toolbar__user-group">
+          <button
+            type="button"
+            className="toolbar__user-pill"
+            onClick={() => setShowProfile(true)}
+            title="Mi Perfil: ver y modificar datos personales"
+          >
+            <span className="toolbar__user-avatar">
+              {user?.name?.charAt(0).toUpperCase() || <UserIcon size={12} />}
+            </span>
+            <span className="toolbar__user-name">{user?.name}</span>
+          </button>
+          <button
+            type="button"
+            className="toolbar__btn toolbar__logout-btn"
+            onClick={() => {
+              logout();
+              toast.info('Sesión cerrada correctamente');
+            }}
+            title="Cerrar sesión"
+          >
             <LogOut size={14} />
           </button>
-        </span>
+        </div>
       </header>
 
       {photoError && (
@@ -1693,6 +1713,11 @@ function AppInner() {
           onExportSql={() => exportSqlSchema(buildModel(), diagramName)}
           onExportPostman={() => exportPostmanCollection(buildModel(), diagramName)}
           onExportXmi={() => void exportXmi()}
+          onOpenProfile={() => setShowProfile(true)}
+          onLogout={() => {
+            logout();
+            toast.info('Sesión cerrada correctamente');
+          }}
         />
       )}
       {showSpotlight && (
@@ -1737,6 +1762,12 @@ function AppInner() {
           model={buildModel()}
           initialClassName={mockApiTargetClass}
           onClose={() => setShowMockApi(false)}
+        />
+      )}
+      {showProfile && (
+        <ProfileModal
+          isOpen={showProfile}
+          onClose={() => setShowProfile(false)}
         />
       )}
     </div>

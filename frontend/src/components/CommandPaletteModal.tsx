@@ -20,6 +20,8 @@ import {
   Download,
   Box,
   CornerDownLeft,
+  User,
+  LogOut,
 } from 'lucide-react';
 import type { Node } from '@xyflow/react';
 import type { UmlClassNodeData } from './UmlClassNode';
@@ -54,6 +56,8 @@ interface CommandPaletteModalProps {
   onExportSql: () => void;
   onExportPostman: () => void;
   onExportXmi: () => void;
+  onOpenProfile?: () => void;
+  onLogout?: () => void;
 }
 
 export function CommandPaletteModal({
@@ -76,6 +80,8 @@ export function CommandPaletteModal({
   onExportSql,
   onExportPostman,
   onExportXmi,
+  onOpenProfile,
+  onLogout,
 }: CommandPaletteModalProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -279,6 +285,38 @@ export function CommandPaletteModal({
           onExportXmi();
         },
       },
+      ...(onOpenProfile
+        ? [
+            {
+              id: 'cmd-profile',
+              category: 'Comando' as const,
+              title: 'Mi Perfil (Editar Datos Personales)',
+              subtitle: 'Modificar nombre, correo o cambiar contraseña',
+              icon: <User size={17} className="command-palette__icon--blue" />,
+              keywords: ['perfil', 'usuario', 'cuenta', 'nombre', 'correo', 'password', 'clave'],
+              action: () => {
+                onClose();
+                onOpenProfile();
+              },
+            },
+          ]
+        : []),
+      ...(onLogout
+        ? [
+            {
+              id: 'cmd-logout',
+              category: 'Comando' as const,
+              title: 'Cerrar Sesión',
+              subtitle: 'Salir de la cuenta actual de forma segura',
+              icon: <LogOut size={17} className="command-palette__icon--red" />,
+              keywords: ['salir', 'logout', 'cerrar', 'sesion'],
+              action: () => {
+                onClose();
+                onLogout();
+              },
+            },
+          ]
+        : []),
     ];
 
     // Add classes as searchable items

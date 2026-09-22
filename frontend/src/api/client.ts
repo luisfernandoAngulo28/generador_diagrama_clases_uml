@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { Diagram, EditDiagramResult, UmlModel, ValidationResult } from '../types/uml';
-import type { AuthResult } from '../types/auth';
+import type { AuthResult, UpdateProfileDto } from '../types/auth';
 import type { DiagramHistoryEntry } from '../types/history';
 import type { Attachment } from '../types/attachment';
 
@@ -46,6 +46,11 @@ export async function registerUser(
 
 export async function loginUser(email: string, password: string): Promise<AuthResult> {
   const { data } = await api.post<AuthResult>('/auth/login', { email, password });
+  return data;
+}
+
+export async function updateUserProfile(dto: UpdateProfileDto): Promise<AuthResult> {
+  const { data } = await api.patch<AuthResult>('/auth/profile', dto);
   return data;
 }
 

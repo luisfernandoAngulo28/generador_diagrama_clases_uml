@@ -6,6 +6,7 @@ import { UsersService } from '../users/users.service.js';
 import type { User } from '../users/entities/user.entity.js';
 import type { RegisterDto } from './dto/register.dto.js';
 import type { LoginDto } from './dto/login.dto.js';
+import type { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 export interface JwtPayload {
   sub: string;
@@ -68,6 +69,39 @@ export class AuthService {
       throw new UnauthorizedException('Correo o contraseña incorrectos.');
     }
     return this.toAuthResult(user);
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto): Promise<AuthResult> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado.');
+    }
+
+    if (dto.email && dto.email.toLowerCase() !== user.email.toLowerCase()) {
+      const existing = await this.usersService.findByEmail(dto.email);
+      if (existing && existing.id !== user.id) {
+        throw new ConflictException('Ya existe otra cuenta con ese correo electrónico.');
+      }
+      user.email = dto.email.toLowerCase();
+    }
+
+    if (dto.name && dto.name.trim().length > 0) {
+      user.name = dto.name.trim();
+    }
+
+    if (dto.newPassword) {
+      if (!dto.currentPassword) {
+        throw new UnauthorizedException('Debes ingresar tu contraseña actual para cambiarla.');
+      }
+      const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+      if (!valid) {
+        throw new UnauthorizedException('La contraseña actual es incorrecta.');
+      }
+      user.passwordHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
+    }
+
+    const updated = await this.usersService.updateUser(user);
+    return this.toAuthResult(updated);
   }
 
   verifyToken(token: string): JwtPayload {

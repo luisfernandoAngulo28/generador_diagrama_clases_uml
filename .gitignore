@@ -38,6 +38,8 @@ generated-out/
 
 # scratch dir(s) used when editing docs/*.docx directly via XML
 docs_docwork*/
+~$*
+
 
 # deployment secrets (SSH keys, etc.) — never commit
 .deploy/
