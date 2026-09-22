@@ -56,7 +56,14 @@ export interface UmlRelation {
   targetRole?: string;
 }
 
+export interface UmlNote {
+  id: string;
+  text: string;
+  position?: { x: number; y: number };
+}
+
 export interface UmlModel {
   classes: UmlClass[];
   relations: UmlRelation[];
+  notes?: UmlNote[];
 }

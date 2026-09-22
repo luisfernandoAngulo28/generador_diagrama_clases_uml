@@ -1,4 +1,4 @@
-import { Trash2, X } from 'lucide-react';
+import { Code2, Copy2, Trash2, X } from 'lucide-react';
 import type { ClassStereotype, UmlClass } from '../types/uml';
 
 const STEREOTYPE_OPTIONS: { value: ClassStereotype | ''; label: string; hint: string }[] = [
@@ -13,6 +13,8 @@ interface ClassInspectorProps {
   onChange: (updated: UmlClass) => void;
   onClose: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
+  onPreviewCode?: () => void;
 }
 
 /**
@@ -26,6 +28,8 @@ export function ClassInspector({
   onChange,
   onClose,
   onDelete,
+  onDuplicate,
+  onPreviewCode,
 }: ClassInspectorProps) {
   const currentStereotype = STEREOTYPE_OPTIONS.find((o) => o.value === (umlClass.stereotype ?? ''));
 
@@ -76,9 +80,23 @@ export function ClassInspector({
         />
       </label>
 
-      <button className="inspector__delete" onClick={onDelete}>
-        <Trash2 size={14} /> Eliminar clase
-      </button>
+      <div className="inspector__actions">
+        {onPreviewCode && (
+          <button
+            className="inspector__preview"
+            onClick={onPreviewCode}
+            title="Ver el código Java generado para esta clase"
+          >
+            <Code2 size={13} /> Ver Java
+          </button>
+        )}
+        <button className="inspector__duplicate" onClick={onDuplicate} title="Clonar esta clase con todos sus atributos">
+          <Copy2 size={13} /> Duplicar
+        </button>
+        <button className="inspector__delete" onClick={onDelete} title="Eliminar clase">
+          <Trash2 size={13} /> Eliminar
+        </button>
+      </div>
     </aside>
   );
 }

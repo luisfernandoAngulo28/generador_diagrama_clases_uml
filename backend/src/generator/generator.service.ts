@@ -16,6 +16,9 @@ import {
 } from './templates/project-files.template.js';
 import { renderJacksonConfig } from './templates/jackson-config.template.js';
 import { renderOpenApiConfig } from './templates/openapi-config.template.js';
+import { renderDataSql } from './templates/data-sql.template.js';
+import { renderSchemaSql } from './templates/schema-sql.template.js';
+import { renderPostmanCollection } from './templates/postman.template.js';
 import { capitalize, decapitalize, pluralize } from './java-type.util.js';
 
 export interface GeneratorOptions {
@@ -48,8 +51,11 @@ export class GeneratorService {
     files[`docker-compose.yml`] = renderDockerCompose(options.projectName);
     files[`Dockerfile`] = renderDockerfile();
     files[`README.md`] = renderProjectReadme(options.projectName, endpoints);
+    files[`postman_collection.json`] = renderPostmanCollection(model, options.projectName);
+    files[`src/main/resources/schema.sql`] = renderSchemaSql(model, options.projectName);
     files[`src/main/resources/application.properties`] =
       renderApplicationProperties(options.projectName);
+    files[`src/main/resources/data.sql`] = renderDataSql(model);
     files[`src/main/java/${packagePath}/${appClassName}.java`] =
       renderApplicationClass(packageName, appClassName);
     files[`src/main/java/${packagePath}/config/JacksonConfig.java`] =

@@ -7,8 +7,11 @@ const HEADER_HEIGHT = 40;
 const ATTRIBUTE_ROW_HEIGHT = 18;
 const EMPTY_ROW_HEIGHT = 24;
 
-function estimateHeight(node: Node<UmlClassNodeData>): number {
-  const attrCount = node.data.umlClass.attributes.length;
+function estimateHeight(node: Node<any>): number {
+  if (node.type === 'umlNote') {
+    return 150;
+  }
+  const attrCount = node.data?.umlClass?.attributes?.length ?? 0;
   const rowsHeight = attrCount > 0 ? attrCount * ATTRIBUTE_ROW_HEIGHT : EMPTY_ROW_HEIGHT;
   return HEADER_HEIGHT + rowsHeight;
 }
@@ -20,9 +23,9 @@ function estimateHeight(node: Node<UmlClassNodeData>): number {
  * rendered size (node.measured) isn't available yet.
  */
 export function layoutNodes(
-  nodes: Node<UmlClassNodeData>[],
+  nodes: Node<any>[],
   edges: Edge[],
-): Node<UmlClassNodeData>[] {
+): Node<any>[] {
   const graph = new dagre.graphlib.Graph();
   graph.setDefaultEdgeLabel(() => ({}));
   graph.setGraph({ rankdir: 'TB', nodesep: 70, ranksep: 100 });

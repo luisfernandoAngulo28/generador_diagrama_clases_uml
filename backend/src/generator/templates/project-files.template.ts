@@ -79,6 +79,10 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 server.port=8080
 
+# Inicializacion de datos de prueba automaticos (data.sql)
+spring.sql.init.mode=always
+spring.jpa.defer-datasource-initialization=true
+
 # Swagger / OpenAPI
 springdoc.api-docs.path=/v3/api-docs
 springdoc.swagger-ui.path=/swagger-ui.html

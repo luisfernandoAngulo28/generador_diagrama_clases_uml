@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:speech_to_text/speech_to_text.dart' show SpeechListenOptions;
 
@@ -29,6 +30,12 @@ import 'offline_sync_service.dart';
 // URL default: para Flutter Web en Chrome → localhost:8080
 String _baseUrl = 'http://192.168.0.7:8085';
 String get baseUrl => _baseUrl;
+
+// ---------------------------------------------------------------------------
+// Historial de requests (persistente con SharedPreferences)
+// ---------------------------------------------------------------------------
+const _kHistoryKey = 'request_history_v1';
+const _kMaxHistory = 10;
 
 // ---------------------------------------------------------------------------
 // Presets del RESTAURANTE (simulacro) — ajusta el día del examen según
@@ -119,6 +126,9 @@ class _ApiScreenState extends State<ApiScreen> {
   bool online = true;
   int pendingCount = 0;
 
+  // Historial persistente de los últimos 10 requests enviados con éxito
+  List<Map<String, String>> _history = [];
+
   StreamSubscription<bool>? _onlineSub;
   StreamSubscription<int>? _pendingSub;
 
@@ -141,6 +151,140 @@ class _ApiScreenState extends State<ApiScreen> {
     });
     fetchItems();
     _initSpeech();
+    _loadHistory();
+  }
+
+  // ─── Historial ────────────────────────────────────────────────────────────
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_kHistoryKey) ?? [];
+    if (mounted) {
+      setState(() {
+        _history = raw.map((e) {
+          final decoded = jsonDecode(e) as Map<String, dynamic>;
+          return {
+            'endpoint': decoded['endpoint'] as String,
+            'json': decoded['json'] as String,
+          };
+        }).toList();
+      });
+    }
+  }
+
+  Future<void> _saveHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = _history.map((e) => jsonEncode(e)).toList();
+    await prefs.setStringList(_kHistoryKey, raw);
+  }
+
+  Future<void> _addToHistory(String ep, String body) async {
+    final entry = {'endpoint': ep, 'json': body};
+    if (_history.isNotEmpty &&
+        _history.first['endpoint'] == ep &&
+        _history.first['json'] == body) return;
+    setState(() {
+      _history.insert(0, entry);
+      if (_history.length > _kMaxHistory) {
+        _history = _history.sublist(0, _kMaxHistory);
+      }
+    });
+    await _saveHistory();
+  }
+
+  void _showHistory() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.history, color: Colors.indigo),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Historial de requests',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  if (_history.isNotEmpty)
+                    TextButton(
+                      child: const Text('Limpiar',
+                          style: TextStyle(color: Colors.red)),
+                      onPressed: () async {
+                        setState(() => _history = []);
+                        await _saveHistory();
+                        if (ctx.mounted) Navigator.of(ctx).pop();
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            if (_history.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(32),
+                child: Text(
+                  'Aún no hay requests enviados.\nCrea registros con POST o PUT.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: _history.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final h = _history[i];
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: Colors.indigo.shade50,
+                        child: Text('${i + 1}',
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.indigo)),
+                      ),
+                      title: Text(
+                        '/${h["endpoint"]}',
+                        style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        h['json']!
+                            .replaceAll('\n', ' ')
+                            .replaceAll('  ', ' '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      trailing: const Icon(Icons.north_west,
+                          size: 16, color: Colors.indigo),
+                      onTap: () {
+                        endpointController.text = h['endpoint']!;
+                        jsonController.text = h['json']!;
+                        setState(() {});
+                        Navigator.of(ctx).pop();
+                      },
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _initSpeech() async {
@@ -190,6 +334,29 @@ class _ApiScreenState extends State<ApiScreen> {
     return encoder.convert(map);
   }
 
+  // ─── Validación de JSON ───────────────────────────────────────────────────
+
+  /// Retorna null si el JSON es válido, o un mensaje de error amigable.
+  String? _validateJson(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return 'El cuerpo JSON no puede estar vacío.';
+    try {
+      final parsed = jsonDecode(trimmed);
+      if (parsed is! Map) {
+        return 'El JSON debe ser un objeto { ... }, no una lista o valor simple.';
+      }
+      return null; // OK
+    } catch (e) {
+      final msg = e.toString();
+      if (msg.contains('Unexpected character')) {
+        return '❌ JSON inválido: caracter inesperado.\nTip: ¿olvidaste una coma o una comilla?';
+      }
+      return '❌ JSON inválido: $msg';
+    }
+  }
+
+  // ─── CRUD ─────────────────────────────────────────────────────────────────
+
   Future<void> fetchItems() async {
     setState(() {
       loading = true;
@@ -223,11 +390,18 @@ class _ApiScreenState extends State<ApiScreen> {
   }
 
   Future<void> createItem() async {
+    // #6 — Validar JSON antes de enviar
+    final body = jsonController.text;
+    final validationError = _validateJson(body);
+    if (validationError != null) {
+      setState(() => error = validationError);
+      return;
+    }
+
     setState(() {
       loading = true;
       error = null;
     });
-    final body = jsonController.text;
 
     http.Response res;
     try {
@@ -248,6 +422,178 @@ class _ApiScreenState extends State<ApiScreen> {
       if (res.statusCode >= 400) {
         throw Exception('HTTP ${res.statusCode}: ${res.body}');
       }
+      await _addToHistory(endpoint, body); // #10 — guardar en historial
+      await fetchItems();
+    } catch (e) {
+      setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  // #2 — PUT: editar registro existente
+  Future<void> _editItem(dynamic item) async {
+    if (item is! Map<String, dynamic>) return;
+    final id = item['id'];
+    if (id == null) {
+      _showSnack('Este registro no tiene campo "id", no se puede editar.');
+      return;
+    }
+    final editableFields = Map<String, dynamic>.from(item)..remove('id');
+    const encoder = JsonEncoder.withIndent('  ');
+    final initialJson = encoder.convert(editableFields);
+    final editCtrl = TextEditingController(text: initialJson);
+    String? dialogError;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.edit, color: Colors.indigo, size: 20),
+              const SizedBox(width: 8),
+              Text('Editar — $endpoint #$id'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (dialogError != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Text(dialogError!,
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.red.shade800)),
+                  ),
+                TextField(
+                  controller: editCtrl,
+                  maxLines: 8,
+                  autofocus: true,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'JSON (sin el id)',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.save, size: 16),
+              label: const Text('Guardar (PUT)'),
+              onPressed: () async {
+                final body = editCtrl.text;
+                final err = _validateJson(body);
+                if (err != null) {
+                  setDialogState(() => dialogError = err);
+                  return;
+                }
+                Navigator.of(ctx).pop();
+                await _putItem(id, body);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+    editCtrl.dispose();
+  }
+
+  Future<void> _putItem(dynamic id, String body) async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final url = '$listUrl/$id';
+      final res = await http
+          .put(
+            Uri.parse(url),
+            headers: {'Content-Type': 'application/json'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 6));
+      if (res.statusCode >= 400) {
+        throw Exception('HTTP ${res.statusCode}: ${res.body}');
+      }
+      await _addToHistory(endpoint, body); // #10 — guardar en historial
+      _showSnack('✅ Registro #$id actualizado correctamente.');
+      await fetchItems();
+    } catch (e) {
+      setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  // #2 — DELETE: eliminar registro existente
+  Future<void> _deleteItem(dynamic item) async {
+    if (item is! Map<String, dynamic>) return;
+    final id = item['id'];
+    if (id == null) {
+      _showSnack('Este registro no tiene campo "id", no se puede eliminar.');
+      return;
+    }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 22),
+            SizedBox(width: 8),
+            Text('Confirmar eliminación'),
+          ],
+        ),
+        content: Text(
+          '¿Seguro que deseas eliminar el registro #$id de "$endpoint"?\n\n'
+          'Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.delete, size: 16),
+            label: const Text('Eliminar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final url = '$listUrl/$id';
+      final res = await http
+          .delete(Uri.parse(url))
+          .timeout(const Duration(seconds: 6));
+      if (res.statusCode >= 400) {
+        throw Exception('HTTP ${res.statusCode}: ${res.body}');
+      }
+      _showSnack('🗑️ Registro #$id eliminado.');
       await fetchItems();
     } catch (e) {
       setState(() => error = e.toString());
@@ -259,14 +605,16 @@ class _ApiScreenState extends State<ApiScreen> {
   Future<void> _queueOffline(String body) async {
     await _sync.queueMutation(endpoint, body);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Sin conexion: el registro se guardo localmente y se enviara '
-          'automaticamente cuando vuelvas a tener internet.',
-        ),
-      ),
+    _showSnack(
+      'Sin conexion: el registro se guardo localmente y se enviara '
+      'automaticamente cuando vuelvas a tener internet.',
     );
+  }
+
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -413,6 +761,38 @@ class _ApiScreenState extends State<ApiScreen> {
           ],
         ),
         actions: [
+          // #10 — Botón de historial con badge
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.history),
+                tooltip: 'Historial de requests',
+                onPressed: _showHistory,
+              ),
+              if (_history.isNotEmpty)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: Colors.indigo,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${_history.length}',
+                      style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Cambiar URL del servidor',
@@ -501,8 +881,19 @@ class _ApiScreenState extends State<ApiScreen> {
                     maxLines: 4,
                     style:
                         const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    // #6 — Limpiar error de validación al editar
+                    onChanged: (_) {
+                      if (error != null &&
+                          (error!.contains('JSON') ||
+                              error!.contains('❌') ||
+                              error!.contains('vacío'))) {
+                        setState(() => error = null);
+                      }
+                    },
                     decoration: InputDecoration(
                       labelText: 'JSON para crear (POST)',
+                      helperText: 'Formato: { "campo": valor }',
+                      helperStyle: const TextStyle(fontSize: 10),
                       border: const OutlineInputBorder(),
                       filled: _listening,
                       fillColor: Colors.red.shade50,
@@ -585,6 +976,33 @@ class _ApiScreenState extends State<ApiScreen> {
                     child: ListTile(
                       dense: true,
                       title: Text(text.isEmpty ? raw.toString() : text),
+                      // #2 — Botones EDITAR y ELIMINAR por cada registro
+                      trailing: raw is Map<String, dynamic>
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Tooltip(
+                                  message: 'Editar (PUT)',
+                                  child: IconButton(
+                                    icon: const Icon(Icons.edit,
+                                        size: 18, color: Colors.indigo),
+                                    onPressed:
+                                        loading ? null : () => _editItem(raw),
+                                  ),
+                                ),
+                                Tooltip(
+                                  message: 'Eliminar (DELETE)',
+                                  child: IconButton(
+                                    icon: Icon(Icons.delete,
+                                        size: 18,
+                                        color: Colors.red.shade400),
+                                    onPressed:
+                                        loading ? null : () => _deleteItem(raw),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : null,
                     ),
                   );
                 },

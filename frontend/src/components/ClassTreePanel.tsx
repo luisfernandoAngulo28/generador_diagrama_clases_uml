@@ -4,12 +4,13 @@ import { ChevronLeft, ChevronRight, Component } from 'lucide-react';
 import type { UmlClassNodeData } from './UmlClassNode';
 
 interface ClassTreePanelProps {
-  nodes: Node<UmlClassNodeData>[];
+  nodes: Node<any>[];
   onSelect: (nodeId: string) => void;
 }
 
 export function ClassTreePanel({ nodes, onSelect }: ClassTreePanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const classNodes = nodes.filter((n) => n.data?.umlClass);
 
   if (collapsed) {
     return (
@@ -27,11 +28,11 @@ export function ClassTreePanel({ nodes, onSelect }: ClassTreePanelProps) {
           <ChevronLeft size={16} />
         </button>
       </div>
-      {nodes.length === 0 ? (
+      {classNodes.length === 0 ? (
         <p className="class-tree__empty">Sin clases todavía</p>
       ) : (
         <ul className="class-tree__list">
-          {nodes.map((n) => (
+          {classNodes.map((n) => (
             <li key={n.id}>
               <button className="class-tree__item" onClick={() => onSelect(n.id)}>
                 <Component size={13} className="class-tree__icon" />

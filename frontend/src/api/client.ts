@@ -181,3 +181,20 @@ export async function interpretDiagramPhoto(
   });
   return data;
 }
+
+export interface CodePreviewResult {
+  projectName: string;
+  files: Record<string, string>;
+}
+
+export async function previewGeneratedCode(
+  model: UmlModel,
+  projectName?: string,
+): Promise<CodePreviewResult> {
+  const { data } = await api.post<CodePreviewResult>('/generator/preview', {
+    model,
+    projectName,
+  });
+  return data;
+}
+

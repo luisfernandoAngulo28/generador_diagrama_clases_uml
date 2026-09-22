@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import {
   ReactFlow,
@@ -41,8 +41,18 @@ import {
   LogOut,
   History,
   Paperclip,
+  CheckCircle2,
+  BarChart3,
+  Code2,
+  Send,
+  Database,
+  StickyNote,
+  Keyboard,
+  Layers,
+  Search,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
+import { UmlNoteNode } from './components/UmlNoteNode';
 import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
 import { FeaturesPanel } from './components/FeaturesPanel';
@@ -54,10 +64,15 @@ import { DiagramsListPanel } from './components/DiagramsListPanel';
 import { HistoryPanel } from './components/HistoryPanel';
 import { AttachmentsPanel } from './components/AttachmentsPanel';
 import { TemplatesPanel } from './components/TemplatesPanel';
+import { CodePreviewModal } from './components/CodePreviewModal';
+import { SpotlightSearchModal } from './components/SpotlightSearchModal';
+import { ShortcutsModal } from './components/ShortcutsModal';
 import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
 import { ToolbarMenu } from './components/ToolbarMenu';
 import { exportDiagramAsImage } from './lib/exportImage';
+import { exportPostmanCollection } from './lib/postmanExport';
+import { exportSqlSchema } from './lib/sqlExport';
 import { LoginPage } from './components/LoginPage';
 import { useAuth } from './context/AuthContext';
 import { UmlMarkerDefs } from './components/UmlMarkerDefs';
@@ -80,16 +95,18 @@ import {
   importXmi,
   interpretDiagramPhoto,
   openDocumentation,
+  previewGeneratedCode,
+  type CodePreviewResult,
   updateDiagram,
   validateDiagram,
 } from './api/client';
 import { getSocket } from './api/socket';
 
-const nodeTypes = { umlClass: UmlClassNode };
+const nodeTypes = { umlClass: UmlClassNode, umlNote: UmlNoteNode };
 const edgeTypes = { umlRelation: UmlRelationEdge };
 
 interface HistorySnapshot {
-  nodes: Node<UmlClassNodeData>[];
+  nodes: Node<any>[];
   edges: Edge[];
 }
 
@@ -147,7 +164,7 @@ function createDefaultClass(): UmlClass {
 
 function AppInner() {
   const { user, logout } = useAuth();
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<UmlClassNodeData>>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { fitView, setCenter, getNodes, getNodesBounds, deleteElements } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
@@ -174,6 +191,12 @@ function AppInner() {
   const [showAttachments, setShowAttachments] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [codePreview, setCodePreview] = useState<CodePreviewResult | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [viewMode, setViewMode] = useState<'uml' | 'der'>('uml');
+  const [showSpotlight, setShowSpotlight] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [past, setPast] = useState<HistorySnapshot[]>([]);
   const [future, setFuture] = useState<HistorySnapshot[]>([]);
 
@@ -195,7 +218,7 @@ function AppInner() {
   const diagramIdRef = useRef<string | null>(null);
   const locksRef = useRef<Record<string, string>>({});
   const myLocksRef = useRef<Set<string>>(new Set());
-  const nodesRef = useRef<Node<UmlClassNodeData>[]>([]);
+  const nodesRef = useRef<Node<any>[]>([]);
   const edgesRef = useRef<Edge[]>([]);
 
   useEffect(() => {
@@ -245,8 +268,7 @@ function AppInner() {
     });
   }
 
-  // Ctrl+Z / Ctrl+Y (or Ctrl+Shift+Z) undo/redo, ignored while typing in a
-  // text field so it doesn't fight the browser's native input undo.
+  // Ctrl+Z / Ctrl+Y undo/redo, Ctrl+F spotlight search, ? shortcuts guide
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
@@ -255,6 +277,19 @@ function AppInner() {
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.isContentEditable);
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        setShowSpotlight(true);
+        return;
+      }
+
+      if (!isTyping && e.key === '?') {
+        e.preventDefault();
+        setShowShortcuts(true);
+        return;
+      }
+
       if (isTyping || !(e.ctrlKey || e.metaKey)) return;
 
       if (e.key.toLowerCase() === 'z' && !e.shiftKey) {
@@ -302,17 +337,28 @@ function AppInner() {
   const loadDiagram = useCallback(async (id: string) => {
     const diagram = await getDiagram(id);
     setDiagramName(diagram.name);
-    setNodes(
-      diagram.model.classes.map((umlClass, index) => ({
-        id: umlClass.id,
-        type: 'umlClass',
-        position: umlClass.position ?? {
-          x: 120 + (index % 4) * 260,
-          y: 80 + Math.floor(index / 4) * 220,
-        },
-        data: { umlClass, onEdit: handleEditClass },
-      })),
-    );
+    const classNodes: Node<any>[] = diagram.model.classes.map((umlClass, index) => ({
+      id: umlClass.id,
+      type: 'umlClass',
+      position: umlClass.position ?? {
+        x: 120 + (index % 4) * 260,
+        y: 80 + Math.floor(index / 4) * 220,
+      },
+      data: { umlClass, onEdit: handleEditClass },
+    }));
+    const noteNodes: Node<any>[] = (diagram.model.notes ?? []).map((note, index) => ({
+      id: note.id,
+      type: 'umlNote',
+      position: note.position ?? {
+        x: 400 + (index % 3) * 220,
+        y: 100 + Math.floor(index / 3) * 180,
+      },
+      data: {
+        title: note.title,
+        text: note.text,
+      },
+    }));
+    setNodes([...classNodes, ...noteNodes]);
     setEdges(
       diagram.model.relations.map((rel) => ({
         id: rel.id,
@@ -375,13 +421,16 @@ function AppInner() {
     const socket = getSocket();
     socket.emit('join-diagram', { diagramId, userName: user?.name });
 
-    function handleRemoteUpdate(payload: { nodes: Node<UmlClassNodeData>[]; edges: Edge[] }) {
+    function handleRemoteUpdate(payload: { nodes: Node<any>[]; edges: Edge[] }) {
       isApplyingRemoteRef.current = true;
       setNodes(
-        payload.nodes.map((n) => ({
-          ...n,
-          data: { ...n.data, onEdit: handleEditClass },
-        })),
+        payload.nodes.map((n) => {
+          if (n.type === 'umlNote') return n;
+          return {
+            ...n,
+            data: { ...n.data, onEdit: handleEditClass },
+          };
+        }),
       );
       setEdges(payload.edges);
       requestAnimationFrame(() => {
@@ -415,10 +464,13 @@ function AppInner() {
     if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
     emitTimerRef.current = setTimeout(() => {
       const socket = getSocket();
-      const outgoingNodes = nodes.map((n) => ({
-        ...n,
-        data: { ...n.data, onEdit: undefined },
-      }));
+      const outgoingNodes = nodes.map((n) => {
+        if (n.type === 'umlNote') return n;
+        return {
+          ...n,
+          data: { ...n.data, onEdit: undefined },
+        };
+      });
       socket.emit('diagram-update', { diagramId, nodes: outgoingNodes, edges });
     }, 400);
 
@@ -437,6 +489,33 @@ function AppInner() {
       data: { umlClass, onEdit: handleEditClass },
     };
     setNodes((nds) => [...nds, newNode]);
+  }
+
+  function addNote() {
+    pushHistory();
+    const newNoteId = crypto.randomUUID();
+    const newNoteNode: Node<any> = {
+      id: newNoteId,
+      type: 'umlNote',
+      position: { x: 200 + Math.random() * 200, y: 150 + Math.random() * 200 },
+      data: {
+        title: 'Nota',
+        text: 'Escribe tu nota aquí...',
+      },
+    };
+    setNodes((nds) => [...nds, newNoteNode]);
+  }
+
+  function updateNoteText(id: string, text: string) {
+    setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, text } } : n)),
+    );
+  }
+
+  function deleteNote(id: string) {
+    pushHistory();
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
   }
 
   function applyTemplate(template: DiagramTemplate) {
@@ -506,6 +585,28 @@ function AppInner() {
     );
     releaseLock(classId);
     setEditingClassId(null);
+  }
+
+  function duplicateClass(classId: string) {
+    const target = nodes.find((n) => n.id === classId);
+    if (!target) return;
+    pushHistory();
+    const newId = crypto.randomUUID();
+    const clonedUmlClass: UmlClass = {
+      ...target.data.umlClass,
+      id: newId,
+      name: `${target.data.umlClass.name}Copia`,
+      attributes: target.data.umlClass.attributes.map((a) => ({ ...a })),
+      operations: target.data.umlClass.operations?.map((o) => ({ ...o })),
+    };
+    const newNode: Node<UmlClassNodeData> = {
+      id: newId,
+      type: 'umlClass',
+      position: { x: target.position.x + 30, y: target.position.y + 30 },
+      data: { umlClass: clonedUmlClass, onEdit: handleEditClass },
+    };
+    setNodes((nds) => [...nds, newNode]);
+    handleEditClass(clonedUmlClass);
   }
 
   function applyOperations(operations: DiagramOperation[]) {
@@ -655,8 +756,10 @@ function AppInner() {
   );
 
   function buildModel(): UmlModel {
+    const classNodes = nodes.filter((n) => n.data?.umlClass);
+    const noteNodes = nodes.filter((n) => n.type === 'umlNote');
     return {
-      classes: nodes.map((n) => ({ ...n.data.umlClass, position: n.position })),
+      classes: classNodes.map((n) => ({ ...n.data.umlClass, position: n.position })),
       relations: edges.map((e) => ({
         id: e.id,
         type: (e.data?.type as RelationType) ?? 'ASSOCIATION',
@@ -665,28 +768,47 @@ function AppInner() {
         sourceRole: (e.data?.sourceRole as string) || undefined,
         targetRole: (e.data?.targetRole as string) || undefined,
       })),
+      notes: noteNodes.map((n) => ({
+        id: n.id,
+        text: n.data?.text ?? '',
+        title: n.data?.title,
+        position: n.position,
+      })),
     };
   }
 
-  async function saveDiagram(): Promise<string> {
-    setSaving(true);
+  async function saveDiagram(isAuto = false): Promise<string | undefined> {
+    if (!isAuto) setSaving(true);
     try {
       const model = buildModel();
       if (diagramId) {
         await updateDiagram(diagramId, diagramName, model);
+        setLastSavedAt(new Date());
         return diagramId;
-      } else {
+      } else if (!isAuto) {
         const created = await createDiagram(diagramName, model);
         setDiagramId(created.id);
         const url = new URL(window.location.href);
         url.searchParams.set('diagram', created.id);
         window.history.replaceState({}, '', url);
+        setLastSavedAt(new Date());
         return created.id;
       }
+    } catch (err) {
+      if (!isAuto) throw err;
     } finally {
-      setSaving(false);
+      if (!isAuto) setSaving(false);
     }
   }
+
+  // Auto-guardado periódico cada 30 segundos si hay un diagrama abierto y guardado
+  useEffect(() => {
+    if (!diagramId || nodes.length === 0) return;
+    const interval = setInterval(() => {
+      void saveDiagram(true);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [diagramId, nodes, edges, diagramName]);
 
   async function copyShareLink() {
     if (!diagramId) return;
@@ -782,6 +904,20 @@ function AppInner() {
     }
   }
 
+  async function handleOpenCodePreview(targetClassName?: string) {
+    if (nodes.length === 0) return;
+    setLoadingPreview(true);
+    try {
+      const model = buildModel();
+      const result = await previewGeneratedCode(model, diagramName);
+      setCodePreview(result);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Error al previsualizar el código.');
+    } finally {
+      setLoadingPreview(false);
+    }
+  }
+
   async function exportXmi() {
     const id = diagramId ?? (await saveDiagram());
     setExportingXmi(true);
@@ -817,7 +953,7 @@ function AppInner() {
     }
   }
 
-  const editingClass = nodes.find((n) => n.id === editingClassId)?.data.umlClass;
+  const editingClass = nodes.find((n) => n.id === editingClassId)?.data?.umlClass;
 
   const editingEdgeRaw = edges.find((e) => e.id === editingEdgeId);
   const editingEdge = editingEdgeRaw
@@ -825,9 +961,9 @@ function AppInner() {
         id: editingEdgeRaw.id,
         type: ((editingEdgeRaw.data?.type as RelationType) ?? 'ASSOCIATION') as RelationType,
         sourceClassName:
-          nodes.find((n) => n.id === editingEdgeRaw.source)?.data.umlClass.name ?? '?',
+          nodes.find((n) => n.id === editingEdgeRaw.source)?.data?.umlClass?.name ?? '?',
         targetClassName:
-          nodes.find((n) => n.id === editingEdgeRaw.target)?.data.umlClass.name ?? '?',
+          nodes.find((n) => n.id === editingEdgeRaw.target)?.data?.umlClass?.name ?? '?',
         sourceRole: (editingEdgeRaw.data?.sourceRole as string) ?? '',
         targetRole: (editingEdgeRaw.data?.targetRole as string) ?? '',
       }
@@ -864,6 +1000,37 @@ function AppInner() {
     setSelectedNodeIds([]);
   }
 
+  const stats = useMemo(() => {
+    const classNodes = nodes.filter((n) => n.data?.umlClass);
+    const totalAttrs = classNodes.reduce(
+      (sum, n) => sum + (n.data.umlClass.attributes?.length ?? 0),
+      0,
+    );
+    const totalOps = classNodes.reduce(
+      (sum, n) => sum + (n.data.umlClass.operations?.length ?? 0),
+      0,
+    );
+    return {
+      classes: classNodes.length,
+      relations: edges.length,
+      attributes: totalAttrs,
+      operations: totalOps,
+    };
+  }, [nodes, edges]);
+
+  const errorClassIds = useMemo(() => {
+    if (!validationResult) return new Set<string>();
+    const ids = new Set<string>();
+    for (const item of [...validationResult.errors, ...validationResult.warnings]) {
+      if (item.classId) ids.add(item.classId);
+      if (item.className) {
+        const match = nodes.find((n) => n.data?.umlClass?.name === item.className);
+        if (match) ids.add(match.id);
+      }
+    }
+    return ids;
+  }, [validationResult, nodes]);
+
   return (
     <div className="app">
       <header className="toolbar">
@@ -874,9 +1041,36 @@ function AppInner() {
           onChange={(e) => setDiagramName(e.target.value)}
         />
 
+        <span className="toolbar__stats" title="Resumen del modelo UML actual">
+          <BarChart3 size={13} /> {stats.classes} {stats.classes === 1 ? 'clase' : 'clases'} · {stats.relations} rel
+        </span>
+
+        {lastSavedAt && (
+          <span className="toolbar__autosave" title={`Último guardado: ${lastSavedAt.toLocaleTimeString()}`}>
+            <CheckCircle2 size={13} /> Guardado {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+
         <div className="toolbar__group">
           <button className="toolbar__btn" data-tour="add-class" onClick={addClass}>
             <Plus size={15} /> Clase
+          </button>
+          <button className="toolbar__btn" onClick={addNote} title="Añadir nota o post-it al lienzo">
+            <StickyNote size={15} /> Nota
+          </button>
+          <button
+            className="toolbar__btn"
+            onClick={() => setShowSpotlight(true)}
+            title="Buscar clases o atributos en el lienzo (Ctrl+F)"
+          >
+            <Search size={15} /> Buscar
+          </button>
+          <button
+            className={viewMode === 'der' ? 'toolbar__btn toolbar__toggle--active' : 'toolbar__btn'}
+            onClick={() => setViewMode((m) => (m === 'uml' ? 'der' : 'uml'))}
+            title="Alternar entre notación lógica de Clases UML y modelo Físico Relacional (DER / Tablas SQL)"
+          >
+            <Layers size={15} /> {viewMode === 'uml' ? 'Ver DER' : 'Ver UML'}
           </button>
           <button className="toolbar__btn" onClick={() => setShowTemplates(true)}>
             <LayoutTemplate size={15} /> Plantillas
@@ -987,6 +1181,24 @@ function AppInner() {
                 disabled: exportingImage || nodes.length === 0,
                 onClick: () => void handleExportImage('svg'),
               },
+              {
+                key: 'export-postman',
+                icon: <Send size={15} />,
+                label: 'Exportar colección Postman',
+                disabled: nodes.length === 0,
+                title:
+                  'Descarga un archivo JSON compatible con Postman v2.1 con todos los endpoints CRUD listos',
+                onClick: () => exportPostmanCollection(buildModel(), diagramName),
+              },
+              {
+                key: 'export-sql',
+                icon: <Database size={15} />,
+                label: 'Exportar script SQL DDL',
+                disabled: nodes.length === 0,
+                title:
+                  'Descarga un script SQL completo con CREATE TABLE, claves foráneas y restricciones relacionales',
+                onClick: () => exportSqlSchema(buildModel(), diagramName),
+              },
             ]}
           />
           <button className="toolbar__btn" onClick={() => void saveDiagram()} disabled={saving}>
@@ -1019,6 +1231,14 @@ function AppInner() {
             disabled={validating}
           >
             <ShieldCheck size={15} /> {validating ? 'Validando…' : 'Validar diagrama'}
+          </button>
+          <button
+            className="toolbar__btn"
+            title="Previsualizar el código fuente Java (Spring Boot 4 capas) generado en vivo"
+            onClick={() => void handleOpenCodePreview(editingClass?.name)}
+            disabled={loadingPreview || nodes.length === 0}
+          >
+            <Code2 size={15} /> {loadingPreview ? 'Generando…' : 'Ver código Java'}
           </button>
           <button
             className="toolbar__btn"
@@ -1106,6 +1326,7 @@ function AppInner() {
               data: {
                 ...n.data,
                 lockedBy: myLocksRef.current.has(n.id) ? undefined : locks[n.id],
+                hasError: errorClassIds.has(n.id),
               },
             }))}
             edges={edges}
@@ -1168,6 +1389,8 @@ function AppInner() {
               setEditingClassId(null);
             }}
             onDelete={() => deleteClass(editingClass.id)}
+            onDuplicate={() => duplicateClass(editingClass.id)}
+            onPreviewCode={() => void handleOpenCodePreview(editingClass.name)}
           />
         )}
 
@@ -1205,6 +1428,13 @@ function AppInner() {
       )}
       {showAttachments && diagramId && (
         <AttachmentsPanel diagramId={diagramId} onClose={() => setShowAttachments(false)} />
+      )}
+      {codePreview && (
+        <CodePreviewModal
+          previewData={codePreview}
+          initialClassName={editingClass?.name}
+          onClose={() => setCodePreview(null)}
+        />
       )}
     </div>
   );

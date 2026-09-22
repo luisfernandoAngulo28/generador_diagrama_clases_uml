@@ -109,4 +109,203 @@ export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     ],
     relations: [{ source: 0, target: 1, type: 'ONE_TO_MANY' }],
   },
+  {
+    id: 'restaurante-completo',
+    name: 'Sistema de Restaurante',
+    description:
+      'Modelo completo para comandas, mesas, pedidos y platillos (Cliente, Mesa, Pedido, DetallePedido, Producto).',
+    purpose:
+      'Ideal para el examen de Software 1: cubre los patrones esenciales de una aplicación del mundo real, incluyendo relaciones ' +
+      '1 a N (Cliente y Mesa hacia Pedido), Composición estricta (Pedido hacia DetallePedido) y Asociación con catálogo (Producto).',
+    nextSteps: [
+      'Usa "Auto-organizar" para posicionar armónicamente las 5 clases en el lienzo.',
+      'Usa "Ver código Java" para revisar cómo se generan las capas Entity, Repository, Service y Controller.',
+      'Exporta la colección Postman desde el menú Archivo para probar los endpoints de pedidos en vivo.',
+      'Genera el backend Spring Boot con seed data precargado y conéctalo con la app móvil Flutter.',
+    ],
+    classes: [
+      {
+        name: 'Cliente',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('nombre', 'String'),
+          priv('email', 'String'),
+          priv('telefono', 'String'),
+        ],
+      },
+      {
+        name: 'Mesa',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('numero', 'Integer'),
+          priv('capacidad', 'Integer'),
+          priv('ubicacion', 'String'),
+        ],
+      },
+      {
+        name: 'Pedido',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('fecha', 'LocalDate'),
+          priv('estado', 'String'),
+          priv('total', 'BigDecimal'),
+        ],
+      },
+      {
+        name: 'DetallePedido',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('cantidad', 'Integer'),
+          priv('precioUnitario', 'BigDecimal'),
+          priv('subtotal', 'BigDecimal'),
+        ],
+      },
+      {
+        name: 'Producto',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('nombre', 'String'),
+          priv('descripcion', 'String'),
+          priv('precio', 'BigDecimal'),
+          priv('stock', 'Integer'),
+        ],
+      },
+    ],
+    relations: [
+      { source: 0, target: 2, type: 'ONE_TO_MANY' },
+      { source: 1, target: 2, type: 'ONE_TO_MANY' },
+      { source: 2, target: 3, type: 'COMPOSITION' },
+      { source: 4, target: 3, type: 'ONE_TO_MANY' },
+    ],
+  },
+  {
+    id: 'clinica-medica',
+    name: 'Sistema Clínico / Hospital',
+    description: 'Gestión hospitalaria con Paciente, Médico, Especialidad, Cita Médica y Diagnóstico.',
+    purpose:
+      'Modela un sistema de salud con relaciones 1:N (Especialidad a Médico, Paciente a Citas) y relación 1:1 ' +
+      '(Cita Médica a Diagnóstico clínico). Demuestra manejo de historias clínicas y citas de consulta.',
+    nextSteps: [
+      'Haz clic en "Auto-organizar" para alinear automáticamente las entidades.',
+      'Haz clic en "Validar diagrama" para certificar que todas las multiplicidades y claves primarias sean consistentes.',
+      'Descarga el script SQL DDL para visualizar las sentencias relacionales con FOREIGN KEY y restricciones UNIQUE.',
+    ],
+    classes: [
+      {
+        name: 'Paciente',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('nombre', 'String'),
+          priv('ci', 'String'),
+          priv('telefono', 'String'),
+        ],
+      },
+      {
+        name: 'Especialidad',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('nombre', 'String'),
+          priv('descripcion', 'String'),
+        ],
+      },
+      {
+        name: 'Medico',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('nombre', 'String'),
+          priv('matricula', 'String'),
+          priv('email', 'String'),
+        ],
+      },
+      {
+        name: 'CitaMedica',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('fechaHora', 'LocalDateTime'),
+          priv('motivo', 'String'),
+          priv('estado', 'String'),
+        ],
+      },
+      {
+        name: 'Diagnostico',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('descripcion', 'String'),
+          priv('tratamiento', 'String'),
+        ],
+      },
+    ],
+    relations: [
+      { source: 1, target: 2, type: 'ONE_TO_MANY' },
+      { source: 0, target: 3, type: 'ONE_TO_MANY' },
+      { source: 2, target: 3, type: 'ONE_TO_MANY' },
+      { source: 3, target: 4, type: 'ONE_TO_ONE' },
+    ],
+  },
+  {
+    id: 'universidad-academico',
+    name: 'Sistema Académico Universitario',
+    description: 'Control de matrículas y asignaturas (Estudiante, Carrera, Profesor, Materia, Inscripcion).',
+    purpose:
+      'Modela la estructura universitaria formal: filiación a Carreras, asignación docente de Materias, y la ' +
+      'entidad asociativa Inscripcion que registra las notas por periodo lectivo.',
+    nextSteps: [
+      'Personaliza las siglas y atributos según las materias de tu universidad.',
+      'Usa el Asistente de IA para consultar dudas sobre patrones arquitectónicos.',
+      'Genera el backend Spring Boot completo y observa el mapeo relacional de las inscripciones.',
+    ],
+    classes: [
+      {
+        name: 'Carrera',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('codigo', 'String'),
+          priv('nombre', 'String'),
+        ],
+      },
+      {
+        name: 'Estudiante',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('registro', 'String'),
+          priv('nombre', 'String'),
+          priv('email', 'String'),
+        ],
+      },
+      {
+        name: 'Profesor',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('nombre', 'String'),
+          priv('profesion', 'String'),
+          priv('telefono', 'String'),
+        ],
+      },
+      {
+        name: 'Materia',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('sigla', 'String'),
+          priv('nombre', 'String'),
+          priv('creditos', 'Integer'),
+        ],
+      },
+      {
+        name: 'Inscripcion',
+        attributes: [
+          priv('id', 'Long', true),
+          priv('semestre', 'String'),
+          priv('fecha', 'LocalDate'),
+          priv('notaFinal', 'Double'),
+        ],
+      },
+    ],
+    relations: [
+      { source: 0, target: 1, type: 'ONE_TO_MANY' },
+      { source: 2, target: 3, type: 'ONE_TO_MANY' },
+      { source: 1, target: 4, type: 'ONE_TO_MANY' },
+      { source: 3, target: 4, type: 'ONE_TO_MANY' },
+    ],
+  },
 ];
+
