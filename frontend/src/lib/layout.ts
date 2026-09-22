@@ -1,6 +1,5 @@
 import dagre from '@dagrejs/dagre';
 import type { Edge, Node } from '@xyflow/react';
-import type { UmlClassNodeData } from '../components/UmlClassNode';
 
 const DEFAULT_WIDTH = 200;
 const HEADER_HEIGHT = 40;

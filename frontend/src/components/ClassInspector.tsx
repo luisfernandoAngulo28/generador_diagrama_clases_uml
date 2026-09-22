@@ -1,4 +1,4 @@
-import { Code2, Copy2, Trash2, X } from 'lucide-react';
+import { Code2, Copy, GitCommitHorizontal, Terminal, Trash2, X } from 'lucide-react';
 import type { ClassStereotype, UmlClass } from '../types/uml';
 
 const STEREOTYPE_OPTIONS: { value: ClassStereotype | ''; label: string; hint: string }[] = [
@@ -15,6 +15,8 @@ interface ClassInspectorProps {
   onDelete: () => void;
   onDuplicate: () => void;
   onPreviewCode?: () => void;
+  onOpenSequence?: () => void;
+  onOpenMockApi?: () => void;
 }
 
 /**
@@ -30,6 +32,8 @@ export function ClassInspector({
   onDelete,
   onDuplicate,
   onPreviewCode,
+  onOpenSequence,
+  onOpenMockApi,
 }: ClassInspectorProps) {
   const currentStereotype = STEREOTYPE_OPTIONS.find((o) => o.value === (umlClass.stereotype ?? ''));
 
@@ -40,8 +44,9 @@ export function ClassInspector({
           className="inspector__class-name"
           value={umlClass.name}
           onChange={(e) => onChange({ ...umlClass, name: e.target.value })}
+          placeholder="Nombre de la clase"
         />
-        <button className="inspector__close" onClick={onClose}>
+        <button className="inspector__close" onClick={onClose} title="Cerrar inspector">
           <X size={16} />
         </button>
       </div>
@@ -90,8 +95,26 @@ export function ClassInspector({
             <Code2 size={13} /> Ver Java
           </button>
         )}
+        {onOpenSequence && (
+          <button
+            className="inspector__preview"
+            onClick={onOpenSequence}
+            title="Generar y ver el diagrama de secuencia UML dinámico para esta clase"
+          >
+            <GitCommitHorizontal size={13} /> Secuencia
+          </button>
+        )}
+        {onOpenMockApi && umlClass.stereotype !== 'interface' && umlClass.stereotype !== 'enum' && (
+          <button
+            className="inspector__preview"
+            onClick={onOpenMockApi}
+            title="Simular y probar endpoints REST de esta entidad en el navegador"
+          >
+            <Terminal size={13} /> Simular API
+          </button>
+        )}
         <button className="inspector__duplicate" onClick={onDuplicate} title="Clonar esta clase con todos sus atributos">
-          <Copy2 size={13} /> Duplicar
+          <Copy size={13} /> Duplicar
         </button>
         <button className="inspector__delete" onClick={onDelete} title="Eliminar clase">
           <Trash2 size={13} /> Eliminar

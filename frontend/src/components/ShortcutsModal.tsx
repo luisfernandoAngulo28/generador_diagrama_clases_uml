@@ -5,9 +5,16 @@ interface ShortcutsModalProps {
 }
 
 const SHORTCUTS = [
+  { keys: ['Ctrl', 'K'], desc: 'Abrir paleta de comandos rápida (buscar acciones y clases estilo VS Code)' },
   { keys: ['Ctrl', 'Z'], desc: 'Deshacer la última acción realizada en el diagrama' },
   { keys: ['Ctrl', 'Y'], desc: 'Rehacer el cambio deshecho' },
   { keys: ['Ctrl', 'F'], desc: 'Buscador rápido spotlight de clases en el lienzo' },
+  { keys: ['Clic derecho'], desc: 'Abrir menú contextual en el lienzo o sobre una entidad UML' },
+  { keys: ['Métricas OO'], desc: 'Analizar acoplamiento (CBO), herencia (DIT) y calidad SOLID' },
+  { keys: ['Secuencia UML'], desc: 'Ver diagrama de secuencia (PlantUML / Mermaid / Spring 4 capas)' },
+  { keys: ['Historias Scrum'], desc: 'Generar historias de usuario ágiles con criterios Gherkin (BDD)' },
+  { keys: ['Comparar Diff'], desc: 'Comparar diferencias visuales con versiones previas' },
+  { keys: ['Runner API'], desc: 'Simulador y probador de endpoints REST interactivo en el navegador' },
   { keys: ['Supr'], desc: 'Eliminar las clases seleccionadas' },
   { keys: ['Doble clic'], desc: 'Abrir inspector de clase y panel de propiedades' },
   { keys: ['Arrastrar nodo'], desc: 'Mover y reposicionar clase en el lienzo' },

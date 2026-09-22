@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { Node } from '@xyflow/react';
 import { ChevronLeft, ChevronRight, Component } from 'lucide-react';
-import type { UmlClassNodeData } from './UmlClassNode';
 
 interface ClassTreePanelProps {
   nodes: Node<any>[];

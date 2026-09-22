@@ -39,7 +39,7 @@ export function DiagramsListPanel({ onOpen, onClose }: DiagramsListPanelProps) {
           </button>
         </div>
 
-        {/* 🔎 Buscador */}
+        {/* Buscador */}
         {diagrams && diagrams.length > 0 && (
           <div className="diagrams-list__search-wrap">
             <Search size={14} className="diagrams-list__search-icon" />

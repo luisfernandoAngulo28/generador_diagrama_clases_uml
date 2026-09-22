@@ -59,6 +59,7 @@ export interface UmlRelation {
 export interface UmlNote {
   id: string;
   text: string;
+  title?: string;
   position?: { x: number; y: number };
 }
 

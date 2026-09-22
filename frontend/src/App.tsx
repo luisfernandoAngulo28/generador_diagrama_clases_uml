@@ -50,6 +50,11 @@ import {
   Keyboard,
   Layers,
   Search,
+  Gauge,
+  GitCommitHorizontal,
+  BookOpenCheck,
+  GitCompare,
+  Terminal,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { UmlNoteNode } from './components/UmlNoteNode';
@@ -67,6 +72,16 @@ import { TemplatesPanel } from './components/TemplatesPanel';
 import { CodePreviewModal } from './components/CodePreviewModal';
 import { SpotlightSearchModal } from './components/SpotlightSearchModal';
 import { ShortcutsModal } from './components/ShortcutsModal';
+import { MetricsModal } from './components/MetricsModal';
+import { SequenceDiagramModal } from './components/SequenceDiagramModal';
+import { UserStoriesModal } from './components/UserStoriesModal';
+import { DiffModal } from './components/DiffModal';
+import { MockApiModal } from './components/MockApiModal';
+import { ToastProvider, useToast } from './context/ToastContext';
+import { CanvasEmptyState } from './components/CanvasEmptyState';
+import { ContextMenu, type ContextMenuData } from './components/ContextMenu';
+import { CommandPaletteModal } from './components/CommandPaletteModal';
+import { StatusBar } from './components/StatusBar';
 import type { DiagramTemplate } from './lib/templates';
 import { Tour, type TourStep } from './components/Tour';
 import { ToolbarMenu } from './components/ToolbarMenu';
@@ -164,9 +179,10 @@ function createDefaultClass(): UmlClass {
 
 function AppInner() {
   const { user, logout } = useAuth();
+  const toast = useToast();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const { fitView, setCenter, getNodes, getNodesBounds, deleteElements } = useReactFlow();
+  const { fitView, setCenter, getNodes, getNodesBounds, deleteElements, screenToFlowPosition } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
@@ -197,8 +213,33 @@ function AppInner() {
   const [viewMode, setViewMode] = useState<'uml' | 'der'>('uml');
   const [showSpotlight, setShowSpotlight] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(false);
+  const [showSequence, setShowSequence] = useState(false);
+  const [sequenceTargetClass, setSequenceTargetClass] = useState<string | undefined>(undefined);
+  const [showStories, setShowStories] = useState(false);
+  const [showDiff, setShowDiff] = useState(false);
+  const [showMockApi, setShowMockApi] = useState(false);
+  const [mockApiTargetClass, setMockApiTargetClass] = useState<string | undefined>(undefined);
+  const [connected, setConnected] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuData | null>(null);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [past, setPast] = useState<HistorySnapshot[]>([]);
   const [future, setFuture] = useState<HistorySnapshot[]>([]);
+
+  const initialModelFromPast = useMemo<UmlModel | undefined>(() => {
+    if (past.length === 0) return undefined;
+    const first = past[0];
+    const classNodes = first.nodes.filter((n) => n.data?.umlClass);
+    return {
+      classes: classNodes.map((n) => ({ ...n.data.umlClass, position: n.position })),
+      relations: first.edges.map((e) => ({
+        id: e.id,
+        type: (e.data?.type as RelationType) ?? 'ASSOCIATION',
+        sourceClassId: e.source,
+        targetClassId: e.target,
+      })),
+    };
+  }, [past]);
 
   useEffect(() => {
     if (!window.localStorage.getItem(TOUR_SEEN_KEY)) {
@@ -419,6 +460,11 @@ function AppInner() {
     if (!diagramId) return;
 
     const socket = getSocket();
+    setConnected(socket.connected);
+    const onConnectSocket = () => setConnected(true);
+    const onDisconnectSocket = () => setConnected(false);
+    socket.on('connect', onConnectSocket);
+    socket.on('disconnect', onDisconnectSocket);
     socket.emit('join-diagram', { diagramId, userName: user?.name });
 
     function handleRemoteUpdate(payload: { nodes: Node<any>[]; edges: Edge[] }) {
@@ -451,6 +497,8 @@ function AppInner() {
     socket.on('locks-update', handleLocksUpdate);
 
     return () => {
+      socket.off('connect', onConnectSocket);
+      socket.off('disconnect', onDisconnectSocket);
       socket.off('diagram-update', handleRemoteUpdate);
       socket.off('presence', handlePresence);
       socket.off('locks-update', handleLocksUpdate);
@@ -489,7 +537,67 @@ function AppInner() {
       data: { umlClass, onEdit: handleEditClass },
     };
     setNodes((nds) => [...nds, newNode]);
+    toast.success(`Clase "${umlClass.name}" añadida al lienzo`, 'Nueva Clase');
   }
+
+  const addClassAt = useCallback((x: number, y: number) => {
+    pushHistory();
+    const umlClass = createDefaultClass();
+    const newNode: Node<UmlClassNodeData> = {
+      id: umlClass.id,
+      type: 'umlClass',
+      position: { x, y },
+      data: { umlClass, onEdit: handleEditClass },
+    };
+    setNodes((nds) => [...nds, newNode]);
+    handleEditClass(umlClass.id);
+    toast.success(`Clase "${umlClass.name}" creada`, 'Nueva Clase');
+  }, [handleEditClass, toast]);
+
+  const addNoteAt = useCallback((x: number, y: number) => {
+    pushHistory();
+    const id = crypto.randomUUID();
+    const newNote: Node<any> = {
+      id,
+      type: 'umlNote',
+      position: { x, y },
+      data: { title: 'Nota', text: 'Escribe tu nota aquí…' },
+    };
+    setNodes((nds) => [...nds, newNote]);
+    toast.info('Nota adhesiva creada', 'Nota');
+  }, [toast]);
+
+  const handlePaneContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent) => {
+      event.preventDefault();
+      const clientX = 'clientX' in event ? event.clientX : 100;
+      const clientY = 'clientY' in event ? event.clientY : 100;
+      const flowPos = screenToFlowPosition({ x: clientX, y: clientY });
+      setContextMenu({
+        type: 'canvas',
+        x: clientX,
+        y: clientY,
+        canvasX: flowPos.x,
+        canvasY: flowPos.y,
+      });
+    },
+    [screenToFlowPosition]
+  );
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node<any>) => {
+      event.preventDefault();
+      if (!node.data?.umlClass) return;
+      setContextMenu({
+        type: 'node',
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: node.id,
+        umlClass: node.data.umlClass,
+      });
+    },
+    []
+  );
 
   function addNote() {
     pushHistory();
@@ -504,6 +612,7 @@ function AppInner() {
       },
     };
     setNodes((nds) => [...nds, newNoteNode]);
+    toast.info('Nota adhesiva añadida');
   }
 
   function updateNoteText(id: string, text: string) {
@@ -589,15 +698,15 @@ function AppInner() {
 
   function duplicateClass(classId: string) {
     const target = nodes.find((n) => n.id === classId);
-    if (!target) return;
+    if (!target || !target.data?.umlClass) return;
     pushHistory();
     const newId = crypto.randomUUID();
     const clonedUmlClass: UmlClass = {
       ...target.data.umlClass,
       id: newId,
       name: `${target.data.umlClass.name}Copia`,
-      attributes: target.data.umlClass.attributes.map((a) => ({ ...a })),
-      operations: target.data.umlClass.operations?.map((o) => ({ ...o })),
+      attributes: target.data.umlClass.attributes.map((a: any) => ({ ...a })),
+      operations: target.data.umlClass.operations?.map((o: any) => ({ ...o })),
     };
     const newNode: Node<UmlClassNodeData> = {
       id: newId,
@@ -606,7 +715,7 @@ function AppInner() {
       data: { umlClass: clonedUmlClass, onEdit: handleEditClass },
     };
     setNodes((nds) => [...nds, newNode]);
-    handleEditClass(clonedUmlClass);
+    handleEditClass(newId);
   }
 
   function applyOperations(operations: DiagramOperation[]) {
@@ -616,7 +725,7 @@ function AppInner() {
     let didAutoLayout = false;
 
     const findNodeByName = (name: string) =>
-      workingNodes.find((n) => n.data.umlClass.name === name);
+      workingNodes.find((n) => n.data?.umlClass?.name === name);
 
     for (const op of operations) {
       switch (op.op) {
@@ -688,7 +797,7 @@ function AppInner() {
                     umlClass: {
                       ...n.data.umlClass,
                       attributes: n.data.umlClass.attributes.filter(
-                        (a) => a.name !== op.attributeName,
+                        (a: any) => a.name !== op.attributeName,
                       ),
                     },
                   },
@@ -722,18 +831,19 @@ function AppInner() {
           break;
         }
         case 'AUTO_LAYOUT': {
-          workingNodes = layoutNodes(workingNodes, workingEdges);
           didAutoLayout = true;
           break;
         }
       }
     }
 
-    setNodes(workingNodes);
-    setEdges(workingEdges);
     if (didAutoLayout) {
+      workingNodes = layoutNodes(workingNodes, workingEdges);
       requestAnimationFrame(() => fitView({ duration: 300 }));
     }
+
+    setNodes(workingNodes);
+    setEdges(workingEdges);
   }
 
   const onConnect = useCallback(
@@ -784,14 +894,13 @@ function AppInner() {
       if (diagramId) {
         await updateDiagram(diagramId, diagramName, model);
         setLastSavedAt(new Date());
+        if (!isAuto) toast.success(`"${diagramName}" guardado correctamente`, 'Guardado');
         return diagramId;
-      } else if (!isAuto) {
+      } else {
         const created = await createDiagram(diagramName, model);
         setDiagramId(created.id);
-        const url = new URL(window.location.href);
-        url.searchParams.set('diagram', created.id);
-        window.history.replaceState({}, '', url);
         setLastSavedAt(new Date());
+        if (!isAuto) toast.success(`"${diagramName}" creado y guardado`, 'Nuevo Diagrama');
         return created.id;
       }
     } catch (err) {
@@ -822,9 +931,9 @@ function AppInner() {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        resolve(result.split(',')[1] ?? '');
+        resolve(result.includes(',') ? result.split(',')[1] : result);
       };
-      reader.onerror = () => reject(reader.error);
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   }
@@ -834,24 +943,27 @@ function AppInner() {
     e.target.value = '';
     if (!file) return;
 
-    setPhotoError(null);
     setAnalyzingPhoto(true);
+    setPhotoError(null);
     try {
-      const imageBase64 = await readFileAsBase64(file);
-      const model = await interpretDiagramPhoto(imageBase64, file.type);
+      const base64 = await readFileAsBase64(file);
+      const recognized = await interpretDiagramPhoto(base64, file.type || 'image/jpeg');
 
-      if (model.classes.length === 0) {
-        setPhotoError('No se reconoció ningún diagrama de clases en la foto.');
+      if (recognized.classes.length === 0) {
+        setPhotoError(
+          'La IA no detectó clases en la foto. Intenta con una toma más cercana, con buena luz y trazos legibles.',
+        );
         return;
       }
 
       pushHistory();
-      const idMap = new Map<string, string>();
-      for (const cls of model.classes) idMap.set(cls.id, crypto.randomUUID());
 
+      const idMap = new Map<string, string>();
       const columnOffset = nodes.length;
-      const newNodes: Node<UmlClassNodeData>[] = model.classes.map((umlClass, index) => {
-        const newId = idMap.get(umlClass.id)!;
+
+      const newNodes: Node<UmlClassNodeData>[] = recognized.classes.map((cls, index) => {
+        const newId = crypto.randomUUID();
+        idMap.set(cls.id, newId);
         return {
           id: newId,
           type: 'umlClass',
@@ -859,11 +971,14 @@ function AppInner() {
             x: 120 + ((columnOffset + index) % 4) * 260,
             y: 80 + Math.floor((columnOffset + index) / 4) * 220,
           },
-          data: { umlClass: { ...umlClass, id: newId }, onEdit: handleEditClass },
+          data: {
+            umlClass: { ...cls, id: newId },
+            onEdit: handleEditClass,
+          },
         };
       });
 
-      const newEdges: Edge[] = model.relations
+      const newEdges: Edge[] = recognized.relations
         .filter((rel) => idMap.has(rel.sourceClassId) && idMap.has(rel.targetClassId))
         .map((rel) => ({
           id: crypto.randomUUID(),
@@ -885,6 +1000,7 @@ function AppInner() {
 
   async function generateBackend() {
     const id = diagramId ?? (await saveDiagram());
+    if (!id) return;
     setGenerating(true);
     try {
       await downloadGeneratedBackend(id);
@@ -895,6 +1011,7 @@ function AppInner() {
 
   async function validateCurrentDiagram() {
     const id = diagramId ?? (await saveDiagram());
+    if (!id) return;
     setValidating(true);
     try {
       const result = await validateDiagram(id);
@@ -904,7 +1021,7 @@ function AppInner() {
     }
   }
 
-  async function handleOpenCodePreview(targetClassName?: string) {
+  async function handleOpenCodePreview(_targetClassName?: string) {
     if (nodes.length === 0) return;
     setLoadingPreview(true);
     try {
@@ -920,6 +1037,7 @@ function AppInner() {
 
   async function exportXmi() {
     const id = diagramId ?? (await saveDiagram());
+    if (!id) return;
     setExportingXmi(true);
     try {
       await downloadXmi(id);
@@ -930,6 +1048,7 @@ function AppInner() {
 
   async function openDocs() {
     const id = diagramId ?? (await saveDiagram());
+    if (!id) return;
     setGeneratingDocs(true);
     try {
       await openDocumentation(id);
@@ -1051,55 +1170,15 @@ function AppInner() {
           </span>
         )}
 
+        {/* Actions group: undo/redo, create, organized menus, save */}
         <div className="toolbar__group">
-          <button className="toolbar__btn" data-tour="add-class" onClick={addClass}>
-            <Plus size={15} /> Clase
-          </button>
-          <button className="toolbar__btn" onClick={addNote} title="Añadir nota o post-it al lienzo">
-            <StickyNote size={15} /> Nota
-          </button>
-          <button
-            className="toolbar__btn"
-            onClick={() => setShowSpotlight(true)}
-            title="Buscar clases o atributos en el lienzo (Ctrl+F)"
-          >
-            <Search size={15} /> Buscar
-          </button>
-          <button
-            className={viewMode === 'der' ? 'toolbar__btn toolbar__toggle--active' : 'toolbar__btn'}
-            onClick={() => setViewMode((m) => (m === 'uml' ? 'der' : 'uml'))}
-            title="Alternar entre notación lógica de Clases UML y modelo Físico Relacional (DER / Tablas SQL)"
-          >
-            <Layers size={15} /> {viewMode === 'uml' ? 'Ver DER' : 'Ver UML'}
-          </button>
-          <button className="toolbar__btn" onClick={() => setShowTemplates(true)}>
-            <LayoutTemplate size={15} /> Plantillas
-          </button>
-          <button
-            className="toolbar__btn"
-            data-tour="auto-layout"
-            onClick={autoLayout}
-            disabled={nodes.length === 0}
-          >
-            <Workflow size={15} /> Auto-organizar
-          </button>
-          <button
-            className={
-              snapToGrid ? 'toolbar__btn toolbar__toggle--active' : 'toolbar__btn'
-            }
-            onClick={() => setSnapToGrid((v) => !v)}
-            title="Ajustar las clases a una cuadrícula al moverlas"
-            aria-pressed={snapToGrid}
-          >
-            <Grid3x3 size={15} /> Cuadrícula
-          </button>
           <button
             className="toolbar__btn"
             onClick={undo}
             disabled={past.length === 0}
             title="Deshacer (Ctrl+Z)"
           >
-            <Undo2 size={15} /> Deshacer
+            <Undo2 size={15} />
           </button>
           <button
             className="toolbar__btn"
@@ -1107,13 +1186,18 @@ function AppInner() {
             disabled={future.length === 0}
             title="Rehacer (Ctrl+Y)"
           >
-            <Redo2 size={15} /> Rehacer
+            <Redo2 size={15} />
           </button>
-        </div>
 
-        <span className="toolbar__divider" />
+          <span className="toolbar__divider" />
 
-        <div className="toolbar__group">
+          <button className="toolbar__btn toolbar__btn--hero" data-tour="add-class" onClick={addClass}>
+            <Plus size={15} /> Clase
+          </button>
+          <button className="toolbar__btn" onClick={addNote} title="Añadir nota adhesiva">
+            <StickyNote size={15} /> Nota
+          </button>
+
           <input
             ref={xmiInputRef}
             type="file"
@@ -1121,6 +1205,16 @@ function AppInner() {
             style={{ display: 'none' }}
             onChange={(e) => void handleXmiSelected(e)}
           />
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={(e) => void handlePhotoSelected(e)}
+          />
+
+          {/* Menú 1: Archivo */}
           <ToolbarMenu
             icon={<FolderOpen size={15} />}
             label="Archivo"
@@ -1132,40 +1226,25 @@ function AppInner() {
                 onClick: () => setShowDiagramsList(true),
               },
               {
+                key: 'templates',
+                icon: <LayoutTemplate size={15} />,
+                label: 'Cargar plantilla…',
+                onClick: () => setShowTemplates(true),
+              },
+              {
+                key: 'photo',
+                icon: <Camera size={15} />,
+                label: analyzingPhoto ? 'Analizando foto…' : 'Foto de pizarra (IA)',
+                disabled: analyzingPhoto,
+                onClick: () => photoInputRef.current?.click(),
+              },
+              {
                 key: 'import-xmi',
                 icon: <Upload size={15} />,
                 label: importingXmi ? 'Importando…' : 'Importar XMI',
                 disabled: importingXmi,
-                title:
-                  'Importar un diagrama desde un archivo XMI (exportado por esta u otra herramienta UML)',
+                title: 'Importar diagrama desde un archivo XMI',
                 onClick: () => xmiInputRef.current?.click(),
-              },
-              {
-                key: 'documentation',
-                icon: <FileText size={15} />,
-                label: generatingDocs ? 'Generando…' : 'Documentación',
-                disabled: generatingDocs,
-                onClick: () => void openDocs(),
-              },
-              {
-                key: 'history',
-                icon: <History size={15} />,
-                label: 'Bitácora de cambios',
-                disabled: !diagramId,
-                title: diagramId
-                  ? undefined
-                  : 'Guarda el diagrama al menos una vez para ver su bitácora',
-                onClick: () => setShowHistory(true),
-              },
-              {
-                key: 'attachments',
-                icon: <Paperclip size={15} />,
-                label: 'Documentos adjuntos',
-                disabled: !diagramId,
-                title: diagramId
-                  ? undefined
-                  : 'Guarda el diagrama al menos una vez para adjuntar archivos',
-                onClick: () => setShowAttachments(true),
               },
               {
                 key: 'export-png',
@@ -1186,8 +1265,6 @@ function AppInner() {
                 icon: <Send size={15} />,
                 label: 'Exportar colección Postman',
                 disabled: nodes.length === 0,
-                title:
-                  'Descarga un archivo JSON compatible con Postman v2.1 con todos los endpoints CRUD listos',
                 onClick: () => exportPostmanCollection(buildModel(), diagramName),
               },
               {
@@ -1195,14 +1272,114 @@ function AppInner() {
                 icon: <Database size={15} />,
                 label: 'Exportar script SQL DDL',
                 disabled: nodes.length === 0,
-                title:
-                  'Descarga un script SQL completo con CREATE TABLE, claves foráneas y restricciones relacionales',
                 onClick: () => exportSqlSchema(buildModel(), diagramName),
+              },
+              {
+                key: 'export-xmi',
+                icon: <Download size={15} />,
+                label: exportingXmi ? 'Exportando…' : 'Exportar XMI estándar',
+                disabled: exportingXmi,
+                onClick: () => void exportXmi(),
+              },
+              {
+                key: 'history',
+                icon: <History size={15} />,
+                label: 'Bitácora de cambios',
+                disabled: !diagramId,
+                onClick: () => setShowHistory(true),
+              },
+              {
+                key: 'attachments',
+                icon: <Paperclip size={15} />,
+                label: 'Documentos adjuntos',
+                disabled: !diagramId,
+                onClick: () => setShowAttachments(true),
+              },
+              {
+                key: 'documentation',
+                icon: <FileText size={15} />,
+                label: generatingDocs ? 'Generando…' : 'Documentación Markdown',
+                disabled: generatingDocs,
+                onClick: () => void openDocs(),
               },
             ]}
           />
+
+          {/* Menú 2: Diseño & Calidad */}
+          <ToolbarMenu
+            icon={<Layers size={15} />}
+            label="Diseño & Calidad"
+            items={[
+              {
+                key: 'metrics',
+                icon: <Gauge size={15} />,
+                label: 'Métricas OO (SOLID / CBO / DIT)',
+                disabled: nodes.length === 0,
+                onClick: () => setShowMetrics(true),
+              },
+              {
+                key: 'diff',
+                icon: <GitCompare size={15} />,
+                label: 'Comparar versiones (Diagram Diff)',
+                disabled: nodes.length === 0,
+                onClick: () => setShowDiff(true),
+              },
+              {
+                key: 'layout',
+                icon: <Workflow size={15} />,
+                label: 'Reorganizar lienzo (Auto-Layout)',
+                disabled: nodes.length === 0,
+                onClick: autoLayout,
+              },
+              {
+                key: 'view-mode',
+                icon: <Layers size={15} />,
+                label: viewMode === 'uml' ? 'Cambiar a modo DER' : 'Cambiar a modo UML',
+                onClick: () => setViewMode((m) => (m === 'uml' ? 'der' : 'uml')),
+              },
+              {
+                key: 'grid',
+                icon: <Grid3x3 size={15} />,
+                label: snapToGrid ? 'Desactivar cuadrícula' : 'Ajustar a cuadrícula',
+                onClick: () => setSnapToGrid((v) => !v),
+              },
+            ]}
+          />
+
+          {/* Menú 3: Código & Generación */}
+          <ToolbarMenu
+            icon={<Code2 size={15} />}
+            label="Código"
+            items={[
+              {
+                key: 'preview-java',
+                icon: <Code2 size={15} />,
+                label: loadingPreview ? 'Generando…' : 'Ver código Java Spring Boot',
+                disabled: loadingPreview || nodes.length === 0,
+                onClick: () => void handleOpenCodePreview(editingClass?.name),
+              },
+              {
+                key: 'sequence',
+                icon: <GitCommitHorizontal size={15} />,
+                label: 'Diagrama de secuencia UML',
+                disabled: nodes.length === 0,
+                onClick: () => {
+                  setSequenceTargetClass(editingClass?.name);
+                  setShowSequence(true);
+                },
+              },
+              {
+                key: 'stories',
+                icon: <BookOpenCheck size={15} />,
+                label: 'Historias de usuario Scrum & Gherkin',
+                disabled: nodes.length === 0,
+                onClick: () => setShowStories(true),
+              },
+            ]}
+          />
+
           <button className="toolbar__btn" onClick={() => void saveDiagram()} disabled={saving}>
-            <Save size={15} /> {saving ? 'Guardando…' : 'Guardar diagrama'}
+            <Save size={15} /> {saving ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
 
@@ -1223,63 +1400,42 @@ function AppInner() {
 
         <span className="toolbar__divider" />
 
+        {/* Botones de acción primaria (Hero Buttons) */}
         <div className="toolbar__group">
           <button
-            className="toolbar__btn"
-            data-tour="validate"
-            onClick={() => void validateCurrentDiagram()}
-            disabled={validating}
+            className="toolbar__btn toolbar__btn--accent"
+            title="Simular y ejecutar endpoints REST en vivo en el navegador (Mock API Runner)"
+            onClick={() => {
+              setMockApiTargetClass(editingClass?.name);
+              setShowMockApi(true);
+            }}
+            disabled={nodes.length === 0}
           >
-            <ShieldCheck size={15} /> {validating ? 'Validando…' : 'Validar diagrama'}
-          </button>
-          <button
-            className="toolbar__btn"
-            title="Previsualizar el código fuente Java (Spring Boot 4 capas) generado en vivo"
-            onClick={() => void handleOpenCodePreview(editingClass?.name)}
-            disabled={loadingPreview || nodes.length === 0}
-          >
-            <Code2 size={15} /> {loadingPreview ? 'Generando…' : 'Ver código Java'}
+            <Terminal size={15} /> Runner API
           </button>
           <button
             className="toolbar__btn"
             data-tour="generate-backend"
             onClick={() => void generateBackend()}
             disabled={generating}
+            title="Generar y descargar el código fuente Spring Boot en ZIP"
           >
-            <Server size={15} /> {generating ? 'Generando…' : 'Generar backend Spring Boot'}
+            <Server size={15} /> {generating ? 'Generando…' : 'Spring Boot'}
           </button>
           <button
             className="toolbar__btn"
-            data-tour="export-xmi"
-            onClick={() => void exportXmi()}
-            disabled={exportingXmi}
+            data-tour="validate"
+            onClick={() => void validateCurrentDiagram()}
+            disabled={validating}
           >
-            <Download size={15} /> {exportingXmi ? 'Exportando…' : 'Exportar XMI'}
+            <ShieldCheck size={15} /> {validating ? 'Validando…' : 'Validar'}
           </button>
-
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            style={{ display: 'none' }}
-            onChange={(e) => void handlePhotoSelected(e)}
-          />
           <button
             className="toolbar__btn"
-            onClick={() => photoInputRef.current?.click()}
-            disabled={analyzingPhoto}
+            onClick={() => setShowCommandPalette(true)}
+            title="Abrir paleta rápida de comandos (Ctrl + K)"
           >
-            <Camera size={15} /> {analyzingPhoto ? 'Analizando foto…' : 'Foto de pizarra'}
-          </button>
-          <button
-            className="toolbar__btn toolbar__btn--accent"
-            id="btn-export-png"
-            title="Descargar el diagrama como imagen PNG (para el examen)"
-            onClick={() => void handleExportImage('png')}
-            disabled={exportingImage || nodes.length === 0}
-          >
-            <ImageIcon size={15} /> {exportingImage ? 'Exportando…' : 'Exportar PNG'}
+            <Search size={15} /> Comandos
           </button>
         </div>
 
@@ -1296,6 +1452,13 @@ function AppInner() {
           </>
         )}
 
+        <button
+          className="toolbar__btn toolbar__help"
+          onClick={() => setShowShortcuts(true)}
+          title="Ver atajos de teclado (?)"
+        >
+          <Keyboard size={15} /> Atajos (?)
+        </button>
         <button className="toolbar__btn toolbar__help" onClick={() => setShowTour(true)}>
           <HelpCircle size={15} /> Recorrido
         </button>
@@ -1321,14 +1484,27 @@ function AppInner() {
         <ClassTreePanel nodes={nodes} onSelect={focusClass} />
         <div className="canvas-wrapper">
           <ReactFlow
-            nodes={nodes.map((n) => ({
-              ...n,
-              data: {
-                ...n.data,
-                lockedBy: myLocksRef.current.has(n.id) ? undefined : locks[n.id],
-                hasError: errorClassIds.has(n.id),
-              },
-            }))}
+            nodes={nodes.map((n) => {
+              if (n.type === 'umlNote') {
+                return {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    onChangeText: (text: string) => updateNoteText(n.id, text),
+                    onDelete: () => deleteNote(n.id),
+                  },
+                };
+              }
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  viewMode,
+                  lockedBy: myLocksRef.current.has(n.id) ? undefined : locks[n.id],
+                  hasError: errorClassIds.has(n.id),
+                },
+              };
+            })}
             edges={edges}
             onNodesChange={(changes) => {
               if (changes.some((c) => c.type === 'remove')) pushHistory();
@@ -1350,6 +1526,8 @@ function AppInner() {
                 prev.length === ids.length && prev.every((id, i) => id === ids[i]) ? prev : ids,
               );
             }}
+            onPaneContextMenu={handlePaneContextMenu}
+            onNodeContextMenu={handleNodeContextMenu}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             snapToGrid={snapToGrid}
@@ -1365,6 +1543,38 @@ function AppInner() {
               nodeColor="#4a5568"
             />
           </ReactFlow>
+
+          {nodes.length === 0 && (
+            <CanvasEmptyState
+              onAddClass={addClass}
+              onOpenTemplates={() => setShowTemplates(true)}
+              onScanPhoto={() => photoInputRef.current?.click()}
+              onOpenShortcuts={() => setShowShortcuts(true)}
+            />
+          )}
+
+          {contextMenu && (
+            <ContextMenu
+              data={contextMenu}
+              onClose={() => setContextMenu(null)}
+              onAddClassAt={addClassAt}
+              onAddNoteAt={addNoteAt}
+              onAutoLayout={autoLayout}
+              onOpenRunnerApi={(clsName) => {
+                if (clsName) setMockApiTargetClass(clsName);
+                setShowMockApi(true);
+              }}
+              onEditClass={handleEditClass}
+              onPreviewCode={(clsName) => void handleOpenCodePreview(clsName)}
+              onOpenSequence={(clsName) => {
+                setSequenceTargetClass(clsName);
+                setShowSequence(true);
+              }}
+              onOpenStories={() => setShowStories(true)}
+              onDuplicateClass={duplicateClass}
+              onDeleteClass={deleteClass}
+            />
+          )}
 
           <UmlLegend />
 
@@ -1391,6 +1601,14 @@ function AppInner() {
             onDelete={() => deleteClass(editingClass.id)}
             onDuplicate={() => duplicateClass(editingClass.id)}
             onPreviewCode={() => void handleOpenCodePreview(editingClass.name)}
+            onOpenSequence={() => {
+              setSequenceTargetClass(editingClass.name);
+              setShowSequence(true);
+            }}
+            onOpenMockApi={() => {
+              setMockApiTargetClass(editingClass.name);
+              setShowMockApi(true);
+            }}
           />
         )}
 
@@ -1412,6 +1630,18 @@ function AppInner() {
 
         <ChatPanel model={buildModel()} onApplyOperations={applyOperations} />
       </div>
+
+      <StatusBar
+        model={buildModel()}
+        connected={connected}
+        activeUsersCount={collaboratorCount}
+        lastSavedAt={lastSavedAt}
+        viewMode={viewMode}
+        onOpenMetrics={() => setShowMetrics(true)}
+        onOpenRunnerApi={() => setShowMockApi(true)}
+        onOpenCommandPalette={() => setShowCommandPalette(true)}
+        onOpenShortcuts={() => setShowShortcuts(true)}
+      />
 
       {showTour && <Tour steps={TOUR_STEPS} onFinish={finishTour} />}
       {showDiagramsList && (
@@ -1436,6 +1666,79 @@ function AppInner() {
           onClose={() => setCodePreview(null)}
         />
       )}
+      {showCommandPalette && (
+        <CommandPaletteModal
+          nodes={nodes}
+          onClose={() => setShowCommandPalette(false)}
+          onFocusClass={focusClass}
+          onAddClass={addClass}
+          onAddNote={addNote}
+          onSaveDiagram={() => void saveDiagram()}
+          onValidate={() => void validateCurrentDiagram()}
+          onOpenMetrics={() => setShowMetrics(true)}
+          onOpenSequence={() => {
+            setSequenceTargetClass(editingClass?.name);
+            setShowSequence(true);
+          }}
+          onOpenStories={() => setShowStories(true)}
+          onOpenDiff={() => setShowDiff(true)}
+          onOpenRunnerApi={() => {
+            setMockApiTargetClass(editingClass?.name);
+            setShowMockApi(true);
+          }}
+          onPreviewJava={() => void handleOpenCodePreview(editingClass?.name)}
+          onGenerateBackend={() => void generateBackend()}
+          onAutoLayout={autoLayout}
+          onExportPng={() => void handleExportImage('png')}
+          onExportSql={() => exportSqlSchema(buildModel(), diagramName)}
+          onExportPostman={() => exportPostmanCollection(buildModel(), diagramName)}
+          onExportXmi={() => void exportXmi()}
+        />
+      )}
+      {showSpotlight && (
+        <SpotlightSearchModal
+          nodes={nodes}
+          onSelect={focusClass}
+          onClose={() => setShowSpotlight(false)}
+        />
+      )}
+      {showShortcuts && (
+        <ShortcutsModal onClose={() => setShowShortcuts(false)} />
+      )}
+      {showMetrics && (
+        <MetricsModal
+          model={buildModel()}
+          onClose={() => setShowMetrics(false)}
+        />
+      )}
+      {showSequence && (
+        <SequenceDiagramModal
+          model={buildModel()}
+          initialClassName={sequenceTargetClass}
+          onClose={() => setShowSequence(false)}
+        />
+      )}
+      {showStories && (
+        <UserStoriesModal
+          model={buildModel()}
+          diagramName={diagramName}
+          onClose={() => setShowStories(false)}
+        />
+      )}
+      {showDiff && (
+        <DiffModal
+          currentModel={buildModel()}
+          initialSessionModel={initialModelFromPast}
+          onClose={() => setShowDiff(false)}
+        />
+      )}
+      {showMockApi && (
+        <MockApiModal
+          model={buildModel()}
+          initialClassName={mockApiTargetClass}
+          onClose={() => setShowMockApi(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1448,8 +1751,10 @@ export default function App() {
   }
 
   return (
-    <ReactFlowProvider>
-      <AppInner />
-    </ReactFlowProvider>
+    <ToastProvider>
+      <ReactFlowProvider>
+        <AppInner />
+      </ReactFlowProvider>
+    </ToastProvider>
   );
 }

@@ -228,10 +228,10 @@ export function renderDocumentationHtml(name: string, model: UmlModel): string {
               const basePath = `/api/${pluralize(decapitalize(cls.name))}`;
               return `<tr>
                 <td><strong>${esc(cls.name)}</strong></td>
-                <td><span class="crud-badge">✔ POST</span></td>
-                <td><span class="crud-badge">✔ GET</span></td>
-                <td><span class="crud-badge">✔ PUT</span></td>
-                <td><span class="crud-badge">✔ DELETE</span></td>
+                <td><span class="crud-badge">POST</span></td>
+                <td><span class="crud-badge">GET</span></td>
+                <td><span class="crud-badge">PUT</span></td>
+                <td><span class="crud-badge">DELETE</span></td>
                 <td><code>${basePath}</code></td>
               </tr>`;
             })
@@ -293,7 +293,7 @@ export function renderDocumentationHtml(name: string, model: UmlModel): string {
       <h1>Documentación de Ingeniería de Software — ${esc(name)}</h1>
       <p class="meta">Generado automáticamente el ${esc(generatedAt)} · ${model.classes.length} clases · ${model.relations.length} relaciones</p>
     </div>
-    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    <button class="btn-print" onclick="window.print()">Imprimir / Guardar PDF</button>
   </header>
 
   <h2>1. Catálogo de Clases UML</h2>
@@ -313,7 +313,7 @@ export function renderDocumentationHtml(name: string, model: UmlModel): string {
   <h2>5. Validación de Calidad del Modelo</h2>
   ${
     validation.valid && validation.warnings.length === 0
-      ? '<p class="ok">✅ El modelo es 100% consistente. Sin errores de integridad ni advertencias.</p>'
+      ? '<p class="ok">El modelo es 100% consistente. Sin errores de integridad ni advertencias.</p>'
       : issuesHtml('Errores Críticos', 'errors', validation.errors) +
         issuesHtml('Observaciones y Advertencias', 'warnings', validation.warnings)
   }

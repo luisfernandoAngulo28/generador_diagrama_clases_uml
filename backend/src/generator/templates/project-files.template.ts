@@ -184,7 +184,7 @@ export function renderProjectReadme(
           .join('\n')
       : '- Sin entidades declaradas';
 
-  return `# 🚀 ${projectName} - Backend Spring Boot
+  return `# ${projectName} - Backend Spring Boot
 
 Backend generado automáticamente por la **Herramienta CASE Colaborativa** con arquitectura de 4 capas:
 - **Entity** (JPA + Hibernate)
@@ -194,13 +194,13 @@ Backend generado automáticamente por la **Herramienta CASE Colaborativa** con a
 
 ---
 
-## 📋 Requisitos
+## Requisitos del Sistema
 - **Java 17+** y **Maven 3.8+**
 - O alternativamente **Docker & Docker Compose**
 
 ---
 
-## 🗄️ Opción A: Iniciar con Docker Compose (Recomendado)
+## Opción A: Iniciar con Docker Compose (Recomendado)
 
 Inicia PostgreSQL y compila el backend en un solo paso:
 \`\`\`bash
@@ -214,7 +214,7 @@ docker compose up -d postgres
 
 ---
 
-## 💻 Opción B: Ejecutar con Maven local
+## Opción B: Ejecutar con Maven local
 
 1. Asegúrate de tener PostgreSQL corriendo en el puerto 5432 con la base de datos \`${cleanDb}\`.
 2. En la raíz del proyecto:
@@ -224,10 +224,10 @@ mvn spring-boot:run
 
 ---
 
-## 📚 Documentación Interactiva (Swagger UI)
+## Documentación Interactiva de API (Swagger UI)
 
 Una vez iniciado el backend, ingresa desde tu navegador a:
-👉 **http://localhost:8080/swagger-ui.html**
+- URL Swagger UI: **http://localhost:8080/swagger-ui.html**
 
 Aquí podrás:
 1. Ver todos los endpoints clasificados por clase UML.
@@ -236,7 +236,7 @@ Aquí podrás:
 
 ---
 
-## 📡 Endpoints REST Generados
+## Endpoints REST Generados
 
 ${endpointList}
 `;
