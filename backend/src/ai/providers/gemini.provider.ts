@@ -45,27 +45,46 @@ export class GeminiProvider implements AiProvider {
     this.modelName = this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-3.6-flash';
   }
 
-  async editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
-    const genModel = this.client.getGenerativeModel({
-      model: this.modelName,
-      systemInstruction: EDIT_SYSTEM_PROMPT,
-    });
+  private getCandidateModels(): string[] {
+    const list = [this.modelName, 'gemini-3.5-flash-lite', 'gemini-3.6-flash'];
+    return [...new Set(list)];
+  }
 
-    const prompt = `Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
+  private async generateWithFallback(
+    systemInstruction: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contents: any,
+  ): Promise<string> {
+    const candidates = this.getCandidateModels();
+    let lastError: unknown;
 
-    let result: Awaited<ReturnType<typeof genModel.generateContent>>;
-    try {
-      result = await withRetry(() => genModel.generateContent(prompt));
-    } catch (err) {
-      if (isTransientGeminiError(err)) {
-        throw new ServiceUnavailableException(
-          'El servicio de IA (Gemini) está temporalmente saturado. Intenta de nuevo en unos segundos, o sigue editando el diagrama manualmente mientras tanto.',
-        );
+    for (const modelCandidate of candidates) {
+      try {
+        const genModel = this.client.getGenerativeModel({
+          model: modelCandidate,
+          systemInstruction,
+        });
+        const result = await withRetry(() => genModel.generateContent(contents));
+        return result.response.text();
+      } catch (err) {
+        lastError = err;
+        continue;
       }
-      throw err;
     }
 
-    const jsonText = stripJsonFences(result.response.text());
+    if (isTransientGeminiError(lastError)) {
+      throw new ServiceUnavailableException(
+        'El servicio de IA (Gemini) está temporalmente saturado. Intenta de nuevo en unos segundos.',
+      );
+    }
+    throw lastError;
+  }
+
+  async editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
+    const prompt = `Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
+
+    const rawText = await this.generateWithFallback(EDIT_SYSTEM_PROMPT, prompt);
+    const jsonText = stripJsonFences(rawText);
 
     try {
       const parsed = JSON.parse(jsonText) as {
@@ -77,7 +96,7 @@ export class GeminiProvider implements AiProvider {
         operations: Array.isArray(parsed.operations) ? (parsed.operations as EditDiagramResult['operations']) : [],
       };
     } catch {
-      return { reply: result.response.text(), operations: [] };
+      return { reply: rawText, operations: [] };
     }
   }
 
@@ -85,29 +104,12 @@ export class GeminiProvider implements AiProvider {
     imageBase64: string,
     mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
   ): Promise<UmlModel> {
-    const model = this.client.getGenerativeModel({
-      model: this.modelName,
-      systemInstruction: VISION_SYSTEM_PROMPT,
-    });
+    const rawText = await this.generateWithFallback(VISION_SYSTEM_PROMPT, [
+      { inlineData: { mimeType: mediaType, data: imageBase64 } },
+      { text: 'Interpreta este diagrama de clases UML dibujado a mano y devuelve el JSON del modelo.' },
+    ]);
 
-    let result: Awaited<ReturnType<typeof model.generateContent>>;
-    try {
-      result = await withRetry(() =>
-        model.generateContent([
-          { inlineData: { mimeType: mediaType, data: imageBase64 } },
-          { text: 'Interpreta este diagrama de clases UML dibujado a mano y devuelve el JSON del modelo.' },
-        ]),
-      );
-    } catch (err) {
-      if (isTransientGeminiError(err)) {
-        throw new ServiceUnavailableException(
-          'El servicio de IA (Gemini) está temporalmente saturado. Intenta de nuevo en unos segundos.',
-        );
-      }
-      throw err;
-    }
-
-    const jsonText = stripJsonFences(result.response.text());
+    const jsonText = stripJsonFences(rawText);
 
     try {
       const parsed = JSON.parse(jsonText) as UmlModel;

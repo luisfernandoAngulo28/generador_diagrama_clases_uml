@@ -143,4 +143,34 @@ describe('parseXmi', () => {
       { name: 'enviar', returnType: 'void', visibility: 'public' },
     ]);
   });
+
+  it('parses Enterprise Architect exported XMI with nested packages', () => {
+    const eaXml = `<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmi:version="2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
+  <uml:Model xmi:type="uml:Model" name="EA_Model" visibility="public">
+    <packagedElement xmi:type="uml:Package" xmi:id="PKG1" name="Starter Class Diagram" visibility="public">
+      <packagedElement xmi:type="uml:Class" xmi:id="C1" name="Cliente" visibility="public">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="A1" name="id" visibility="private">
+          <type xmi:type="uml:PrimitiveType" href="http://schema.omg.org/spec/UML/2.1/uml.xml#Integer"/>
+        </ownedAttribute>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="A2" name="nombre" visibility="private">
+          <type xmi:type="uml:PrimitiveType" href="http://schema.omg.org/spec/UML/2.1/uml.xml#String"/>
+        </ownedAttribute>
+      </packagedElement>
+      <packagedElement xmi:type="uml:Class" xmi:id="C2" name="Pedido" visibility="public">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="A3" name="id" visibility="private">
+          <type xmi:type="uml:PrimitiveType" href="http://schema.omg.org/spec/UML/2.1/uml.xml#Integer"/>
+        </ownedAttribute>
+      </packagedElement>
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>`;
+    const { model } = parseXmi(eaXml);
+    expect(model.classes).toHaveLength(2);
+    const cliente = model.classes.find((c) => c.name === 'Cliente');
+    expect(cliente?.attributes).toEqual([
+      { name: 'id', type: 'Integer', visibility: 'private', isPrimaryKey: true },
+      { name: 'nombre', type: 'String', visibility: 'private', isPrimaryKey: undefined },
+    ]);
+  });
 });

@@ -993,8 +993,13 @@ function AppInner() {
 
       setNodes((nds) => [...nds, ...newNodes]);
       setEdges((eds) => [...eds, ...newEdges]);
-    } catch {
-      setPhotoError('No se pudo interpretar la foto. Intenta con una imagen más clara.');
+    } catch (err) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      setPhotoError(
+        Array.isArray(message)
+          ? message.join('\n')
+          : (message ?? 'No se pudo interpretar la foto. Intenta con una imagen más clara.'),
+      );
     } finally {
       setAnalyzingPhoto(false);
     }

@@ -71,5 +71,17 @@ ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY. Los valores validos de "visibility" son:
 Si la imagen no contiene un diagrama de clases reconocible, responde con {"classes": [], "relations": []}.`;
 
 export function stripJsonFences(raw: string): string {
-  return raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  const trimmed = raw.trim();
+  const directMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (directMatch) return directMatch[1].trim();
+
+  // If there are fences embedded inside extra text
+  const embeddedFence = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (embeddedFence) return embeddedFence[1].trim();
+
+  // If there are raw JSON objects
+  const objMatch = trimmed.match(/\{[\s\S]*\}/);
+  if (objMatch) return objMatch[0].trim();
+
+  return trimmed;
 }
