@@ -77,7 +77,15 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
 
   const diagramName: string =
     typeof umlModel['@_name'] === 'string' ? umlModel['@_name'] : 'Diagrama importado';
-  const packagedElements = asArray<XmlNode>(umlModel.packagedElement);
+  // Flatten packagedElements recursively: Enterprise Architect nests classes inside a
+  // <packagedElement xmi:type="uml:Package">, so a shallow read would miss them.
+  const packagedElements: XmlNode[] = [];
+  (function collect(node: XmlNode) {
+    for (const el of asArray<XmlNode>(node.packagedElement)) {
+      packagedElements.push(el);
+      collect(el);
+    }
+  })(umlModel);
 
   const typeNames = new Map<string, string>();
   for (const el of packagedElements) {
@@ -88,6 +96,31 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
   function resolveType(rawType: unknown): string {
     if (typeof rawType !== 'string' || !rawType) return 'String';
     return typeNames.get(rawType) ?? rawType.replace(/^type_/, '');
+  }
+  // Our format stores an attribute's type in @_type; Enterprise Architect uses a child
+  // <type href=".../uml.xml#Integer"/> or <type xmi:idref="..."/> instead.
+  function resolveAttrType(attr: XmlNode): string {
+    if (typeof attr['@_type'] === 'string' && attr['@_type']) return resolveType(attr['@_type']);
+    const t = attr.type as XmlNode | undefined;
+    if (t) {
+      const href = t['@_href'];
+      if (typeof href === 'string' && href.includes('#')) {
+        return decodeURIComponent(href.split('#').pop() as string);
+      }
+      const idref = t['@_xmi:idref'];
+      if (typeof idref === 'string') return typeNames.get(idref) ?? 'String';
+    }
+    return 'String';
+  }
+  // An association end's target class: our format uses @_type; EA uses a child <type xmi:idref="..."/>.
+  function resolveEndType(end: XmlNode): string | undefined {
+    if (typeof end?.['@_type'] === 'string' && end['@_type']) return end['@_type'];
+    const t = end?.type as XmlNode | undefined;
+    if (t) {
+      if (typeof t['@_xmi:idref'] === 'string') return t['@_xmi:idref'];
+      if (typeof t['@_type'] === 'string') return t['@_type'];
+    }
+    return undefined;
   }
 
   const classes: UmlClass[] = [];
@@ -101,12 +134,15 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
     if (!id || typeof id !== 'string') continue;
     classIds.add(id);
 
-    const attributes: UmlAttribute[] = asArray<XmlNode>(el.ownedAttribute).map((attr) => ({
-      name: attr['@_name'] ?? 'atributo',
-      type: resolveType(attr['@_type']),
-      visibility: toVisibility(attr['@_visibility']),
-      isPrimaryKey: (attr['@_name'] ?? '').toLowerCase() === 'id' ? true : undefined,
-    }));
+    const attributes: UmlAttribute[] = asArray<XmlNode>(el.ownedAttribute)
+      // Skip attributes that are really association ends (EA marks them with @_association).
+      .filter((attr) => !attr['@_association'])
+      .map((attr) => ({
+        name: attr['@_name'] ?? 'atributo',
+        type: resolveAttrType(attr),
+        visibility: toVisibility(attr['@_visibility']),
+        isPrimaryKey: (attr['@_name'] ?? '').toLowerCase() === 'id' ? true : undefined,
+      }));
 
     for (const literal of asArray<XmlNode>(el.ownedLiteral)) {
       attributes.push({
@@ -168,14 +204,66 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
     }
   }
 
+  // Index association ends. EA may store one end as an association <ownedEnd> and the other as a
+  // class-owned <ownedAttribute> (with @_association), both referenced from the association's <memberEnd>.
+  const endNodeById = new Map<string, XmlNode>();
+  const endClassById = new Map<string, string>();
+  for (const el of packagedElements) {
+    const t = el['@_xmi:type'];
+    if (t === 'uml:Association') {
+      for (const oe of asArray<XmlNode>(el.ownedEnd)) {
+        const pid = oe['@_xmi:id'];
+        if (typeof pid !== 'string') continue;
+        endNodeById.set(pid, oe);
+        const cls = resolveEndType(oe); // an ownedEnd represents the class it is typed to
+        if (cls) endClassById.set(pid, cls);
+      }
+    } else if (t === 'uml:Class') {
+      const ownerId = el['@_xmi:id'];
+      for (const oa of asArray<XmlNode>(el.ownedAttribute)) {
+        const pid = oa['@_xmi:id'];
+        if (typeof pid === 'string' && oa['@_association'] && typeof ownerId === 'string') {
+          endNodeById.set(pid, oa); // an attribute-end represents its owner class
+          endClassById.set(pid, ownerId);
+        }
+      }
+    }
+  }
+
   for (const el of packagedElements) {
     if (el['@_xmi:type'] !== 'uml:Association') continue;
-    const ends = asArray<XmlNode>(el.ownedEnd);
-    if (ends.length < 2) continue;
-    const [srcEnd, tgtEnd] = ends;
-    const sourceClassId = srcEnd['@_type'];
-    const targetClassId = tgtEnd['@_type'];
-    if (!classIds.has(sourceClassId) || !classIds.has(targetClassId)) continue;
+    const ownedEnds = asArray<XmlNode>(el.ownedEnd);
+
+    let srcEnd: XmlNode;
+    let tgtEnd: XmlNode;
+    let sourceClassId: string | undefined;
+    let targetClassId: string | undefined;
+
+    if (ownedEnds.length >= 2 && resolveEndType(ownedEnds[0]) && resolveEndType(ownedEnds[1])) {
+      // Our own format (and EA associations that carry both ends inline).
+      srcEnd = ownedEnds[0];
+      tgtEnd = ownedEnds[1];
+      sourceClassId = resolveEndType(srcEnd);
+      targetClassId = resolveEndType(tgtEnd);
+    } else {
+      // EA style: resolve both ends through the association's memberEnd references.
+      const refs = asArray<XmlNode>(el.memberEnd)
+        .map((m) => m['@_xmi:idref'])
+        .filter((r): r is string => typeof r === 'string' && endClassById.has(r));
+      if (refs.length < 2) continue;
+      sourceClassId = endClassById.get(refs[0]);
+      targetClassId = endClassById.get(refs[1]);
+      srcEnd = endNodeById.get(refs[0]) ?? {};
+      tgtEnd = endNodeById.get(refs[1]) ?? {};
+    }
+
+    if (
+      !sourceClassId ||
+      !targetClassId ||
+      !classIds.has(sourceClassId) ||
+      !classIds.has(targetClassId)
+    )
+      continue;
 
     const aggregation = srcEnd['@_aggregation'] ?? tgtEnd['@_aggregation'];
     const nameHint = typeof el['@_name'] === 'string' ? el['@_name'].toUpperCase() : '';
