@@ -106,6 +106,8 @@ export class DiagramsGateway implements OnGatewayConnection, OnGatewayDisconnect
     client.to(payload.diagramId).emit('diagram-update', {
       nodes: payload.nodes,
       edges: payload.edges,
+      // Lets read-only viewers (Flutter) say who changed the diagram.
+      editorName: client.data.editorName as string | undefined,
     });
   }
 

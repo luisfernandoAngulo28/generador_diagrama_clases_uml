@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:speech_to_text/speech_to_text.dart' show SpeechListenOptions;
 
+import 'live/uml_viewer_screen.dart';
 import 'offline_chat_screen.dart';
 import 'offline_sync_service.dart';
 
@@ -744,6 +745,15 @@ class _ApiScreenState extends State<ApiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // 2do Parcial: visor en tiempo real del diagrama UML y del chat del equipo.
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'uml-live',
+        icon: const Icon(Icons.account_tree_outlined),
+        label: const Text('Visor UML en vivo'),
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const UmlViewerScreen()),
+        ),
+      ),
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
