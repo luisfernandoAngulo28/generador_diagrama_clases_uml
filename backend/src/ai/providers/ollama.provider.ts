@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { EditDiagramResult } from '../operations.types.js';
 import { EDIT_SYSTEM_PROMPT, VISION_SYSTEM_PROMPT, stripJsonFences } from '../prompts.js';
-import type { AiProvider } from './ai-provider.interface.js';
+import type { AiCallOptions, AiProvider } from './ai-provider.interface.js';
 
 interface OllamaGenerateResponse {
   response: string;
@@ -18,6 +18,7 @@ interface OllamaGenerateResponse {
  */
 @Injectable()
 export class OllamaProvider implements AiProvider {
+  readonly id = 'OLLAMA_LOCAL' as const;
   private readonly logger = new Logger(OllamaProvider.name);
   private readonly baseUrl: string;
   private readonly textModel: string;
@@ -34,12 +35,14 @@ export class OllamaProvider implements AiProvider {
     system: string;
     prompt: string;
     images?: string[];
+    signal?: AbortSignal;
   }): Promise<string> {
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: params.signal,
         body: JSON.stringify({
           model: params.model,
           system: params.system,
@@ -47,6 +50,9 @@ export class OllamaProvider implements AiProvider {
           images: params.images,
           format: 'json',
           stream: false,
+          // Keep the model loaded between questions: the cold start (loading
+          // weights into RAM) is what usually blows the hybrid timeout.
+          keep_alive: '30m',
           // temperature 0 (greedy, determinista): en pruebas, la temperatura
           // por defecto de Ollama (0.8) hacía que modelos pequeños
           // inventaran clases/relaciones que nadie pidió.
@@ -54,6 +60,7 @@ export class OllamaProvider implements AiProvider {
         }),
       });
     } catch (err) {
+      if (params.signal?.aborted) throw err;
       throw new BadRequestException(
         `No se pudo conectar con Ollama en ${this.baseUrl}. ¿Está corriendo ("ollama serve") y el modelo "${params.model}" descargado?`,
       );
@@ -68,7 +75,11 @@ export class OllamaProvider implements AiProvider {
     return data.response ?? '';
   }
 
-  async editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
+  async editDiagram(
+    message: string,
+    model: UmlModel,
+    options: AiCallOptions = {},
+  ): Promise<EditDiagramResult> {
     // Los modelos pequeños siguen un ejemplo concreto mucho mejor que una
     // regla abstracta. Este ejemplo vive solo aqui (no en prompts.ts) para
     // no arriesgar el comportamiento ya probado de Gemini.
@@ -77,7 +88,12 @@ export class OllamaProvider implements AiProvider {
       '-> respuesta correcta: {"reply":"Cree la clase Producto.","operations":[{"op":"CREATE_CLASS","name":"Producto","attributes":[{"name":"nombre","type":"String","visibility":"private"},{"name":"precio","type":"Double","visibility":"private"}]}]}\n' +
       'Nota: "reply" es SIEMPRE un string, nunca un objeto. NUNCA agregues una clase o relación que el usuario no haya pedido explícitamente.\n\n';
     const prompt = `${fewShotExample}Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
-    const raw = await this.generate({ model: this.textModel, system: EDIT_SYSTEM_PROMPT, prompt });
+    const raw = await this.generate({
+      model: this.textModel,
+      system: options.systemPrompt ?? EDIT_SYSTEM_PROMPT,
+      prompt,
+      signal: options.signal,
+    });
     const jsonText = stripJsonFences(raw);
 
     try {

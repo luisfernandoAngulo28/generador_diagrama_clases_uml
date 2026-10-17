@@ -10,10 +10,11 @@
 services:
   backend:
     environment:
-      # IA local (Ollama) en vez de Gemini: no requiere internet.
+      # Motor hibrido: Ollama local primero (no requiere internet) y Gemini
+      # como respaldo automatico si Ollama tarda o no esta disponible.
       # host.docker.internal apunta al host Windows desde dentro del
       # contenedor, donde corre "ollama serve" en el puerto 11434.
-      AI_PROVIDER: ollama
+      AI_PROVIDER: hybrid
       OLLAMA_BASE_URL: http://host.docker.internal:11434
 
   frontend:

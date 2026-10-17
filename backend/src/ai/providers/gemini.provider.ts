@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { EditDiagramResult } from '../operations.types.js';
 import { EDIT_SYSTEM_PROMPT, VISION_SYSTEM_PROMPT, stripJsonFences } from '../prompts.js';
-import type { AiProvider } from './ai-provider.interface.js';
+import type { AiCallOptions, AiProvider } from './ai-provider.interface.js';
 
 function isTransientGeminiError(err: unknown): boolean {
   const status = (err as { status?: number } | undefined)?.status;
@@ -35,6 +35,7 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
 
 @Injectable()
 export class GeminiProvider implements AiProvider {
+  readonly id = 'GEMINI_CLOUD' as const;
   private readonly client: GoogleGenerativeAI;
   private readonly modelName: string;
 
@@ -80,10 +81,22 @@ export class GeminiProvider implements AiProvider {
     throw lastError;
   }
 
-  async editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
+  /** True when an API key is configured; without it the hybrid engine won't try the cloud. */
+  isConfigured(): boolean {
+    return Boolean(this.configService.get<string>('GEMINI_API_KEY'));
+  }
+
+  async editDiagram(
+    message: string,
+    model: UmlModel,
+    options: AiCallOptions = {},
+  ): Promise<EditDiagramResult> {
     const prompt = `Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
 
-    const rawText = await this.generateWithFallback(EDIT_SYSTEM_PROMPT, prompt);
+    const rawText = await this.generateWithFallback(
+      options.systemPrompt ?? EDIT_SYSTEM_PROMPT,
+      prompt,
+    );
     const jsonText = stripJsonFences(rawText);
 
     try {
