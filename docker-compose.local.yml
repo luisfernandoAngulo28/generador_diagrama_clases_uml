@@ -10,11 +10,13 @@
 services:
   backend:
     environment:
-      # Motor hibrido: Ollama local primero (no requiere internet) y Gemini
-      # como respaldo automatico si Ollama tarda o no esta disponible.
+      # Motor hibrido: Gemini primero y Ollama local como respaldo automatico
+      # cuando no hay internet. Para mostrar Ollama en la demo:
+      #   AI_HYBRID_ORDER=local-first en .env.production (o en la terminal).
       # host.docker.internal apunta al host Windows desde dentro del
       # contenedor, donde corre "ollama serve" en el puerto 11434.
       AI_PROVIDER: hybrid
+      AI_HYBRID_ORDER: ${AI_HYBRID_ORDER:-cloud-first}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
 
   frontend:

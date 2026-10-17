@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
@@ -13,6 +13,7 @@ import { AiService } from '../ai.service.js';
 import { isExplicitChangeRequest } from './intent.js';
 import type { DiagramOperation } from '../operations.types.js';
 import {
+  LITE_STATIC,
   buildModeratorLitePrompt,
   buildModeratorPrompt,
   ensureAddressed,
@@ -51,7 +52,7 @@ export interface ModeratorAnswer {
  * `group_chat_messages` so everyone in the room (and the next question) sees them.
  */
 @Injectable()
-export class ModeratorService {
+export class ModeratorService implements OnModuleInit {
   private readonly logger = new Logger(ModeratorService.name);
 
   constructor(
@@ -64,6 +65,10 @@ export class ModeratorService {
     @InjectModel(GroupChatMessageDocument.name)
     private readonly chatModel: Model<GroupChatMessageDocument>,
   ) {}
+
+  onModuleInit() {
+    this.aiService.warmUpLocal(LITE_STATIC);
+  }
 
   async ask(diagramId: string, user: JwtPayload, text: string): Promise<ModeratorAnswer> {
     const asker: Actor = { userId: user.sub, userName: user.name, type: 'USER' };

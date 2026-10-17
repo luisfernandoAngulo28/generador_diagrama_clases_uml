@@ -5,12 +5,22 @@ import type { AiCallOptions, AiProvider, AiProviderId } from './ai-provider.inte
 
 export type HybridMode = 'hybrid' | 'gemini' | 'ollama';
 
+/** Which engine answers first in hybrid mode (AI_HYBRID_ORDER). */
+export type HybridOrder = 'cloud-first' | 'local-first';
+
 export interface HybridOptions {
   mode: HybridMode;
-  /** How long the local model gets before we fall back to the cloud. */
+  order: HybridOrder;
+  /** local-first: how long Ollama gets before falling back to the cloud. */
   localTimeoutMs: number;
-  /** After the local engine is found down (not just slow), skip it for this long. */
-  localRetryAfterMs: number;
+  /**
+   * cloud-first: how long Ollama gets when it is the fallback (no internet).
+   * Generous on purpose — a slow local answer beats no answer — but bounded
+   * so a hung model can't block the room forever.
+   */
+  localFallbackTimeoutMs: number;
+  /** After an engine is found down (not just slow), skip it for this long. */
+  retryAfterMs: number;
 }
 
 /** A provider plus whether it can be used at all (e.g. Gemini without API key). */
@@ -19,29 +29,34 @@ export interface HybridMember {
   isAvailable?: () => boolean;
 }
 
-/** Thrown internally when the local model didn't answer within the timeout. */
-class LocalTimeoutError extends Error {}
+/** Thrown internally when an engine didn't answer within its timeout. */
+class EngineTimeoutError extends Error {}
+
+const LABEL: Record<AiProviderId, string> = { OLLAMA_LOCAL: 'Ollama', GEMINI_CLOUD: 'Gemini' };
 
 /**
- * Hybrid AI engine (2do Parcial): local first, cloud as an invisible safety net.
+ * Hybrid AI engine (2do Parcial). Two engines behind one contract, with
+ * automatic, invisible fallback. The order is configurable:
  *
- *   question → Ollama (qwen2.5, local) answers within `localTimeoutMs`?
- *                ├─ yes → use it              → providerUsed = OLLAMA_LOCAL
- *                └─ no (timeout/offline/error) → Gemini (Google AI Studio)
- *                                              → providerUsed = GEMINI_CLOUD
+ *   cloud-first (default):  Gemini ──(sin internet / error)──▶ Ollama local
+ *   local-first (demo):     Ollama ──(timeout / caído)──────▶ Gemini
  *
- * Circuit breaker: when Ollama is *down* (connection refused, model not
- * pulled) it is skipped for `localRetryAfterMs`, so users don't pay the
+ * cloud-first is the default because, measured on the team's laptop (CPU),
+ * qwen2.5:1.5b answers the moderator in 8–13 s with weaker theory, while
+ * Gemini answers in 3–10 s; Ollama still guarantees an answer offline.
+ * local-first exists to showcase the local model in the defense.
+ *
+ * Circuit breaker: an engine that is *down* (connection refused, model not
+ * pulled, no network) is skipped for `retryAfterMs`, so users don't pay the
  * failed attempt on every message. A plain timeout doesn't open the breaker:
  * the model may just have been loading into RAM.
  *
- * Photo interpretation goes cloud-first instead: the local vision model
- * (moondream) is far weaker at reading handwriting, so Ollama is only the
- * offline fallback there.
+ * Photo interpretation is always cloud-first: the local vision model
+ * (moondream) is far weaker at reading handwriting.
  */
 export class HybridAiProvider {
   private readonly logger = new Logger(HybridAiProvider.name);
-  private localDownUntil = 0;
+  private readonly downUntil = new Map<AiProviderId, number>();
 
   constructor(
     private readonly local: HybridMember,
@@ -58,19 +73,18 @@ export class HybridAiProvider {
     const chain = this.textChain();
     let lastError: unknown;
 
-    for (const member of chain) {
-      const isLocal = member === this.local;
+    for (const [index, member] of chain.entries()) {
+      const timeoutMs = this.timeoutFor(member, index);
       try {
-        const result = isLocal && this.options.mode === 'hybrid'
-          ? await this.withTimeout((signal) =>
+        const result = timeoutMs
+          ? await this.withTimeout(timeoutMs, (signal) =>
               member.provider.editDiagram(message, model, { ...options, signal }),
             )
           : await member.provider.editDiagram(message, model, options);
         return { ...result, providerUsed: member.provider.id };
       } catch (err) {
         lastError = err;
-        if (isLocal) this.onLocalFailure(err);
-        else this.logger.warn(`Gemini falló: ${describe(err)}`);
+        this.onFailure(member, err, chain[index + 1]);
       }
     }
 
@@ -84,48 +98,58 @@ export class HybridAiProvider {
     const chain = this.visionChain();
     let lastError: unknown;
 
-    for (const member of chain) {
+    for (const [index, member] of chain.entries()) {
       try {
         const result = await member.provider.interpretDiagramPhoto(imageBase64, mediaType);
         return { ...result, providerUsed: member.provider.id };
       } catch (err) {
         lastError = err;
-        this.logger.warn(`${member.provider.id} no pudo interpretar la foto: ${describe(err)}`);
+        this.onFailure(member, err, chain[index + 1]);
       }
     }
 
     throw this.noProviderError(lastError);
   }
 
-  /** Text: local → cloud (hybrid), or a single engine when forced by AI_PROVIDER. */
   private textChain(): HybridMember[] {
     if (this.options.mode === 'gemini') return [this.cloud];
     if (this.options.mode === 'ollama') return [this.local];
-    const chain: HybridMember[] = [];
-    if (this.now() >= this.localDownUntil) chain.push(this.local);
-    if (this.cloud.isAvailable?.() ?? true) chain.push(this.cloud);
-    // Breaker open and no cloud configured: try local anyway rather than fail outright.
-    return chain.length ? chain : [this.local];
+    const ordered =
+      this.options.order === 'local-first' ? [this.local, this.cloud] : [this.cloud, this.local];
+    return this.usable(ordered);
   }
 
-  /** Vision: cloud → local (see class doc). */
   private visionChain(): HybridMember[] {
     if (this.options.mode === 'gemini') return [this.cloud];
     if (this.options.mode === 'ollama') return [this.local];
-    const chain: HybridMember[] = [];
-    if (this.cloud.isAvailable?.() ?? true) chain.push(this.cloud);
-    chain.push(this.local);
-    return chain;
+    return this.usable([this.cloud, this.local]);
   }
 
-  private async withTimeout<T>(run: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  /** Drops unconfigured engines and those with an open breaker (unless that leaves none). */
+  private usable(ordered: HybridMember[]): HybridMember[] {
+    const configured = ordered.filter((m) => m.isAvailable?.() ?? true);
+    const healthy = configured.filter(
+      (m) => this.now() >= (this.downUntil.get(m.provider.id) ?? 0),
+    );
+    if (healthy.length) return healthy;
+    // Every engine looks down: try them anyway rather than fail without trying.
+    return configured.length ? configured : [this.local];
+  }
+
+  /** Only the local engine gets a timeout; it depends on whether it leads or backs up. */
+  private timeoutFor(member: HybridMember, index: number): number | undefined {
+    if (this.options.mode !== 'hybrid' || member !== this.local) return undefined;
+    return index === 0 ? this.options.localTimeoutMs : this.options.localFallbackTimeoutMs;
+  }
+
+  private async withTimeout<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         controller.abort();
-        reject(new LocalTimeoutError(`sin respuesta en ${this.options.localTimeoutMs} ms`));
-      }, this.options.localTimeoutMs);
+        reject(new EngineTimeoutError(`sin respuesta en ${ms} ms`));
+      }, ms);
     });
     try {
       return await Promise.race([run(controller.signal), timeout]);
@@ -134,21 +158,25 @@ export class HybridAiProvider {
     }
   }
 
-  private onLocalFailure(err: unknown) {
-    if (err instanceof LocalTimeoutError) {
-      this.logger.warn(`Ollama ${err.message} → fallback a Gemini`);
+  private onFailure(member: HybridMember, err: unknown, next: HybridMember | undefined) {
+    const name = LABEL[member.provider.id];
+    const then = next ? ` → fallback a ${LABEL[next.provider.id]}` : '';
+    if (err instanceof EngineTimeoutError) {
+      this.logger.warn(`${name} ${err.message}${then}`);
       return;
     }
-    this.localDownUntil = this.now() + this.options.localRetryAfterMs;
+    if (this.options.mode === 'hybrid') {
+      this.downUntil.set(member.provider.id, this.now() + this.options.retryAfterMs);
+    }
     this.logger.warn(
-      `Ollama no disponible (${describe(err)}) → fallback a Gemini; se reintentará en ${Math.round(this.options.localRetryAfterMs / 1000)} s`,
+      `${name} no disponible (${describe(err)})${then}; se reintentará en ${Math.round(this.options.retryAfterMs / 1000)} s`,
     );
   }
 
   private noProviderError(lastError: unknown): Error {
     if (this.options.mode !== 'hybrid' && lastError instanceof Error) return lastError;
     return new ServiceUnavailableException(
-      `Ningún proveedor de IA respondió (Ollama local ni Gemini). Último error: ${describe(lastError)}`,
+      `Ningún proveedor de IA respondió (ni Gemini ni Ollama local). Último error: ${describe(lastError)}`,
     );
   }
 }

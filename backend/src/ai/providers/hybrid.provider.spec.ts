@@ -4,7 +4,14 @@ import type { AiCallOptions, AiProvider, AiProviderId } from './ai-provider.inte
 import type { UmlModel } from '../../diagrams/uml.types.js';
 
 const MODEL: UmlModel = { classes: [], relations: [] };
-const OPTS: HybridOptions = { mode: 'hybrid', localTimeoutMs: 50, localRetryAfterMs: 30_000 };
+const OPTS: HybridOptions = {
+  mode: 'hybrid',
+  order: 'local-first',
+  localTimeoutMs: 50,
+  localFallbackTimeoutMs: 80,
+  retryAfterMs: 30_000,
+};
+const CLOUD_FIRST: HybridOptions = { ...OPTS, order: 'cloud-first' };
 
 function fakeProvider(
   id: AiProviderId,
@@ -34,7 +41,57 @@ const hang = (options?: AiCallOptions) =>
     options?.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
   );
 
-describe('HybridAiProvider', () => {
+describe('HybridAiProvider — cloud-first (default)', () => {
+  it('answers with Gemini and never wakes the local model', async () => {
+    const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
+    const cloud = fakeProvider('GEMINI_CLOUD', ok('cloud'));
+    const engine = new HybridAiProvider({ provider: local }, { provider: cloud }, CLOUD_FIRST);
+
+    const result = await engine.editDiagram('hola', MODEL);
+    expect(result).toMatchObject({ reply: 'cloud', providerUsed: 'GEMINI_CLOUD' });
+    expect(local.calls).toBe(0);
+  });
+
+  it('falls back to Ollama without internet and skips Gemini while it is down', async () => {
+    let now = 1_000;
+    const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
+    const cloud = fakeProvider('GEMINI_CLOUD', fail('fetch failed: getaddrinfo ENOTFOUND'));
+    const engine = new HybridAiProvider({ provider: local }, { provider: cloud }, CLOUD_FIRST, () => now);
+
+    expect(await engine.editDiagram('1', MODEL)).toMatchObject({ providerUsed: 'OLLAMA_LOCAL' });
+    await engine.editDiagram('2', MODEL);
+    expect(cloud.calls).toBe(1);
+
+    now += 30_001; // internet may be back: Gemini is tried again
+    await engine.editDiagram('3', MODEL);
+    expect(cloud.calls).toBe(2);
+  });
+
+  it('gives the local fallback its own, longer timeout', async () => {
+    const local = fakeProvider('OLLAMA_LOCAL', hang);
+    const cloud = fakeProvider('GEMINI_CLOUD', fail('offline'));
+    const engine = new HybridAiProvider({ provider: local }, { provider: cloud }, CLOUD_FIRST);
+
+    const started = Date.now();
+    await expect(engine.editDiagram('hola', MODEL)).rejects.toThrow(/Ningún proveedor/);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(75);
+  });
+
+  it('uses Ollama alone when no Gemini key is configured', async () => {
+    const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
+    const cloud = fakeProvider('GEMINI_CLOUD', ok('cloud'));
+    const engine = new HybridAiProvider(
+      { provider: local },
+      { provider: cloud, isAvailable: () => false },
+      CLOUD_FIRST,
+    );
+
+    expect(await engine.editDiagram('hola', MODEL)).toMatchObject({ providerUsed: 'OLLAMA_LOCAL' });
+    expect(cloud.calls).toBe(0);
+  });
+});
+
+describe('HybridAiProvider — local-first (demo)', () => {
   it('answers with the local model when it responds in time', async () => {
     const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
     const cloud = fakeProvider('GEMINI_CLOUD', ok('cloud'));

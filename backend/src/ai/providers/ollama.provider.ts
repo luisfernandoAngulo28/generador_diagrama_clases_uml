@@ -44,6 +44,7 @@ export class OllamaProvider implements AiProvider {
     prompt: string;
     images?: string[];
     signal?: AbortSignal;
+    numPredict?: number;
   }): Promise<string> {
     let res: Response;
     try {
@@ -66,7 +67,7 @@ export class OllamaProvider implements AiProvider {
           // inventaran clases/relaciones que nadie pidió.
           // num_predict: a CPU generates ~6 tok/s, so cap text answers
           // (a reply plus a few operations fits comfortably in 256 tokens).
-          options: { temperature: 0, top_p: 0.1, num_predict: params.images ? undefined : 256 },
+          options: { temperature: 0, top_p: 0.1, num_predict: params.numPredict ?? (params.images ? undefined : 256) },
         }),
       });
     } catch (err) {
@@ -113,6 +114,17 @@ export class OllamaProvider implements AiProvider {
       this.logger.warn(`Ollama (${this.textModel}) no devolvió JSON válido, usando texto crudo como reply.`);
       return { reply: raw, operations: [] };
     }
+  }
+
+  /**
+   * Loads the model into RAM and evaluates `system` once, so Ollama's KV
+   * cache already holds that prefix when the first real question arrives
+   * (cold, the first moderator answer took >20 s; warm, ~5–13 s).
+   */
+  async warmUp(system: string): Promise<void> {
+    const started = Date.now();
+    await this.generate({ model: this.textModel, system, prompt: 'ok', numPredict: 1 });
+    this.logger.log(`Modelo ${this.textModel} precalentado en ${Date.now() - started} ms`);
   }
 
   private buildTextPrompt(
