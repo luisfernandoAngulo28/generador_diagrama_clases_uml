@@ -161,8 +161,8 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     target: '.chat-panel',
-    title: 'Asistente de IA',
-    body: 'Pregúntale al asistente sobre modelado UML, buenas prácticas o pídele ayuda para interpretar tu diagrama. Responde solo temas de ingeniería de software.',
+    title: 'Chat del equipo con el Moderador IA',
+    body: 'Este chat es público: todo tu equipo ve cada pregunta y respuesta. Con el botón del robot activo, el Moderador IA te responde por tu nombre, explica conceptos de ingeniería de software y, solo si se lo pides, aplica cambios al diagrama.',
   },
 ];
 
