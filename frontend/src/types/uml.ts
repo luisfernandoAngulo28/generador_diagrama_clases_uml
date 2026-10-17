@@ -1,10 +1,32 @@
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
+/** Who created / last edited a model element; filled in by the server (2do Parcial). */
+export interface AuthorStamp {
+  userId: string;
+  userName: string;
+  /** ISO-8601 */
+  timestamp: string;
+  source?: 'MANUAL' | 'AI' | 'XMI_IMPORT' | 'PHOTO';
+}
+
+export interface ElementAuthorship {
+  author?: AuthorStamp;
+  lastModifiedBy?: AuthorStamp;
+}
+
+/** classId → authorship of the class and of each attribute (by name). Same shape as `diagram:authorship`. */
+export type AuthorshipIndex = Record<
+  string,
+  ElementAuthorship & { attributes: Record<string, ElementAuthorship> }
+>;
+
 export interface UmlAttribute {
   name: string;
   type: string;
   visibility: Visibility;
   isPrimaryKey?: boolean;
+  author?: AuthorStamp;
+  lastModifiedBy?: AuthorStamp;
 }
 
 export interface UmlOperation {
@@ -18,6 +40,8 @@ export interface UmlOperation {
 export type ClassStereotype = 'enum' | 'abstract' | 'interface';
 
 export interface UmlClass {
+  author?: AuthorStamp;
+  lastModifiedBy?: AuthorStamp;
   id: string;
   name: string;
   attributes: UmlAttribute[];
@@ -130,4 +154,20 @@ export type DiagramOperation =
 export interface EditDiagramResult {
   reply: string;
   operations: DiagramOperation[];
+}
+
+/** Builds the authorship index from a model loaded from the server. */
+export function authorshipIndexOf(model: UmlModel): AuthorshipIndex {
+  return Object.fromEntries(
+    model.classes.map((c) => [
+      c.id,
+      {
+        author: c.author,
+        lastModifiedBy: c.lastModifiedBy,
+        attributes: Object.fromEntries(
+          c.attributes.map((a) => [a.name, { author: a.author, lastModifiedBy: a.lastModifiedBy }]),
+        ),
+      },
+    ]),
+  );
 }

@@ -11,6 +11,9 @@ import {
 import { Server, Socket } from 'socket.io';
 import { AuthService } from '../auth/auth.service.js';
 import { SessionsService } from './sessions.service.js';
+import { resolveSocketUser } from './socket-auth.js';
+import { authorshipIndex } from './authorship.util.js';
+import type { UmlModel } from './uml.types.js';
 
 export interface DiagramUpdatePayload {
   diagramId: string;
@@ -58,16 +61,12 @@ export class DiagramsGateway implements OnGatewayConnection, OnGatewayDisconnect
   ) {}
 
   handleConnection(client: Socket) {
-    const token = (client.handshake.auth as { token?: unknown } | undefined)?.token;
-    if (typeof token !== 'string' || !token) return;
-    try {
-      const payload = this.authService.verifyToken(token);
-      client.data.userId = payload.sub;
-      client.data.editorName = payload.name;
-      client.data.authenticated = true;
-    } catch {
-      // Invalid/expired token: fall back to guest identity in handleJoin.
-    }
+    resolveSocketUser(client, this.authService);
+  }
+
+  /** Live authorship for the inspectors of everyone in the room (after each save). */
+  emitAuthorship(diagramId: string, model: UmlModel) {
+    this.server.in(diagramId).emit('diagram:authorship', authorshipIndex(model));
   }
 
   @SubscribeMessage('join-diagram')
@@ -79,6 +78,7 @@ export class DiagramsGateway implements OnGatewayConnection, OnGatewayDisconnect
     const userName = typeof payload === 'string' ? undefined : payload.userName?.trim();
 
     client.data.diagramId = diagramId;
+    resolveSocketUser(client, this.authService);
     if (!client.data.authenticated) {
       client.data.userId = `guest:${client.id}`;
       client.data.editorName = userName || `Usuario ${client.id.slice(0, 4).toUpperCase()}`;

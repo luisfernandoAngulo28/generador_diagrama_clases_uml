@@ -4830,3 +4830,267 @@
 
 
 
+
+/* ── Chat grupal público (2do Parcial) ─────────────────────────────────── */
+.chat-panel {
+  overflow: hidden;
+}
+
+.chat-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.chat-panel__header-hint {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: #a0aec0;
+}
+
+.chat-panel__messages {
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.chat-panel__empty {
+  font-size: 12px;
+  color: #a0aec0;
+  line-height: 1.5;
+  padding: 0.5rem;
+  border: 1px dashed #2d3748;
+  border-radius: 6px;
+}
+
+.chat-panel__error {
+  margin-top: 0.4rem;
+  font-size: 12px;
+  color: #feb2b2;
+  background: rgba(229, 62, 62, 0.15);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+}
+
+.chat-panel__ai-toggle {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #a0aec0;
+}
+
+.chat-panel__ai-toggle--on {
+  background: #553c9a;
+  color: #fff;
+}
+
+.chat-panel__send:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.chat-msg {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+}
+
+.chat-msg--mine {
+  flex-direction: row-reverse;
+}
+
+.chat-msg__avatar {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #4a5568;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-msg--ai .chat-msg__avatar {
+  background: #553c9a;
+}
+
+.chat-msg__body {
+  min-width: 0;
+  max-width: 85%;
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+}
+
+.chat-msg--mine .chat-msg__body {
+  background: #2b6cb0;
+}
+
+.chat-msg--ai .chat-msg__body {
+  background: #2a2340;
+  border: 1px solid #44337a;
+}
+
+.chat-msg__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.chat-msg__name {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.chat-msg__to {
+  color: #d6bcfa;
+}
+
+.chat-msg__time {
+  margin-left: auto;
+  color: #a0aec0;
+}
+
+.chat-msg__text {
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chat-msg__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.chat-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.chat-badge--local {
+  background: rgba(72, 187, 120, 0.18);
+  color: #9ae6b4;
+}
+
+.chat-badge--cloud {
+  background: rgba(66, 153, 225, 0.18);
+  color: #90cdf4;
+}
+
+.chat-badge--ops {
+  background: rgba(236, 201, 75, 0.15);
+  color: #faf089;
+}
+
+.chat-thinking {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 12px;
+  color: #d6bcfa;
+  padding: 0.25rem 0.4rem;
+}
+
+.chat-thinking__dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.chat-thinking__dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: chat-dot 1.2s infinite ease-in-out;
+}
+
+.chat-thinking__dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-thinking__dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes chat-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-thinking__dots span {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ── Autoría en el inspector ───────────────────────────────────────────── */
+.inspector__authorship {
+  font-size: 12px;
+  color: #cbd5e0;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inspector__authorship-title {
+  font-weight: 700;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.inspector__authorship-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.inspector__authorship-row > span:last-child {
+  color: #a0aec0;
+  text-align: right;
+}
+
+.inspector__authorship-ai {
+  color: #d6bcfa;
+}
+
+.inspector__authorship-attrs {
+  margin: 2px 0 0;
+  padding-left: 1rem;
+  color: #a0aec0;
+}
+
+.inspector__authorship-empty {
+  color: #a0aec0;
+  font-style: italic;
+}

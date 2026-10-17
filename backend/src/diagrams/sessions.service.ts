@@ -126,6 +126,11 @@ export class SessionsService {
         .limit(INIT_STATE_PAGE_SIZE)
         .lean(),
     ]);
-    return { session, recentActivity, chat: chat.reverse() };
+    return {
+      session,
+      recentActivity,
+      // Same shape as the live `chat:new-message` events ({ id, ... }).
+      chat: chat.reverse().map(({ _id, ...message }) => ({ id: String(_id), ...message })),
+    };
   }
 }

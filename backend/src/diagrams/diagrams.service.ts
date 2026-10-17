@@ -7,6 +7,7 @@ import type { Actor } from './schemas/author.schema.js';
 import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
 import { applyAuthorship, diffModel, type ModelChange } from './authorship.util.js';
+import { sanitizeModel } from './model-sanitize.util.js';
 import type { AuthorSource, AuthorStamp, UmlModel } from './uml.types.js';
 import type { JwtPayload } from '../auth/auth.service.js';
 
@@ -50,7 +51,8 @@ export class DiagramsService {
     source: AuthorSource = 'MANUAL',
   ): Promise<Diagram> {
     const stamp = author ? toStamp(author, source) : undefined;
-    const model = stamp ? applyAuthorship(undefined, dto.model, stamp) : dto.model;
+    const incoming = sanitizeModel(dto.model);
+    const model = stamp ? applyAuthorship(undefined, incoming, stamp) : incoming;
     const actor = author ? toActor(author) : undefined;
 
     const saved = await this.diagramModel.create({
@@ -106,11 +108,11 @@ export class DiagramsService {
     }
 
     if (dto.model) {
+      const previous = sanitizeModel(current.model);
+      const incoming = sanitizeModel(dto.model);
       // Authorship is computed from the stored model, never trusted from the client.
-      set.model = author
-        ? applyAuthorship(current.model, dto.model, toStamp(author, source))
-        : dto.model;
-      changes.push(...diffModel(current.model, dto.model));
+      set.model = author ? applyAuthorship(previous, incoming, toStamp(author, source)) : incoming;
+      changes.push(...diffModel(previous, incoming));
     }
 
     if (author && changes.length) set.lastModifiedBy = toActor(author);
@@ -123,7 +125,17 @@ export class DiagramsService {
     }
 
     if (author && changes.length) {
-      await this.logChanges(id, author, changes);
+      await this.logChanges(
+        id,
+        author,
+        source === 'MANUAL'
+          ? changes
+          : changes.map((c) => ({
+              ...c,
+              details: { ...c.details, source },
+              summary: `${c.summary} (vía IA)`,
+            })),
+      );
     }
     return toDiagram(saved);
   }

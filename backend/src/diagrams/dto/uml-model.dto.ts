@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsNumber,
   IsIn,
   IsNotEmpty,
   IsOptional,
@@ -56,8 +57,17 @@ export class UmlOperationDto {
   parameters?: string;
 }
 
+// Without decorators the global ValidationPipe (whitelist: true) stripped x/y,
+// so every save stored `position: {}` and classes lost their place on reload.
+// Optional so a NaN coordinate (JSON null, e.g. from a hidden browser tab)
+// doesn't reject the whole save; sanitizeModel then drops that position.
 class PositionDto {
+  @IsOptional()
+  @IsNumber()
   x: number;
+
+  @IsOptional()
+  @IsNumber()
   y: number;
 }
 

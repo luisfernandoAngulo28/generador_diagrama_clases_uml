@@ -70,17 +70,50 @@ export class ModeratorService implements OnModuleInit {
     this.aiService.warmUpLocal(LITE_STATIC);
   }
 
+  /** HTTP flow: store the question and answer it in one call. */
   async ask(diagramId: string, user: JwtPayload, text: string): Promise<ModeratorAnswer> {
-    const asker: Actor = { userId: user.sub, userName: user.name, type: 'USER' };
-    const diagram = await this.diagramsService.findOne(diagramId);
+    const question = await this.storeUserMessage(diagramId, user, text);
+    const { answer, operations } = await this.answer(diagramId, user, question);
+    return { question, answer, operations };
+  }
 
-    // Context is read BEFORE storing the new question, so it isn't duplicated in the thread.
+  /** Stores a human message of the public chat (with or without a question for the AI). */
+  async storeUserMessage(diagramId: string, user: JwtPayload, text: string): Promise<ChatMessage> {
+    const question = await this.chatModel.create({
+      diagramId,
+      sender: toActor(user),
+      text,
+      isAiResponse: false,
+      timestamp: new Date(),
+    });
+    return toChatMessage(question.toObject());
+  }
+
+  /**
+   * Answers an already-stored question. The question itself is excluded from
+   * the context queries so it isn't duplicated in the asker's thread.
+   */
+  async answer(
+    diagramId: string,
+    user: JwtPayload,
+    question: ChatMessage,
+  ): Promise<Omit<ModeratorAnswer, 'question'>> {
+    const asker = toActor(user);
+    const text = stripAiMention(question.text);
+    const diagram = await this.diagramsService.findOne(diagramId);
+    const notThisQuestion = { _id: { $ne: question.id } };
+
     const [activity, roomChat, askerThread, session] = await Promise.all([
       this.activityModel.find({ diagramId }).sort({ timestamp: -1 }).limit(ACTIVITY_WINDOW).lean(),
-      this.chatModel.find({ diagramId }).sort({ timestamp: -1 }).limit(ROOM_CHAT_WINDOW).lean(),
+      this.chatModel
+        .find({ diagramId, ...notThisQuestion })
+        .sort({ timestamp: -1 })
+        .limit(ROOM_CHAT_WINDOW)
+        .lean(),
       this.chatModel
         .find({
           diagramId,
+          ...notThisQuestion,
           $or: [{ 'sender.userId': asker.userId }, { 'addressedTo.userId': asker.userId }],
         })
         .sort({ timestamp: -1 })
@@ -88,14 +121,6 @@ export class ModeratorService implements OnModuleInit {
         .lean(),
       this.sessionsService.getLatest(diagramId),
     ]);
-
-    const question = await this.chatModel.create({
-      diagramId,
-      sender: asker,
-      text,
-      isAiResponse: false,
-      timestamp: new Date(),
-    });
 
     const promptContext = {
       askerName: asker.userName,
@@ -135,12 +160,17 @@ export class ModeratorService implements OnModuleInit {
       timestamp: new Date(),
     });
 
-    return {
-      question: toChatMessage(question.toObject()),
-      answer: toChatMessage(answer.toObject()),
-      operations,
-    };
+    return { answer: toChatMessage(answer.toObject()), operations };
   }
+}
+
+function toActor(user: JwtPayload): Actor {
+  return { userId: user.sub, userName: user.name, type: 'USER' };
+}
+
+/** "@IA ¿qué es...?" → "¿qué es...?" (the mention only routes the message to the AI). */
+export function stripAiMention(text: string): string {
+  return text.replace(/@ia[:,]?\s*/gi, '').trim() || text;
 }
 
 /** The providers also receive the model as JSON: drop canvas positions and stamps (already in the prompt) to save tokens. */

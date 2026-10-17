@@ -258,3 +258,30 @@ function withStamps<T extends { author?: AuthorStamp; lastModifiedBy?: AuthorSta
     ...(lastModifiedBy ? { lastModifiedBy } : {}),
   } as T;
 }
+
+// --- Authorship index (what the UI shows) -----------------------------------
+
+export interface ElementAuthorship {
+  author?: AuthorStamp;
+  lastModifiedBy?: AuthorStamp;
+}
+
+export interface ClassAuthorship extends ElementAuthorship {
+  attributes: Record<string, ElementAuthorship>;
+}
+
+/** classId → who created/edited the class and each of its attributes (by name). */
+export function authorshipIndex(model: UmlModel): Record<string, ClassAuthorship> {
+  return Object.fromEntries(
+    model.classes.map((c) => [
+      c.id,
+      {
+        author: c.author,
+        lastModifiedBy: c.lastModifiedBy,
+        attributes: Object.fromEntries(
+          c.attributes.map((a) => [a.name, { author: a.author, lastModifiedBy: a.lastModifiedBy }]),
+        ),
+      },
+    ]),
+  );
+}

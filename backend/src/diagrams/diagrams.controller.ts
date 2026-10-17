@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { DiagramsService } from './diagrams.service.js';
+import { DiagramsGateway } from './diagrams.gateway.js';
 import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
 import { ImportXmiDto } from './dto/import-xmi.dto.js';
@@ -23,7 +24,10 @@ import type { JwtPayload } from '../auth/auth.service.js';
 
 @Controller('diagrams')
 export class DiagramsController {
-  constructor(private readonly diagramsService: DiagramsService) {}
+  constructor(
+    private readonly diagramsService: DiagramsService,
+    private readonly diagramsGateway: DiagramsGateway,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateDiagramDto, @CurrentUser() user: JwtPayload) {
@@ -85,8 +89,10 @@ export class DiagramsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateDiagramDto, @CurrentUser() user: JwtPayload) {
-    return this.diagramsService.update(id, dto, user);
+  async update(@Param('id') id: string, @Body() dto: UpdateDiagramDto, @CurrentUser() user: JwtPayload) {
+    const diagram = await this.diagramsService.update(id, dto, user, dto.source ?? 'MANUAL');
+    if (dto.model) this.diagramsGateway.emitAuthorship(id, diagram.model);
+    return diagram;
   }
 
   @Delete(':id')

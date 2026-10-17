@@ -33,6 +33,8 @@ import { AttachmentsModule } from './attachments/attachments.module.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         uri: config.get<string>('MONGO_URI', 'mongodb://localhost:27017/case_tool'),
+        // Like JSON in the old jsonb column: undefined fields are omitted, not stored as null.
+        ignoreUndefined: true,
       }),
     }),
     UsersModule,
