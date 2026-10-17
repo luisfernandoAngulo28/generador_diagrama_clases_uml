@@ -1,0 +1,254 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1"
+          xmlns:uml="http://www.omg.org/spec/UML/20090901"
+          xmlns:xmi="http://www.omg.org/spec/XMI/20110701">
+
+  <xmi:Documentation exporter="PlantUML-to-XMI Manual" exporterVersion="1.0"
+                     exporterID="actores.plantuml"/>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Diagrama: 3.1.1 Identificar Actores y Casos de Uso
+       Sistema : Herramienta CASE – Generador de Diagramas UML
+       ═══════════════════════════════════════════════════════════ -->
+
+  <uml:Model xmi:type="uml:Model" xmi:id="_MODEL_ROOT"
+             name="HerramientaCASE_ActoresCU"
+             visibility="public">
+
+    <packagedElement xmi:type="uml:Package"
+                     xmi:id="_PKG_ACTORES_CU"
+                     name="3.1.1 Actores y Casos de Uso"
+                     visibility="public">
+
+      <!-- ╔══════════════════════════════╗
+           ║         ACTORES              ║
+           ╚══════════════════════════════╝ -->
+
+      <!-- Actor primario: Creador -->
+      <packagedElement xmi:type="uml:Actor"
+                       xmi:id="_ACTOR_CREADOR"
+                       name="Creador"
+                       visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="_CMT_CREADOR"
+                      annotatedElement="_ACTOR_CREADOR">
+          <body>Usuario propietario del proyecto. Tiene acceso completo: crear, generar, exportar y descargar.</body>
+        </ownedComment>
+      </packagedElement>
+
+      <!-- Actor primario: Editor -->
+      <packagedElement xmi:type="uml:Actor"
+                       xmi:id="_ACTOR_EDITOR"
+                       name="Editor"
+                       visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="_CMT_EDITOR"
+                      annotatedElement="_ACTOR_EDITOR">
+          <body>Usuario colaborador invitado. Puede editar y colaborar en tiempo real, sin permisos de generacion ni exportacion.</body>
+        </ownedComment>
+      </packagedElement>
+
+      <!-- Actor secundario: Asistente IA -->
+      <packagedElement xmi:type="uml:Actor"
+                       xmi:id="_ACTOR_IA"
+                       name="Asistente IA (Gemini API)"
+                       visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="_CMT_IA"
+                      annotatedElement="_ACTOR_IA">
+          <body>Actor secundario (sistema externo). Responde unicamente a instrucciones de ingenieria de software. Soporta: texto, voz e imagen.</body>
+        </ownedComment>
+      </packagedElement>
+
+      <!-- ╔══════════════════════════════╗
+           ║   LIMITE DEL SISTEMA         ║
+           ╚══════════════════════════════╝ -->
+
+      <packagedElement xmi:type="uml:Component"
+                       xmi:id="_SYSTEM_BOUNDARY"
+                       name="Herramienta CASE"
+                       visibility="public"/>
+
+      <!-- ╔══════════════════════════════╗
+           ║       CASOS DE USO           ║
+           ╚══════════════════════════════╝ -->
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC1"
+                       name="Crear diagrama UML"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC2"
+                       name="Agregar clases y atributos"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC3"
+                       name="Definir relaciones"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC4"
+                       name="Validar diagrama (normalizacion, PKs)"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC5"
+                       name="Generar backend Spring Boot"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC6"
+                       name="Exportar a XMI"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC7"
+                       name="Colaborar en tiempo real (Socket.IO)"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC8"
+                       name="Usar asistente IA (chat / voz / foto)"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC9"
+                       name="Editar diagrama existente"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <packagedElement xmi:type="uml:UseCase"
+                       xmi:id="_UC10"
+                       name="Descargar codigo generado"
+                       visibility="public"
+                       subject="_SYSTEM_BOUNDARY"/>
+
+      <!-- ╔══════════════════════════════════════════════════════╗
+           ║   ASOCIACIONES  Creador → Casos de Uso              ║
+           ╚══════════════════════════════════════════════════════╝ -->
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC1" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC1_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC1_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC1_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC1"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC1_E2" type="_UC1"           association="_ASS_CRE_UC1"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC2" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC2_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC2_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC2_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC2_E2" type="_UC2"           association="_ASS_CRE_UC2"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC3" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC3_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC3_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC3_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC3"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC3_E2" type="_UC3"           association="_ASS_CRE_UC3"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC4" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC4_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC4_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC4_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC4"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC4_E2" type="_UC4"           association="_ASS_CRE_UC4"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC5" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC5_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC5_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC5_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC5"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC5_E2" type="_UC5"           association="_ASS_CRE_UC5"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC6" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC6_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC6_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC6_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC6"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC6_E2" type="_UC6"           association="_ASS_CRE_UC6"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC7" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC7_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC7_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC7_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC7"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC7_E2" type="_UC7"           association="_ASS_CRE_UC7"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC8" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC8_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC8_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC8_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC8"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC8_E2" type="_UC8"           association="_ASS_CRE_UC8"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_CRE_UC10" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_CRE_UC10_E1"/>
+        <memberEnd xmi:idref="_ASS_CRE_UC10_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC10_E1" type="_ACTOR_CREADOR" association="_ASS_CRE_UC10"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_CRE_UC10_E2" type="_UC10"          association="_ASS_CRE_UC10"/>
+      </packagedElement>
+
+      <!-- ╔══════════════════════════════════════════════════════╗
+           ║   ASOCIACIONES  Editor → Casos de Uso               ║
+           ╚══════════════════════════════════════════════════════╝ -->
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_EDI_UC9" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_EDI_UC9_E1"/>
+        <memberEnd xmi:idref="_ASS_EDI_UC9_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC9_E1" type="_ACTOR_EDITOR" association="_ASS_EDI_UC9"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC9_E2" type="_UC9"          association="_ASS_EDI_UC9"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_EDI_UC2" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_EDI_UC2_E1"/>
+        <memberEnd xmi:idref="_ASS_EDI_UC2_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC2_E1" type="_ACTOR_EDITOR" association="_ASS_EDI_UC2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC2_E2" type="_UC2"          association="_ASS_EDI_UC2"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_EDI_UC3" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_EDI_UC3_E1"/>
+        <memberEnd xmi:idref="_ASS_EDI_UC3_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC3_E1" type="_ACTOR_EDITOR" association="_ASS_EDI_UC3"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC3_E2" type="_UC3"          association="_ASS_EDI_UC3"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_EDI_UC7" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_EDI_UC7_E1"/>
+        <memberEnd xmi:idref="_ASS_EDI_UC7_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC7_E1" type="_ACTOR_EDITOR" association="_ASS_EDI_UC7"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC7_E2" type="_UC7"          association="_ASS_EDI_UC7"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Association" xmi:id="_ASS_EDI_UC8" name="" visibility="public">
+        <memberEnd xmi:idref="_ASS_EDI_UC8_E1"/>
+        <memberEnd xmi:idref="_ASS_EDI_UC8_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC8_E1" type="_ACTOR_EDITOR" association="_ASS_EDI_UC8"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_ASS_EDI_UC8_E2" type="_UC8"          association="_ASS_EDI_UC8"/>
+      </packagedElement>
+
+      <!-- ╔══════════════════════════════════════════════════════╗
+           ║   DEPENDENCIA  UC8 → Asistente IA  <<invoca>>       ║
+           ╚══════════════════════════════════════════════════════╝ -->
+
+      <packagedElement xmi:type="uml:Dependency"
+                       xmi:id="_DEP_UC8_IA"
+                       name="invoca"
+                       visibility="public"
+                       client="_UC8"
+                       supplier="_ACTOR_IA"/>
+
+    </packagedElement>
+
+  </uml:Model>
+
+</xmi:XMI>

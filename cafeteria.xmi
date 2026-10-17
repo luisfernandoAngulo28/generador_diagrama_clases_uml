@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
+  <uml:Model xmi:type="uml:Model" xmi:id="model_1" name="cafeteria">
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_id_Date" name="Date"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_id_String" name="String"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_id_Integer" name="Integer"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_id_Boolean" name="Boolean"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="id_Pedido" name="Pedido">
+      <ownedAttribute xmi:id="id_Pedido_id" name="id" visibility="private" type="type_id_Integer"/>
+      <ownedAttribute xmi:id="id_Pedido_fecha" name="fecha" visibility="private" type="type_id_Date"/>
+      <ownedAttribute xmi:id="id_Pedido_total" name="total" visibility="private" type="type_id_Integer"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="id_Producto" name="Producto">
+      <ownedAttribute xmi:id="id_Producto_id" name="id" visibility="private" type="type_id_Integer"/>
+      <ownedAttribute xmi:id="id_Producto_nombre" name="nombre" visibility="private" type="type_id_String"/>
+      <ownedAttribute xmi:id="id_Producto_precio" name="precio" visibility="private" type="type_id_Boolean"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Association" xmi:id="id_rel1" name="one_to_many">
+      <memberEnd xmi:idref="id_rel1_src"/>
+      <memberEnd xmi:idref="id_rel1_tgt"/>
+      <ownedEnd xmi:id="id_rel1_src" type="id_Producto">
+        <lowerValue xmi:type="uml:LiteralInteger" value="1"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="1"/>
+      </ownedEnd>
+      <ownedEnd xmi:id="id_rel1_tgt" type="id_Pedido">
+        <lowerValue xmi:type="uml:LiteralInteger" value="0"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="*"/>
+      </ownedEnd>
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>

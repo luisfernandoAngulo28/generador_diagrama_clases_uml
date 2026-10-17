@@ -1,0 +1,131 @@
+﻿@startuml actores
+
+' ─────────────────────────────────────────────
+'  Estilo general
+' ─────────────────────────────────────────────
+skinparam actorStyle awesome
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+skinparam actor {
+    BorderColor        #2C3E50
+    BackgroundColor    #D6EAF8
+    FontColor          #1A252F
+    FontSize           13
+    FontStyle          bold
+}
+
+skinparam usecase {
+    BorderColor        #2980B9
+    BackgroundColor    #EBF5FB
+    FontColor          #1A252F
+    ArrowColor         #2980B9
+    FontSize           11
+}
+
+skinparam rectangle {
+    BorderColor        #2C3E50
+    BackgroundColor    #FDFEFE
+    FontColor          #2C3E50
+    FontStyle          bold
+    FontSize           13
+}
+
+skinparam note {
+    BackgroundColor    #FEF9E7
+    BorderColor        #F39C12
+    FontColor          #7D6608
+    FontSize           10
+}
+
+title <b>3.1.1 Identificar Actores y Casos de Uso</b>\nHerramienta CASE — Generador de Diagramas UML
+
+' ─────────────────────────────────────────────
+'  Actores primarios (izquierda)
+' ─────────────────────────────────────────────
+actor "Creador" as Creador
+actor "Editor"  as Editor
+
+' ─────────────────────────────────────────────
+'  Actor secundario (derecha)
+' ─────────────────────────────────────────────
+actor "Asistente IA\n(Gemini API)" as AsistenteIA #technology
+
+' ─────────────────────────────────────────────
+'  Límite del sistema
+' ─────────────────────────────────────────────
+rectangle "Herramienta CASE" {
+
+    ' -- Gestión de diagrama --
+    usecase "Crear diagrama UML"           as UC1
+    usecase "Agregar clases y atributos"   as UC2
+    usecase "Definir relaciones"           as UC3
+    usecase "Validar diagrama\n(normalización, PKs)" as UC4
+
+    ' -- Generación y exportación --
+    usecase "Generar backend Spring Boot"  as UC5
+    usecase "Exportar a XMI"              as UC6
+
+    ' -- Colaboración --
+    usecase "Colaborar en tiempo real\n(Socket.IO)" as UC7
+
+    ' -- Asistente IA --
+    usecase "Usar asistente IA\n(chat / voz / foto)" as UC8
+
+    ' -- Solo Editor --
+    usecase "Editar diagrama existente"    as UC9
+    usecase "Descargar código generado"    as UC10
+}
+
+' ─────────────────────────────────────────────
+'  Relaciones — Creador
+' ─────────────────────────────────────────────
+Creador --> UC1
+Creador --> UC2
+Creador --> UC3
+Creador --> UC4
+Creador --> UC5
+Creador --> UC6
+Creador --> UC7
+Creador --> UC8
+Creador --> UC10
+
+' ─────────────────────────────────────────────
+'  Relaciones — Editor
+' ─────────────────────────────────────────────
+Editor --> UC9
+Editor --> UC2
+Editor --> UC3
+Editor --> UC7
+Editor --> UC8
+
+' ─────────────────────────────────────────────
+'  Relaciones — Asistente IA (actor secundario)
+' ─────────────────────────────────────────────
+UC8 --> AsistenteIA : <<invoca>>
+
+' ─────────────────────────────────────────────
+'  Notas aclaratorias
+' ─────────────────────────────────────────────
+note right of Creador
+  Usuario propietario del proyecto.
+  Tiene acceso completo: crear,
+  generar, exportar y descargar.
+end note
+
+note right of Editor
+  Usuario colaborador invitado.
+  Puede editar y colaborar en
+  tiempo real, sin permisos de
+  generación ni exportación.
+end note
+
+note bottom of AsistenteIA
+  Actor secundario (sistema externo).
+  Responde únicamente a instrucciones
+  de ingeniería de software.
+  Soporta: texto, voz e imagen.
+end note
+
+@enduml

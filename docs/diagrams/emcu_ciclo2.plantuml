@@ -1,0 +1,80 @@
+@startuml emcu_ciclo2
+
+' ─────────────────────────────────────────────
+'  Estilos
+' ─────────────────────────────────────────────
+skinparam actorStyle awesome
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+skinparam actor {
+    BorderColor     #1A5276
+    BackgroundColor #D6EAF8
+    FontColor       #1A252F
+    FontStyle       bold
+}
+skinparam usecase {
+    BorderColor     #2980B9
+    BackgroundColor #EBF5FB
+    FontColor       #1A252F
+    ArrowColor      #2C3E50
+}
+skinparam rectangle {
+    BorderColor     #2C3E50
+    BackgroundColor #FDFEFE
+    FontStyle       bold
+    FontSize        13
+}
+
+title <b>3.1.5 EMCU — Ciclo de Vida #2</b>\nColaboracion en Tiempo Real y Exportacion XMI\n<i>3 de Septiembre — 10 de Septiembre</i>
+
+left to right direction
+
+' ─────────────────────────────────────────────
+'  Actores
+' ─────────────────────────────────────────────
+actor "Editor"  as Editor
+actor "Creador" as Creador
+actor "Usuario" as Usuario
+
+Editor  --|> Usuario : extends
+Creador --|> Usuario : extends
+
+' ─────────────────────────────────────────────
+'  Limite del sistema
+' ─────────────────────────────────────────────
+rectangle "Herramienta CASE" {
+    ' -- Ciclo 1 (heredados) --
+    usecase "CU01 Gestionar\nClases UML"              as CU01
+    usecase "CU02 Gestionar\nDiagrama"                as CU02
+
+    ' -- Nuevos en Ciclo 2 --
+    usecase "CU03 Colaborar\nen Tiempo Real"          as CU03
+    usecase "CU05 Exportar\nDiagrama a XMI"          as CU05
+}
+
+' ─────────────────────────────────────────────
+'  Relaciones
+' ─────────────────────────────────────────────
+' Acceso heredado del Ciclo 1
+Usuario --> CU01
+Usuario --> CU02
+
+' Nuevos accesos Ciclo 2
+' Ambos actores pueden colaborar en tiempo real
+Usuario --> CU03
+
+' Solo el Creador puede exportar a XMI
+Creador --> CU05
+
+' Include heredado
+CU02 .> CU01 : <<include>>
+
+' Colaborar extiende la gestion del diagrama (Socket.IO sobre diagrama activo)
+CU03 .> CU02 : <<extend>>
+
+' Exportar extiende la gestion del diagrama (requiere diagrama listo)
+CU05 .> CU02 : <<extend>>
+
+@enduml

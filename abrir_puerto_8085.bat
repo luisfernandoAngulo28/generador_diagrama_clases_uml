@@ -6,6 +6,6 @@ netsh advfirewall firewall add rule name="Spring Boot 8085" dir=in action=allow 
 echo.
 echo =======================================================
 echo REGLA AGREGADA CON EXITO!
-echo Tu celular ya puede conectarse a http://192.168.0.7:8085
+echo Tu celular ya puede conectarse a http://10.89.156.209:8085
 echo =======================================================
 pause

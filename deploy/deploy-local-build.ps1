@@ -59,7 +59,7 @@ if (-not $FrontendOnly) {
 
     # 3. Subir dist/ al servidor
     Log-Step "Subiendo dist/ al servidor via SCP"
-    & scp -i $PEM -o StrictHostKeyChecking=no -r "backend\dist\" "${SERVER}:~/${APP_DIR}/backend/"
+    & scp -i $PEM -o StrictHostKeyChecking=no -r "backend/dist" "${SERVER}:~/${APP_DIR}/backend/"
     if ($LASTEXITCODE -ne 0) { Log-Fail "SCP fallo al subir dist/" }
     Log-Ok "dist/ subido correctamente"
 
