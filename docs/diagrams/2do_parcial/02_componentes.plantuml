@@ -1,0 +1,102 @@
+@startuml 02_componentes
+' Diagrama de componentes — UML 2.5.1 (OMG), 2do Parcial
+' Refleja: backend/src/*/…module.ts, frontend/src/{components,api,context},
+'          flutter-template/lib/live/
+!include _estilo.iuml
+title Diagrama de Componentes — Herramienta CASE (2do Parcial)\n<size:11>UML 2.5.1 · interfaces provistas (círculo) y requeridas (semicírculo)</size>
+
+package "Frontend web (React)" {
+  component [ChatPanel] as chatPanel
+  component [ClassInspector] as inspector
+  component [Lienzo React Flow\n(App, UmlClassNode)] as canvas
+  component [api/client\n(Axios + JWT)] as apiClient
+  component [api/socket\n(Socket.io + JWT)] as apiSocket
+  component [AuthContext] as authCtx
+}
+
+package "App móvil (Flutter)" {
+  component [UmlViewerScreen] as viewer
+  component [LiveRoom\n(socket_io_client)] as liveRoom
+  component [CaseApi] as caseApi
+  component [LiveNotifications] as notif
+}
+
+package "Backend (NestJS)" {
+  interface "REST API" as REST
+  interface "Socket.io\n(eventos de sala)" as WS
+
+  component "AuthModule" as authM {
+    component [AuthService] as authSvc
+    component [JwtAuthGuard] as guard
+  }
+  component "DiagramsModule" as diagM {
+    component [DiagramsController] as diagCtl
+    component [SessionsController] as sessCtl
+    component [DiagramsGateway] as diagGw
+    component [DiagramsService] as diagSvc
+    component [SessionsService] as sessSvc
+  }
+  component "AiModule" as aiM {
+    component [AiController] as aiCtl
+    component [ChatGateway] as chatGw
+    component [ModeratorService] as modSvc
+    component [AiService] as aiSvc
+    component [HybridAiProvider] as hybrid
+  }
+  component "GeneratorModule" as genM
+  component "AttachmentsModule" as attM
+  component "UsersModule" as usersM
+}
+
+database "MongoDB" as mongo
+database "PostgreSQL" as pg
+cloud "Gemini API" as gemini
+cloud "Ollama local" as ollama
+cloud "Amazon S3" as s3
+
+REST - diagCtl
+REST - sessCtl
+REST - aiCtl
+REST - genM
+WS - diagGw
+WS - chatGw
+
+apiClient -( REST
+apiSocket -( WS
+caseApi -( REST
+liveRoom -( WS
+
+chatPanel ..> apiSocket : chat:send /\nchat:new-message
+inspector ..> apiSocket : diagram:authorship
+canvas ..> apiClient
+canvas ..> apiSocket : diagram-update
+apiClient ..> authCtx
+viewer ..> liveRoom
+viewer ..> caseApi
+liveRoom ..> notif
+
+diagCtl ..> diagSvc
+diagCtl ..> diagGw : emitAuthorship()
+sessCtl ..> sessSvc
+diagGw ..> sessSvc
+diagGw ..> authSvc : resolveSocketUser()
+chatGw ..> authSvc
+chatGw ..> modSvc
+aiCtl ..> modSvc
+aiCtl ..> aiSvc
+modSvc ..> aiSvc
+modSvc ..> diagSvc
+modSvc ..> sessSvc
+aiSvc ..> hybrid
+genM ..> diagSvc
+authSvc ..> usersM
+
+diagSvc ..> mongo
+sessSvc ..> mongo
+modSvc ..> mongo
+usersM ..> pg
+attM ..> pg
+attM ..> s3
+hybrid ..> gemini
+hybrid ..> ollama
+@enduml

@@ -1,0 +1,140 @@
+@startuml 04_clases_motor_ia
+' Diagrama de clases (diseño) del motor IA y el chat grupal — UML 2.5.1 (OMG)
+' Refleja: backend/src/ai/** y backend/src/diagrams/{diagrams,sessions}.service.ts
+!include _estilo.iuml
+title Diagrama de Clases — Motor de IA híbrido y Moderador grupal\n<size:11>UML 2.5.1 · patrón Strategy (AiProvider) compuesto por HybridAiProvider</size>
+
+interface AiProvider <<interface>> {
+  + id : AiProviderId {readOnly}
+  + editDiagram(message : String, model : UmlModel, options : AiCallOptions [0..1]) : EditDiagramResult
+  + interpretDiagramPhoto(imageBase64 : String, mediaType : String) : UmlModel
+}
+
+class GeminiProvider {
+  + id = GEMINI_CLOUD
+  - modelName : String
+  + isConfigured() : Boolean
+  + editDiagram(...) : EditDiagramResult
+  + interpretDiagramPhoto(...) : UmlModel
+  - generateWithFallback(system : String, contents) : String
+}
+
+class OllamaProvider {
+  + id = OLLAMA_LOCAL
+  - baseUrl : String
+  - textModel : String = "qwen2.5:1.5b-instruct"
+  - visionModel : String = "moondream"
+  + editDiagram(...) : EditDiagramResult
+  + interpretDiagramPhoto(...) : UmlModel
+  + warmUp(system : String) : void
+  - buildTextPrompt(...) : (system, prompt)
+}
+
+class HybridAiProvider {
+  - options : HybridOptions
+  - downUntil : Map<AiProviderId, Long>
+  + editDiagram(message, model, options) : EditDiagramResult
+  + interpretDiagramPhoto(image, mediaType) : UmlModel
+  - textChain() : HybridMember [0..*]
+  - visionChain() : HybridMember [0..*]
+  - withTimeout(ms : Integer, run) : T
+  - onFailure(member, error, next) : void
+}
+
+class HybridOptions <<dataType>> {
+  + mode : HybridMode
+  + order : HybridOrder
+  + localTimeoutMs : Integer = 20000
+  + localFallbackTimeoutMs : Integer = 60000
+  + retryAfterMs : Integer = 30000
+}
+
+enum HybridMode <<enumeration>> {
+  hybrid
+  gemini
+  ollama
+}
+enum HybridOrder <<enumeration>> {
+  cloud-first
+  local-first
+}
+
+class AiService <<service>> {
+  - engine : HybridAiProvider
+  + editDiagram(message, model, prompts) : EditDiagramResult
+  + interpretDiagramPhoto(image, mediaType) : UmlModel
+  + warmUpLocal(systemPrefix : String) : void
+}
+
+class ModeratorService <<service>> {
+  + ask(diagramId, user, text) : ModeratorAnswer
+  + storeUserMessage(diagramId, user, text) : ChatMessage
+  + answer(diagramId, user, question) : (answer, operations)
+  + onModuleInit() : void
+}
+
+class ModeratorPrompt <<utility>> {
+  + {static} buildModeratorPrompt(ctx : ModeratorContext) : String
+  + {static} buildModeratorLitePrompt(ctx : ModeratorContext) : String
+  + {static} ensureAddressed(reply : String, askerName : String) : String
+}
+
+class ModeratorContext <<dataType>> {
+  + askerName : String
+  + diagramName : String
+  + model : UmlModel
+  + participants : String [0..*]
+  + recentActivity : ModeratorActivity [0..*]
+  + askerThread : ModeratorChatLine [0..*]
+  + roomChat : ModeratorChatLine [0..*]
+}
+
+class Intent <<utility>> {
+  + {static} isExplicitChangeRequest(message : String) : Boolean
+}
+class OperationValidator <<utility>> {
+  + {static} validateOperations(result, model) : EditDiagramResult
+}
+
+class ChatGateway <<gateway>> {
+  + handleSend(client : Socket, payload : ChatSendPayload) : void
+}
+
+class DiagramsService <<service>>
+class SessionsService <<service>>
+
+class EditDiagramResult <<dataType>> {
+  + reply : String
+  + operations : DiagramOperation [0..*]
+  + providerUsed : AiProviderId [0..1]
+}
+
+GeminiProvider ..|> AiProvider
+OllamaProvider ..|> AiProvider
+HybridAiProvider o-- "1" AiProvider : local
+HybridAiProvider o-- "1" AiProvider : cloud
+HybridAiProvider *-- "1" HybridOptions
+HybridOptions ..> HybridMode
+HybridOptions ..> HybridOrder
+AiService *-- "1" HybridAiProvider : engine
+AiService ..> OperationValidator : «use»
+AiProvider ..> EditDiagramResult : «create»
+
+ModeratorService --> "1" AiService
+ModeratorService --> "1" DiagramsService
+ModeratorService --> "1" SessionsService
+ModeratorService ..> ModeratorPrompt : «use»
+ModeratorService ..> Intent : «use»
+ModeratorPrompt ..> ModeratorContext
+ChatGateway --> "1" ModeratorService
+
+note bottom of HybridAiProvider
+  cloud-first (defecto): Gemini → Ollama (sin internet).
+  local-first (demo): Ollama → Gemini si supera localTimeoutMs.
+  Circuit breaker: un proveedor caído se omite retryAfterMs.
+end note
+note right of Intent
+  Regla "solo modifica el lienzo si te lo piden":
+  se aplica en el servidor, no se confía al modelo.
+end note
+@enduml

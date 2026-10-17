@@ -1,0 +1,65 @@
+@startuml 01_despliegue
+' Diagrama de despliegue — UML 2.5.1 (OMG), 2do Parcial
+' Refleja: docker-compose.prod.yml, frontend/nginx.conf, docker-compose.local.yml
+!include _estilo.iuml
+title Diagrama de Despliegue — Herramienta CASE (2do Parcial)\n<size:11>UML 2.5.1 · nodos, entornos de ejecución, artefactos y rutas de comunicación</size>
+
+node "PC del usuario" <<device>> as pc {
+  node "Navegador web" <<executionEnvironment>> as browser {
+    artifact "SPA React + Vite\n(dist/)" as spa
+  }
+}
+
+node "Celular Android" <<device>> as phone {
+  node "Android Runtime" <<executionEnvironment>> as art {
+    artifact "ExamenSW1.apk\n(Flutter · Visor UML en vivo)" as apk
+  }
+}
+
+node "Servidor AWS EC2 (1 GB)\ndiagramasw1pracial100.duckdns.org" <<device>> as vps {
+  node "Docker Engine + Compose" <<executionEnvironment>> as docker {
+    node "contenedor frontend" <<executionEnvironment>> as cfront {
+      artifact "nginx.conf\n(TLS Let's Encrypt, proxy)" as nginx
+      artifact "SPA estática" as spaStatic
+    }
+    node "contenedor backend\n(Node.js 24)" <<executionEnvironment>> as cback {
+      artifact "dist/main.js\n(NestJS)" as nest
+      artifact "dist/scripts/\nmigrate-pg-to-mongo.js" as migr
+    }
+    node "contenedor mongo\n(MongoDB 7)" <<executionEnvironment>> as cmongo {
+      database "case_tool\n(diagrams, diagram_sessions,\ndiagram_activity_logs,\ngroup_chat_messages)" as mongodb
+    }
+    node "contenedor db\n(PostgreSQL 16)" <<executionEnvironment>> as cpg {
+      database "case_tool\n(users, attachments)" as pg
+    }
+  }
+}
+
+node "Google Cloud" <<device>> as gcloud {
+  artifact "Gemini API\n(Google AI Studio)" as gemini
+}
+node "Amazon Web Services" <<device>> as aws {
+  artifact "Bucket S3\n(adjuntos)" as s3
+}
+node "Equipo local (Plan B / demo)" <<device>> as ollamaHost {
+  node "Ollama" <<executionEnvironment>> {
+    artifact "qwen2.5:1.5b-instruct" as qwen
+  }
+}
+
+pc -- vps : <<HTTPS / WSS>>\n:443
+phone -- vps : <<HTTPS / WSS>>\n:443
+cfront -- cback : <<HTTP / WebSocket>>\n/auth /diagrams /ai /sessions\n/generator /attachments /socket.io → :3000
+cback -- cmongo : <<MongoDB wire>>\n:27017
+cback -- cpg : <<TCP/SQL>>\n:5432
+cback -- gcloud : <<HTTPS>>
+cback -- aws : <<HTTPS>>
+cback .. ollamaHost : <<HTTP>> :11434\n(respaldo sin internet)
+
+note bottom of vps
+  Volúmenes persistentes: mongo_data, db_data.
+  Healthchecks: el backend arranca solo cuando
+  MongoDB y PostgreSQL están "healthy".
+  HTTP :80 redirige a HTTPS :443.
+end note
+@enduml
