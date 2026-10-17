@@ -7,7 +7,15 @@ import type { AiCallOptions, AiProvider } from './ai-provider.interface.js';
 
 interface OllamaGenerateResponse {
   response: string;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+  total_duration?: number;
 }
+
+const ms = (ns: number | undefined) => Math.round((ns ?? 0) / 1e6);
 
 /**
  * Plan B / sin internet: mismo contrato que GeminiProvider (mismos prompts,
@@ -56,7 +64,9 @@ export class OllamaProvider implements AiProvider {
           // temperature 0 (greedy, determinista): en pruebas, la temperatura
           // por defecto de Ollama (0.8) hacía que modelos pequeños
           // inventaran clases/relaciones que nadie pidió.
-          options: { temperature: 0, top_p: 0.1 },
+          // num_predict: a CPU generates ~6 tok/s, so cap text answers
+          // (a reply plus a few operations fits comfortably in 256 tokens).
+          options: { temperature: 0, top_p: 0.1, num_predict: params.images ? undefined : 256 },
         }),
       });
     } catch (err) {
@@ -72,6 +82,12 @@ export class OllamaProvider implements AiProvider {
     }
 
     const data = (await res.json()) as OllamaGenerateResponse;
+    // Latency breakdown, useful to tune OLLAMA_TIMEOUT_MS and prompt size.
+    this.logger.log(
+      `${params.model}: total ${ms(data.total_duration)} ms | carga ${ms(data.load_duration)} ms | ` +
+        `prompt ${data.prompt_eval_count ?? '?'} tok en ${ms(data.prompt_eval_duration)} ms | ` +
+        `respuesta ${data.eval_count ?? '?'} tok en ${ms(data.eval_duration)} ms`,
+    );
     return data.response ?? '';
   }
 
@@ -80,18 +96,9 @@ export class OllamaProvider implements AiProvider {
     model: UmlModel,
     options: AiCallOptions = {},
   ): Promise<EditDiagramResult> {
-    // Los modelos pequeños siguen un ejemplo concreto mucho mejor que una
-    // regla abstracta. Este ejemplo vive solo aqui (no en prompts.ts) para
-    // no arriesgar el comportamiento ya probado de Gemini.
-    const fewShotExample =
-      'Ejemplo — mensaje del usuario: "Crea una clase Producto con nombre y precio" con modelo actual {"classes":[],"relations":[]} ' +
-      '-> respuesta correcta: {"reply":"Cree la clase Producto.","operations":[{"op":"CREATE_CLASS","name":"Producto","attributes":[{"name":"nombre","type":"String","visibility":"private"},{"name":"precio","type":"Double","visibility":"private"}]}]}\n' +
-      'Nota: "reply" es SIEMPRE un string, nunca un objeto. NUNCA agregues una clase o relación que el usuario no haya pedido explícitamente.\n\n';
-    const prompt = `${fewShotExample}Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
     const raw = await this.generate({
       model: this.textModel,
-      system: options.systemPrompt ?? EDIT_SYSTEM_PROMPT,
-      prompt,
+      ...this.buildTextPrompt(message, model, options),
       signal: options.signal,
     });
     const jsonText = stripJsonFences(raw);
@@ -106,6 +113,30 @@ export class OllamaProvider implements AiProvider {
       this.logger.warn(`Ollama (${this.textModel}) no devolvió JSON válido, usando texto crudo como reply.`);
       return { reply: raw, operations: [] };
     }
+  }
+
+  private buildTextPrompt(
+    message: string,
+    model: UmlModel,
+    options: AiCallOptions,
+  ): { system: string; prompt: string } {
+    // Lite prompt (moderator): it already contains the diagram, the context
+    // and its own few-shot examples; only the question goes in the prompt.
+    if (options.localSystemPrompt) {
+      return { system: options.localSystemPrompt, prompt: message };
+    }
+    // Los modelos pequeños siguen un ejemplo concreto mucho mejor que una
+    // regla abstracta. Este ejemplo es del asistente de edición: no se usa con
+    // otros prompts (el moderador lo copiaba y creaba "Producto" sin pedido).
+    const fewShotExample = options.systemPrompt
+      ? ''
+      : 'Ejemplo — mensaje del usuario: "Crea una clase Producto con nombre y precio" con modelo actual {"classes":[],"relations":[]} ' +
+        '-> respuesta correcta: {"reply":"Cree la clase Producto.","operations":[{"op":"CREATE_CLASS","name":"Producto","attributes":[{"name":"nombre","type":"String","visibility":"private"},{"name":"precio","type":"Double","visibility":"private"}]}]}\n' +
+        'Nota: "reply" es SIEMPRE un string, nunca un objeto. NUNCA agregues una clase o relación que el usuario no haya pedido explícitamente.\n\n';
+    return {
+      system: options.systemPrompt ?? EDIT_SYSTEM_PROMPT,
+      prompt: `${fewShotExample}Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`,
+    };
   }
 
   async interpretDiagramPhoto(

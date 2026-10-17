@@ -5,6 +5,7 @@ import type { EditDiagramResult } from './operations.types.js';
 import { GeminiProvider } from './providers/gemini.provider.js';
 import { OllamaProvider } from './providers/ollama.provider.js';
 import { HybridAiProvider, type HybridMode } from './providers/hybrid.provider.js';
+import type { AiCallOptions } from './providers/ai-provider.interface.js';
 import { validateOperations } from './validate-operations.js';
 
 const DEFAULT_LOCAL_TIMEOUT_MS = 4000;
@@ -42,9 +43,9 @@ export class AiService {
   async editDiagram(
     message: string,
     model: UmlModel,
-    systemPrompt?: string,
+    prompts: Pick<AiCallOptions, 'systemPrompt' | 'localSystemPrompt'> = {},
   ): Promise<EditDiagramResult> {
-    const result = await this.engine.editDiagram(message, model, { systemPrompt });
+    const result = await this.engine.editDiagram(message, model, prompts);
     return { ...validateOperations(result, model), providerUsed: result.providerUsed };
   }
 

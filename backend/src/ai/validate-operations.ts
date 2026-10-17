@@ -20,6 +20,11 @@ export function validateOperations(result: EditDiagramResult, model: UmlModel): 
   for (const op of result.operations) {
     switch (op.op) {
       case 'CREATE_CLASS':
+        if (knowsClass(op.name)) {
+          // Small models sometimes "re-create" a class they were only asked about.
+          dropped.push(`CREATE_CLASS "${op.name}" (esa clase ya existe)`);
+          break;
+        }
         known.add(op.name);
         kept.push(op);
         break;

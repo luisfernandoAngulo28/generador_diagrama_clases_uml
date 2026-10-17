@@ -7,6 +7,12 @@ export type AiProviderId = 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
 export interface AiCallOptions {
   /** Replaces the default EDIT_SYSTEM_PROMPT (e.g. the group moderator prompt). */
   systemPrompt?: string;
+  /**
+   * Shorter variant for small local models (Ollama on CPU reads ~50 prompt
+   * tokens/s). When set, the local provider uses it INSTEAD of systemPrompt
+   * and doesn't append the model JSON: the lite prompt already describes it.
+   */
+  localSystemPrompt?: string;
   /** Lets the caller cancel a slow request (HybridAiProvider's timeout). */
   signal?: AbortSignal;
 }

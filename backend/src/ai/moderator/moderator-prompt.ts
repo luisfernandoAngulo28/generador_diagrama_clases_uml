@@ -165,3 +165,51 @@ export function ensureAddressed(reply: string, askerName: string): string {
   if (opening.includes(firstName.toLowerCase())) return trimmed;
   return `${firstName}, ${trimmed || 'no tengo una respuesta para eso.'}`;
 }
+
+/**
+ * Compact variant for small local models (qwen2.5:1.5b on CPU reads ~50
+ * prompt tokens/s, so the full prompt costs ~30 s). Two tricks:
+ * - The STATIC block goes first and is byte-identical on every call, so
+ *   Ollama reuses its KV cache and only evaluates the dynamic tail.
+ * - Concrete few-shot examples instead of long rules (small models copy
+ *   examples far better than they follow instructions). The examples use
+ *   class names unlikely to be in the team's diagram, so they aren't copied.
+ */
+export function buildModeratorLitePrompt(ctx: ModeratorContext): string {
+  const tz = ctx.timeZone ?? DEFAULT_TIME_ZONE;
+  const time = (d: Date) =>
+    new Intl.DateTimeFormat('es-BO', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: tz }).format(d);
+  const activity = ctx.recentActivity.slice(-8);
+  const thread = ctx.askerThread.slice(-4);
+
+  return `${LITE_STATIC}
+
+## Diagrama "${ctx.diagramName}"
+${describeModel(ctx.model)}
+
+## Quién hizo qué
+${activity.length ? activity.map((a) => `- ${time(a.timestamp)} ${a.userName}: ${a.summary}`).join('\n') : '- (nada todavía)'}
+
+## Preguntas anteriores de ${ctx.askerName}
+${formatChat(thread, time)}
+
+Ahora pregunta ${ctx.askerName}. Empieza el "reply" con "${ctx.askerName},".`;
+}
+
+const LITE_STATIC = `Eres el Moderador y Desarrollador Senior de un equipo que modela un diagrama de clases UML. El chat es público.
+Reglas:
+1. Empieza SIEMPRE el "reply" con el nombre de quien pregunta.
+2. Si la persona PREGUNTA (qué es, cómo, quién, por qué), explica en "reply" y deja "operations": [].
+3. Solo si la persona PIDE un cambio (crea, agrega, elimina, renombra, relaciona), escribe las operaciones.
+4. Para "quién hizo qué" usa SOLO la sección "Quién hizo qué". No inventes.
+5. Español, máximo 60 palabras.
+Operaciones: CREATE_CLASS {name, attributes:[{name,type,visibility}]}, DELETE_CLASS {className}, RENAME_CLASS {className,newName},
+ADD_ATTRIBUTE {className, attribute:{name,type,visibility}}, REMOVE_ATTRIBUTE {className,attributeName},
+CREATE_RELATION {sourceClassName,targetClassName,type}, DELETE_RELATION {sourceClassName,targetClassName}.
+Tipos: "uno a uno"=ONE_TO_ONE, "uno a muchos"=ONE_TO_MANY, "muchos a uno"=MANY_TO_ONE, "muchos a muchos"=MANY_TO_MANY,
+herencia=INHERITANCE, composición=COMPOSITION, agregación=AGGREGATION, asociación=ASSOCIATION.
+Responde SOLO con JSON: {"reply": "...", "operations": [...]}
+Ejemplo 1 — Ana pregunta "¿Qué es una herencia?":
+{"reply":"Ana, la herencia indica que una clase hija reutiliza atributos y métodos de una clase padre (relación es-un).","operations":[]}
+Ejemplo 2 — Ana pide "Agrega la clase Factura con numero y relaciónala muchos a muchos con Venta":
+{"reply":"Ana, agregué Factura y la relacioné muchos a muchos con Venta.","operations":[{"op":"CREATE_CLASS","name":"Factura","attributes":[{"name":"id","type":"Long","visibility":"private","isPrimaryKey":true},{"name":"numero","type":"String","visibility":"private"}]},{"op":"CREATE_RELATION","sourceClassName":"Factura","targetClassName":"Venta","type":"MANY_TO_MANY"}]}`;

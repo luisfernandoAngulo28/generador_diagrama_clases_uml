@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
@@ -10,8 +10,10 @@ import type { Actor } from '../../diagrams/schemas/author.schema.js';
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { JwtPayload } from '../../auth/auth.service.js';
 import { AiService } from '../ai.service.js';
+import { isExplicitChangeRequest } from './intent.js';
 import type { DiagramOperation } from '../operations.types.js';
 import {
+  buildModeratorLitePrompt,
   buildModeratorPrompt,
   ensureAddressed,
   type ModeratorChatLine,
@@ -50,6 +52,8 @@ export interface ModeratorAnswer {
  */
 @Injectable()
 export class ModeratorService {
+  private readonly logger = new Logger(ModeratorService.name);
+
   constructor(
     private readonly aiService: AiService,
     private readonly diagramsService: DiagramsService,
@@ -88,7 +92,7 @@ export class ModeratorService {
       timestamp: new Date(),
     });
 
-    const systemPrompt = buildModeratorPrompt({
+    const promptContext = {
       askerName: asker.userName,
       diagramName: diagram.name,
       model: diagram.model,
@@ -99,9 +103,21 @@ export class ModeratorService {
       roomChat: roomChat.reverse().map(toChatLine),
       askerThread: askerThread.reverse().map(toChatLine),
       timeZone: this.configService.get<string>('APP_TIME_ZONE'),
+    };
+
+    const result = await this.aiService.editDiagram(text, compactModel(diagram.model), {
+      systemPrompt: buildModeratorPrompt(promptContext),
+      localSystemPrompt: buildModeratorLitePrompt(promptContext),
     });
 
-    const result = await this.aiService.editDiagram(text, compactModel(diagram.model), systemPrompt);
+    // Rule "solo modifica el lienzo si te lo piden": enforced here, not trusted to the model.
+    let operations = result.operations;
+    if (operations.length && !isExplicitChangeRequest(text)) {
+      this.logger.warn(
+        `Se descartaron ${operations.length} operación(es) de ${result.providerUsed}: "${text}" no pide cambios al diagrama`,
+      );
+      operations = [];
+    }
 
     const answer = await this.chatModel.create({
       diagramId,
@@ -109,7 +125,7 @@ export class ModeratorService {
       text: ensureAddressed(result.reply, asker.userName),
       isAiResponse: true,
       addressedTo: asker,
-      appliedOperationsCount: result.operations.length,
+      appliedOperationsCount: operations.length,
       providerUsed: result.providerUsed,
       timestamp: new Date(),
     });
@@ -117,7 +133,7 @@ export class ModeratorService {
     return {
       question: toChatMessage(question.toObject()),
       answer: toChatMessage(answer.toObject()),
-      operations: result.operations,
+      operations,
     };
   }
 }
