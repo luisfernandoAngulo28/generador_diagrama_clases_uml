@@ -45,7 +45,7 @@ export class DiagramsController {
         err instanceof Error ? err.message : 'No se pudo interpretar el archivo XMI.',
       );
     }
-    return this.diagramsService.create({ name: parsed.name, model: parsed.model }, user);
+    return this.diagramsService.create({ name: parsed.name, model: parsed.model }, user, 'XMI_IMPORT');
   }
 
   @Get(':id/xmi')

@@ -1,15 +1,34 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from '../auth/auth.module.js';
 import { DiagramsService } from './diagrams.service.js';
 import { DiagramsController } from './diagrams.controller.js';
 import { DiagramsGateway } from './diagrams.gateway.js';
-import { Diagram } from './entities/diagram.entity.js';
-import { DiagramHistoryEntry } from './entities/diagram-history-entry.entity.js';
+import { SessionsService } from './sessions.service.js';
+import { SessionsController } from './sessions.controller.js';
+import { DiagramDocument, DiagramSchema } from './schemas/diagram.schema.js';
+import { ActivityLogDocument, ActivityLogSchema } from './schemas/activity-log.schema.js';
+import {
+  DiagramSessionDocument,
+  DiagramSessionSchema,
+} from './schemas/diagram-session.schema.js';
+import {
+  GroupChatMessageDocument,
+  GroupChatMessageSchema,
+} from './schemas/group-chat-message.schema.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Diagram, DiagramHistoryEntry])],
-  controllers: [DiagramsController],
-  providers: [DiagramsService, DiagramsGateway],
-  exports: [TypeOrmModule, DiagramsService],
+  imports: [
+    AuthModule,
+    MongooseModule.forFeature([
+      { name: DiagramDocument.name, schema: DiagramSchema },
+      { name: ActivityLogDocument.name, schema: ActivityLogSchema },
+      { name: DiagramSessionDocument.name, schema: DiagramSessionSchema },
+      { name: GroupChatMessageDocument.name, schema: GroupChatMessageSchema },
+    ]),
+  ],
+  controllers: [DiagramsController, SessionsController],
+  providers: [DiagramsService, SessionsService, DiagramsGateway],
+  exports: [MongooseModule, DiagramsService, SessionsService],
 })
 export class DiagramsModule {}

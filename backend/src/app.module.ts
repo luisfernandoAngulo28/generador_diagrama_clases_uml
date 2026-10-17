@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { DiagramsModule } from './diagrams/diagrams.module.js';
@@ -24,6 +25,14 @@ import { AttachmentsModule } from './attachments/attachments.module.js';
         database: config.get<string>('DB_NAME', 'case_tool'),
         autoLoadEntities: true,
         synchronize: config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
+      }),
+    }),
+    // Persistencia políglota: PostgreSQL para users/attachments (relacional),
+    // MongoDB para diagramas con autoría, sesiones, bitácora y chat grupal.
+    MongooseModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri: config.get<string>('MONGO_URI', 'mongodb://localhost:27017/case_tool'),
       }),
     }),
     UsersModule,

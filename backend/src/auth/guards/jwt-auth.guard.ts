@@ -22,6 +22,9 @@ export class JwtAuthGuard implements CanActivate {
       context.getClass(),
     ]);
     if (isPublic) return true;
+    // Socket.io messages carry no HTTP headers: DiagramsGateway resolves the
+    // user from the handshake token instead (see handleConnection).
+    if (context.getType() !== 'http') return true;
 
     const request = context.switchToHttp().getRequest<Request>();
     const token = extractBearerToken(request.headers.authorization);
