@@ -29,3 +29,10 @@ export interface AiStatusEvent {
   isThinking: boolean;
   promptBy: string;
 }
+
+/** Room setting broadcast when someone toggles "IA edita el lienzo". */
+export interface AiSettingsEvent {
+  diagramId: string;
+  canEditCanvas: boolean;
+  changedBy: string;
+}

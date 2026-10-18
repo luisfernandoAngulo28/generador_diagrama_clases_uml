@@ -34,8 +34,18 @@ export interface ModeratorContext {
   askerThread: ModeratorChatLine[];
   /** Group context: the last public messages of the room, oldest first. */
   roomChat: ModeratorChatLine[];
+  /** Room setting: false = "solo sugerencias", the AI may not change the canvas. Default true. */
+  canEditCanvas?: boolean;
   timeZone?: string;
 }
+
+const SUGGESTIONS_ONLY = (asker: string) => `## Modo de la sala: SOLO SUGERENCIAS
+El equipo desactivó la edición del lienzo por la IA. Si ${asker} pide un cambio, escribe igual las operaciones en
+"operations": el sistema NO las aplicará, se las mostrará al equipo como pasos a seguir. En "reply" NO digas que hiciste
+el cambio: di que lo propones y por qué.`;
+
+const LITE_SUGGESTIONS_ONLY =
+  '\n## Modo SOLO SUGERENCIAS: el sistema NO aplicará tus operaciones (las mostrará como pasos). En "reply" di que PROPONES el cambio, no que lo hiciste.\n';
 
 const DEFAULT_TIME_ZONE = 'America/La_Paz';
 
@@ -62,6 +72,7 @@ ${formatChat(ctx.roomChat, time)}`,
     `## Hilo individual de ${ctx.askerName} (sus preguntas previas y tus respuestas)
 ${formatChat(ctx.askerThread, time)}`,
     OPERATIONS_AND_FORMAT(ctx.askerName),
+    ...(ctx.canEditCanvas === false ? [SUGGESTIONS_ONLY(ctx.askerName)] : []),
   ];
   return sections.join('\n\n');
 }
@@ -192,7 +203,7 @@ ${activity.length ? activity.map((a) => `- ${time(a.timestamp)} ${a.userName}: $
 
 ## Preguntas anteriores de ${ctx.askerName}
 ${formatChat(thread, time)}
-
+${ctx.canEditCanvas === false ? LITE_SUGGESTIONS_ONLY : ''}
 Ahora pregunta ${ctx.askerName}. Empieza el "reply" con "${ctx.askerName},".`;
 }
 

@@ -29,6 +29,13 @@ export class DiagramDocument {
   @Prop({ type: ActorSchema })
   lastModifiedBy?: Actor;
 
+  /**
+   * Room setting (2do Parcial): whether the AI moderator may change the canvas
+   * or only suggest changes. Missing in older documents = allowed.
+   */
+  @Prop()
+  aiCanEditCanvas?: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }

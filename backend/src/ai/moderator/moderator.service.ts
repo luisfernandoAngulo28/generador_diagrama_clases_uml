@@ -10,7 +10,7 @@ import type { Actor } from '../../diagrams/schemas/author.schema.js';
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { JwtPayload } from '../../auth/auth.service.js';
 import { AiService } from '../ai.service.js';
-import { isExplicitChangeRequest } from './intent.js';
+import { applyCanvasPolicy } from './canvas-policy.js';
 import type { DiagramOperation } from '../operations.types.js';
 import {
   LITE_STATIC,
@@ -132,6 +132,7 @@ export class ModeratorService implements OnModuleInit {
         .map((a) => ({ userName: a.actor.userName, summary: a.summary, timestamp: a.timestamp })),
       roomChat: roomChat.reverse().map(toChatLine),
       askerThread: askerThread.reverse().map(toChatLine),
+      canEditCanvas: diagram.aiCanEditCanvas,
       timeZone: this.configService.get<string>('APP_TIME_ZONE'),
     };
 
@@ -140,19 +141,19 @@ export class ModeratorService implements OnModuleInit {
       localSystemPrompt: buildModeratorLitePrompt(promptContext),
     });
 
-    // Rule "solo modifica el lienzo si te lo piden": enforced here, not trusted to the model.
-    let operations = result.operations;
-    let reply = result.reply;
-    if (operations.length && !isExplicitChangeRequest(text)) {
+    // Room setting + "solo modifica el lienzo si te lo piden": enforced here, not trusted to the model.
+    const { operations, reason, rewriteReply } = applyCanvasPolicy(
+      result.operations,
+      text,
+      diagram.aiCanEditCanvas,
+    );
+    if (reason) {
       this.logger.warn(
-        `Se descartaron ${operations.length} operación(es) de ${result.providerUsed}: "${text}" no pide cambios al diagrama`,
+        `Se descartaron ${result.operations.length} operación(es) de ${result.providerUsed} (${reason}): "${text}"`,
       );
-      operations = [];
-      // Don't let the answer claim changes that were not applied.
-      reply +=
-        '\n\n(No apliqué cambios en el lienzo porque el mensaje no los pide explícitamente. ' +
-        'Si quieres que los haga, respóndeme «sí, hazlo» o pídemelo con «agrega…», «renombra…», «relaciona…».)';
     }
+    // Don't let the answer claim changes that were not applied.
+    const reply = rewriteReply ? rewriteReply(result.reply, asker.userName) : result.reply;
 
     const answer = await this.chatModel.create({
       diagramId,

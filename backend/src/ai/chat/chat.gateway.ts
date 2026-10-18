@@ -9,6 +9,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { Server, Socket } from 'socket.io';
 import { AuthService } from '../../auth/auth.service.js';
+import { DiagramsService } from '../../diagrams/diagrams.service.js';
 import { resolveSocketUser } from '../../diagrams/socket-auth.js';
 import { ModeratorService } from '../moderator/moderator.service.js';
 
@@ -17,6 +18,12 @@ export interface ChatSendPayload {
   text: string;
   /** Ask the AI moderator. Also true when the text mentions "@IA". */
   askAi?: boolean;
+}
+
+export interface AiSettingsPayload {
+  diagramId: string;
+  /** false = "solo sugerencias": the AI explains changes but never applies them. */
+  canEditCanvas: boolean;
 }
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -45,6 +52,7 @@ export class ChatGateway {
   constructor(
     private readonly authService: AuthService,
     private readonly moderatorService: ModeratorService,
+    private readonly diagramsService: DiagramsService,
   ) {}
 
   @SubscribeMessage('chat:send')
@@ -90,6 +98,37 @@ export class ChatGateway {
       });
     } finally {
       room.emit('ai:status', { requestId, isThinking: false, promptBy: user.name });
+    }
+  }
+
+  /**
+   * Room setting "IA edita el lienzo" (configurable executor):
+   *   cliente ── ai:settings {diagramId, canEditCanvas} ──▶ servidor
+   *   servidor ── ai:settings {diagramId, canEditCanvas, changedBy} ──▶ sala
+   * Stored on the diagram, so it survives reloads and applies to every member;
+   * the moderator enforces it server-side (see applyCanvasPolicy).
+   */
+  @SubscribeMessage('ai:settings')
+  async handleSettings(@ConnectedSocket() client: Socket, @MessageBody() payload: AiSettingsPayload) {
+    const user = resolveSocketUser(client, this.authService);
+    if (!user) {
+      client.emit('chat:error', { message: 'Inicia sesión para cambiar la configuración de la IA.' });
+      return;
+    }
+    if (!payload?.diagramId || typeof payload.canEditCanvas !== 'boolean') {
+      client.emit('chat:error', { message: 'Configuración de la IA inválida.' });
+      return;
+    }
+    try {
+      const diagram = await this.diagramsService.setAiCanEditCanvas(payload.diagramId, payload.canEditCanvas, user);
+      this.server.in(diagram.id).emit('ai:settings', {
+        diagramId: diagram.id,
+        canEditCanvas: diagram.aiCanEditCanvas,
+        changedBy: user.name,
+      });
+    } catch (err) {
+      this.logger.warn(`No se pudo cambiar la configuración de la IA: ${describe(err)}`);
+      client.emit('chat:error', { message: 'No se pudo cambiar la configuración de la IA.' });
     }
   }
 }

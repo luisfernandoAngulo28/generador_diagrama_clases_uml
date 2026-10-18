@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bot, Mic, Send, Users } from 'lucide-react';
+import { Bot, Lightbulb, Mic, PencilRuler, Send, Users } from 'lucide-react';
 import { getSocket } from '../api/socket';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { AuthUser } from '../types/auth';
-import type { AiStatusEvent, GroupChatMessage } from '../types/chat';
+import type { AiSettingsEvent, AiStatusEvent, GroupChatMessage } from '../types/chat';
 import type { DiagramOperation } from '../types/uml';
 
 interface ChatPanelProps {
   diagramId: string | null;
   currentUser: AuthUser | null;
+  /** Room setting loaded with the diagram: may the AI modify the canvas? */
+  initialAiCanEdit: boolean;
   /** Saves the diagram (creating it if needed) so the AI sees the latest canvas; returns its id. */
   onEnsureSaved: () => Promise<string | undefined>;
   /** Applies the AI's canvas operations; only called on the asker's own client. */
@@ -33,13 +35,22 @@ const PROVIDER_BADGE: Record<string, { label: string; className: string; title: 
  * sees every question and every answer of the AI moderator, which always
  * addresses the asker by name. Replaces the 1er Parcial private 1-a-1 chat.
  */
-export function ChatPanel({ diagramId, currentUser, onEnsureSaved, onApplyAiOperations }: ChatPanelProps) {
+export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSaved, onApplyAiOperations }: ChatPanelProps) {
   const [messages, setMessages] = useState<GroupChatMessage[]>([]);
   const [thinking, setThinking] = useState<Record<string, string>>({});
   const [input, setInput] = useState('');
   const [askAi, setAskAi] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // "IA edita el lienzo" vs "solo sugerencias": shared by the whole room, enforced by the server.
+  const [aiCanEdit, setAiCanEdit] = useState(initialAiCanEdit);
+  const [settingsNotice, setSettingsNotice] = useState<string | null>(null);
+  // The diagram finishes loading after mount: adopt its stored setting when it arrives.
+  const [loadedSetting, setLoadedSetting] = useState(initialAiCanEdit);
+  if (loadedSetting !== initialAiCanEdit) {
+    setLoadedSetting(initialAiCanEdit);
+    setAiCanEdit(initialAiCanEdit);
+  }
   const listRef = useRef<HTMLDivElement>(null);
   // Latest callback without re-subscribing the socket listeners on every render.
   const applyRef = useRef(onApplyAiOperations);
@@ -72,16 +83,27 @@ export function ChatPanel({ diagramId, currentUser, onEnsureSaved, onApplyAiOper
     function onChatError(payload: { message: string }) {
       setError(payload.message);
     }
+    function onAiSettings(settings: AiSettingsEvent) {
+      if (settings.diagramId !== diagramId) return;
+      setAiCanEdit(settings.canEditCanvas);
+      setSettingsNotice(
+        settings.canEditCanvas
+          ? `${settings.changedBy} permitió que la IA modifique el lienzo`
+          : `${settings.changedBy} puso a la IA en modo solo sugerencias`,
+      );
+    }
 
     socket.on('session:init-state', onInitState);
     socket.on('chat:new-message', onNewMessage);
     socket.on('ai:status', onAiStatus);
     socket.on('chat:error', onChatError);
+    socket.on('ai:settings', onAiSettings);
     return () => {
       socket.off('session:init-state', onInitState);
       socket.off('chat:new-message', onNewMessage);
       socket.off('ai:status', onAiStatus);
       socket.off('chat:error', onChatError);
+      socket.off('ai:settings', onAiSettings);
     };
   }, [diagramId, currentUser?.id]);
 
@@ -107,6 +129,18 @@ export function ChatPanel({ diagramId, currentUser, onEnsureSaved, onApplyAiOper
     }
   }
 
+  async function toggleAiCanEdit() {
+    setError(null);
+    try {
+      // A brand-new diagram has no room yet: save it first so the setting has a home.
+      const id = diagramId ?? (await onEnsureSaved());
+      if (!id) throw new Error('no diagram');
+      getSocket().emit('ai:settings', { diagramId: id, canEditCanvas: !aiCanEdit });
+    } catch {
+      setError('No se pudo cambiar la configuración de la IA.');
+    }
+  }
+
   const { isSupported: voiceSupported, isListening, start: startListening } = useSpeechRecognition({
     lang: 'es-ES',
     onResult: (transcript) => void sendText(transcript),
@@ -120,6 +154,26 @@ export function ChatPanel({ diagramId, currentUser, onEnsureSaved, onApplyAiOper
         <Users size={15} /> Chat del equipo
         <span className="chat-panel__header-hint">público · Moderador IA</span>
       </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={aiCanEdit}
+        className={`chat-panel__mode${aiCanEdit ? ' chat-panel__mode--edit' : ' chat-panel__mode--suggest'}`}
+        onClick={() => void toggleAiCanEdit()}
+        title={
+          aiCanEdit
+            ? 'La IA puede modificar el lienzo cuando se lo piden. Clic para pasar a «solo sugerencias» (para toda la sala).'
+            : 'La IA solo explica y sugiere; no toca el lienzo. Clic para permitir que lo modifique (para toda la sala).'
+        }
+      >
+        {aiCanEdit ? <PencilRuler size={14} /> : <Lightbulb size={14} />}
+        <span className="chat-panel__mode-label">{aiCanEdit ? 'IA edita el lienzo' : 'IA solo sugiere'}</span>
+        <span className="chat-panel__mode-switch" aria-hidden="true">
+          <span className="chat-panel__mode-knob" />
+        </span>
+      </button>
+      {settingsNotice && <div className="chat-panel__notice">{settingsNotice}</div>}
 
       <div className="chat-panel__messages" ref={listRef}>
         {messages.length === 0 && (

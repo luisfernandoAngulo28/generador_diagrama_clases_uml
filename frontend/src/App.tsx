@@ -186,6 +186,7 @@ function AppInner() {
   const { fitView, setCenter, getNodes, getNodesBounds, deleteElements, screenToFlowPosition } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
+  const [aiCanEditCanvas, setAiCanEditCanvas] = useState(true);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const [nextRelationType, setNextRelationType] = useState<RelationType>('ASSOCIATION');
@@ -384,6 +385,7 @@ function AppInner() {
   const loadDiagram = useCallback(async (id: string) => {
     const diagram = await getDiagram(id);
     setDiagramName(diagram.name);
+    setAiCanEditCanvas(diagram.aiCanEditCanvas ?? true);
     setAuthorship(authorshipIndexOf(diagram.model));
     const hasPosition = (p?: { x: number; y: number }) =>
       !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
@@ -1694,6 +1696,7 @@ function AppInner() {
           key={diagramId ?? 'new'}
           diagramId={diagramId}
           currentUser={user}
+          initialAiCanEdit={aiCanEditCanvas}
           onEnsureSaved={() => saveDiagram(true)}
           onApplyAiOperations={applyAiOperations}
         />

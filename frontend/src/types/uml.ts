@@ -97,6 +97,8 @@ export interface Diagram {
   id: string;
   name: string;
   model: UmlModel;
+  /** Room setting: whether the AI moderator may modify the canvas (default true). */
+  aiCanEditCanvas?: boolean;
   createdAt: string;
   updatedAt: string;
 }

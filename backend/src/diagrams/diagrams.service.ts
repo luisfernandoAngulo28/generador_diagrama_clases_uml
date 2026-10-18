@@ -20,6 +20,8 @@ export interface Diagram {
   model: UmlModel;
   createdBy?: Actor;
   lastModifiedBy?: Actor;
+  /** Whether the AI moderator may modify the canvas (room setting). */
+  aiCanEditCanvas: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -140,6 +142,36 @@ export class DiagramsService {
     return toDiagram(saved);
   }
 
+  /**
+   * Turns the AI moderator's canvas edits on or off for the whole room and
+   * records who did it, so the change shows up in the bitácora (and the AI
+   * can answer "¿quién desactivó la edición?").
+   */
+  async setAiCanEditCanvas(id: string, enabled: boolean, user: JwtPayload): Promise<Diagram> {
+    const saved = await this.diagramModel
+      .findByIdAndUpdate(
+        id,
+        { $set: { aiCanEditCanvas: enabled } },
+        // A setting is not a model edit: keep updatedAt as the last canvas change.
+        { returnDocument: 'after', timestamps: false },
+      )
+      .lean();
+    if (!saved) {
+      throw new NotFoundException(`Diagram ${id} not found`);
+    }
+    await this.logChanges(id, user, [
+      {
+        action: 'AI_SETTINGS_CHANGED',
+        target: { entityType: 'DIAGRAM', entityId: id, entityName: saved.name },
+        details: { aiCanEditCanvas: enabled },
+        summary: enabled
+          ? 'Permitió que la IA modifique el lienzo'
+          : 'Puso a la IA en modo solo sugerencias',
+      },
+    ]);
+    return toDiagram(saved);
+  }
+
   async remove(id: string): Promise<void> {
     const result = await this.diagramModel.deleteOne({ _id: id });
     if (result.deletedCount === 0) {
@@ -194,6 +226,7 @@ function toDiagram(doc: DiagramDocument): Diagram {
     model: doc.model,
     createdBy: doc.createdBy,
     lastModifiedBy: doc.lastModifiedBy,
+    aiCanEditCanvas: doc.aiCanEditCanvas ?? true,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

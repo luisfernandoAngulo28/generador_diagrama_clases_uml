@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildModeratorPrompt, ensureAddressed, type ModeratorContext } from './moderator-prompt.js';
+import { buildModeratorLitePrompt, buildModeratorPrompt, ensureAddressed, type ModeratorContext } from './moderator-prompt.js';
 
 const marco = { userId: 'u1', userName: 'Marco', timestamp: '2026-10-20T14:15:00.000Z' };
 const luis = { userId: 'u2', userName: 'Luis', timestamp: '2026-10-20T14:16:00.000Z' };
@@ -94,5 +94,18 @@ describe('ensureAddressed', () => {
     expect(ensureAddressed('Un atributo derivado se calcula.', 'Marco Pérez')).toBe(
       'Marco, Un atributo derivado se calcula.',
     );
+  });
+});
+
+describe('modo «solo sugerencias»', () => {
+  it('tells both prompts not to return operations when the room disabled AI edits', () => {
+    const ctx = { ...context(), canEditCanvas: false };
+    expect(buildModeratorPrompt(ctx)).toContain('SOLO SUGERENCIAS');
+    expect(buildModeratorLitePrompt(ctx)).toContain('SOLO SUGERENCIAS');
+  });
+
+  it('says nothing about it when edits are allowed (default)', () => {
+    expect(buildModeratorPrompt(context())).not.toContain('SOLO SUGERENCIAS');
+    expect(buildModeratorLitePrompt(context())).not.toContain('SOLO SUGERENCIAS');
   });
 });
