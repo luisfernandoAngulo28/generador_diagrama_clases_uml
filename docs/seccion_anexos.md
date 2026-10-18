@@ -25,9 +25,8 @@ certificado SSL válido (HTTPS):
 
   Los servicios se reinician solos y HTTP redirige a HTTPS.
 
-  > ⟨Al 17/10/2026, la versión del 2do Parcial con MongoDB está probada en local
-  > y en Docker, pero aún no desplegada en el VPS. Tomar la Figura A.1 después
-  > del despliegue.⟩
+  La versión del 2do Parcial (con MongoDB y el Moderador IA) está desplegada
+  y verificada en producción desde el 17/10/2026.
 - **Dominio y certificado:** DuckDNS + Let's Encrypt.
 - **Almacenamiento en la nube:** los archivos adjuntos de los diagramas se
   guardan en un *bucket* de Amazon S3.
@@ -75,7 +74,7 @@ aprobadas al 17/10/2026. Cubren:
 - autoría y bitácora;
 - el motor de IA híbrido y el prompt del moderador.
 
-*(Figura A.10: ejecución de `npx vitest run` con "117 passed".)*
+Evidencia: Captura 3 del capítulo 7 (`npx vitest run` con "117 passed").
 
 ### A.8 Persistencia en MongoDB con autoría granular (2do Parcial)
 
@@ -98,8 +97,7 @@ aprobadas al 17/10/2026. Cubren:
   - cambio aplicado y sincronizado en ambos lienzos;
   - autoría *"Creada por Luis · vía IA"*.
 
-*(Figura A.13: chat público con una respuesta "Moderador IA → Luis".)*
-*(Figura A.14: inspector de clase con la sección de autoría.)*
+Evidencia: Capturas 6 y 7 del capítulo 7 (chat público en producción e inspector con la autoría "vía IA").
 
 ### A.10 Motor de IA híbrido (2do Parcial)
 
@@ -111,7 +109,7 @@ Mediciones reales en la laptop del equipo (CPU):
 | Falla Gemini → respaldo automático | Ollama Local | 13,5 s |
 | Ollama primero, modelo precalentado | Ollama Local | 5,0 s |
 
-*(Figura A.15: log del backend con el desglose de tokens y tiempos de Ollama.)*
+Evidencia: Capturas 4 y 5 del capítulo 7 (log de Ollama y badge «🏠 Ollama Local»).
 
 ### A.11 Visor UML en tiempo real en Flutter (2do Parcial)
 
@@ -121,12 +119,11 @@ Mediciones reales en la laptop del equipo (CPU):
 - Notificaciones locales de mensajes y cambios.
 - APK de release compilado con los cambios.
 
-*(Figura A.16: visor móvil, pestaña Diagrama. Figura A.17: pestaña Chat.)*
+Evidencia: Captura 8 del capítulo 7 (pestañas Diagrama y Chat del visor).
 
 ### A.12 Mecanismo de aprendizaje del usuario
 
-*(Figura A.18: tour guiado. Figura A.19: estado vacío del lienzo. Figura A.20:
-leyenda UML y guía de atajos.)*
+Evidencia: Capturas 9 a 12 de la sección 3.3 (estado vacío, recorrido guiado, leyenda y atajos, y respuesta teórica del Moderador IA).
 
 ---
 

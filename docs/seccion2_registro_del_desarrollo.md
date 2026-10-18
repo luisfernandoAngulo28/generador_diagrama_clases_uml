@@ -80,7 +80,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 - **Flutter:** `flutter analyze` sin problemas en el código nuevo; APK de
   release compilado.
 
-*(Captura 3: salida de `npx vitest run` con "117 passed".)*
+![Captura 3: salida de `npx vitest run` en el backend: 19 archivos y 117 pruebas aprobadas.](docs/documento_final/img/evidencias/vitest_117.jpg){width=5.8in}
 
 ### 2.4.2 Motor de IA híbrido — mediciones reales (laptop del equipo, CPU)
 
@@ -101,7 +101,9 @@ Comprobaciones de comportamiento del moderador:
   con Pedido"* propuso `CREATE_CLASS` + `MANY_TO_MANY`. Ante preguntas, cero
   operaciones.
 
-*(Captura 4: log del backend con los tiempos de Ollama. Captura 5: badges 🏠 Ollama Local / ☁️ Gemini Cloud en el chat.)*
+![Captura 4: log del backend local (AI_HYBRID_ORDER=local-first) con el precalentamiento del modelo y los tiempos de cada respuesta de Ollama.](docs/documento_final/img/evidencias/ollama_log.png){width=6in}
+
+![Captura 5: el Moderador IA responde con el modelo local (badge «🏠 Ollama Local»); en producción la misma vista muestra «☁️ Gemini Cloud» (Captura 6).](docs/documento_final/img/evidencias/ollama_badge.jpg){width=6in}
 
 ### 2.4.3 Prueba de colaboración con dos usuarios (navegador)
 
@@ -128,7 +130,7 @@ móvil mostró:
 - *"2 en la sala"*;
 - en la hoja de detalle de `Producto`, *"Creada por: Luis · vía IA"*.
 
-*(Captura 8: visor móvil con el diagrama y la pestaña de chat.)*
+![Captura 8: visor Flutter en vista móvil (375×812): el diagrama en solo lectura con «2 en la sala» y la pestaña de chat con la respuesta del Moderador IA.](docs/documento_final/img/evidencias/flutter_visor.png){width=5.2in}
 
 ---
 

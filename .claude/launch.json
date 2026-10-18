@@ -25,6 +25,18 @@
         "flutter-template/build/web"
       ],
       "port": 8090
+    },
+    {
+      "name": "evidencias",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8091",
+        "--directory",
+        "docs/documento_final/_build"
+      ],
+      "port": 8091
     }
   ]
 }
