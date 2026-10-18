@@ -66,7 +66,7 @@ qué sirve:
 **Implementación:** `frontend/src/components/Tour.tsx` (componente);
 `TOUR_STEPS` y `TOUR_SEEN_KEY` en `frontend/src/App.tsx`.
 
-*(Captura 10: un paso del tour resaltando el botón "+ Clase".)*
+![Captura 10: paso 2 de 7 del recorrido guiado, resaltando el botón "+ Clase".](docs/documento_final/img/evidencias/prod_recorrido.jpg){width=6in}
 
 ---
 
@@ -87,7 +87,9 @@ qué sirve:
 - **Tooltips descriptivos** en los botones de la barra, por ejemplo *"Deshacer
   (Ctrl+Z)"* o *"Abrir paleta rápida de comandos (Ctrl + K)"*.
 
-*(Captura 11: leyenda UML y guía de atajos.)*
+![Captura 11a: leyenda de notación UML 2.5 sobre el lienzo.](docs/documento_final/img/evidencias/prod_leyenda.jpg){width=5.5in}
+
+![Captura 11b: guía de atajos de teclado y comandos rápidos.](docs/documento_final/img/evidencias/prod_atajos.jpg){width=5.5in}
 
 ---
 

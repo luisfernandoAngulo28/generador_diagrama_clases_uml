@@ -25,7 +25,9 @@
   `CONTEXTO_CLAUDE_2DO_PARCIAL.md` (cronograma de 4 semanas y checklist), y
   `PLAN_SEMANA1_MONGODB.md` (diseño de la migración antes de escribir código).
 
-*(Captura 1: historial de commits en GitHub. Captura 2: el PR #1 con "No conflicts with base branch".)*
+![Captura 1: historial de commits de la rama feat/mongodb-autoria en GitHub.](docs/documento_final/img/evidencias/github_commits.jpg){width=5.5in}
+
+![Captura 2: el Pull Request #1, que integra los commits de feat/mongodb-autoria en main.](docs/documento_final/img/evidencias/github_pr1.jpg){width=5.5in}
 
 ---
 
@@ -114,7 +116,7 @@ Dos sesiones simultáneas (Marco y Luis) sobre el mismo diagrama:
 
 ![Captura 6: chat público en producción. Fernando pide un cambio y el Moderador IA lo aplica en el lienzo ("3 cambios en el lienzo", Gemini Cloud).](docs/documento_final/img/evidencias/prod_moderador_cambios.jpg){width=6in}
 
-*(Captura 7: inspector con la autoría "vía IA".)*
+![Captura 7: inspector de la clase Cliente con su autoría: creada por Luis y editada por Fernando vía IA, con los atributos agregados por el moderador.](docs/documento_final/img/evidencias/prod_inspector_autoria.jpg){width=6in}
 
 ### 2.4.4 Visor móvil en tiempo real
 
