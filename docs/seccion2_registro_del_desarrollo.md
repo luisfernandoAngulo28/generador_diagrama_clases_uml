@@ -139,6 +139,28 @@ móvil mostró:
 
 ---
 
+### 2.4.5 Prueba de regresión del 1er Parcial (18/10/2026)
+
+Regla de oro del enunciado: *todo lo del 1er Parcial debe seguir funcionando*.
+Se volvió a probar sobre el diagrama del restaurante (6 clases, 5 relaciones),
+con la versión que incluye el Moderador IA:
+
+| Función del 1er Parcial | Cómo se probó | Resultado |
+|---|---|---|
+| Exportar e importar XMI (Enterprise Architect) | `GET /diagrams/:id/xmi` → `POST /diagrams/import-xmi` | ✅ Ida y vuelta idéntica: 6 clases con sus atributos y 5 relaciones del mismo tipo |
+| Generar el backend Spring Boot | ZIP del generador → `docker compose up` (PostgreSQL + Spring Boot) | ✅ Compila y arranca; Swagger en `/swagger-ui.html` |
+| Probar con Postman | Las 30 requests de la colección generada, en orden (como el *Runner*) | ✅ **30/30 con 2xx** (CRUD de las 6 entidades, incluida `Reserva`, creada por la IA) |
+| Edición del diagrama por chat | Chat del equipo con pedidos explícitos | ✅ Probado en producción (Capturas 5 y 6) |
+| Dictado por voz | Mismo hook `useSpeechRecognition` del 1er Parcial, ahora en el chat del equipo | ⏳ Requiere micrófono: prueba manual del equipo |
+| Foto de pizarra | Mismo endpoint `POST /ai/interpret-photo` y menú *Archivo → Foto de pizarra (IA)* | ⏳ Requiere una foto y Gemini: prueba manual del equipo (Figura A.7) |
+
+**Limitación conocida (heredada del 1er Parcial):** el proyecto generado trae
+`data.sql` con datos de ejemplo, pero esos datos se cargan en las tablas de
+`schema.sql` (`cliente`) y no en las que mapea JPA (`clientes`), por eso la API
+arranca vacía. Alinear ambos esquemas implica rehacer la ubicación de las claves
+foráneas del generador; se dejó para después del parcial, porque el CRUD
+completo funciona.
+
 ## 2.5 Registro de defectos encontrados y corregidos
 
 Las pruebas con dos usuarios reales encontraron defectos que las pruebas
@@ -157,6 +179,7 @@ efectivo.
 | 8 | El botón del visor quedaba cortado en celulares de 375 px | La AppBar no tenía espacio | Botón flotante "Visor UML en vivo" | `e5eeae3` |
 | 9 | En producción la IA decía "renombré y agregué" pero el lienzo no cambiaba | El validador no seguía un renombre dentro del mismo lote, y "sí, hazlo" no contaba como pedido explícito | El validador sigue renombres y eliminaciones; se aceptan confirmaciones; si se descarta algo, la respuesta lo aclara | `4daba22` |
 | 10 | En modo «solo sugerencias», el modelo local respondía "agregué la clase…" sin haberla agregado | El modelo pequeño ignora la instrucción del prompt | El servidor reescribe la respuesta con los pasos a seguir, generados desde las operaciones | `d003cf8` |
+| 11 | Con el *Runner* de Postman, 6 de 30 requests daban 404 sobre una base vacía | La colección generada hacía `GET /{id}` antes del `POST` | Cada carpeta ahora es POST → GET → GET/{id} → PUT → DELETE (30/30) | `9faa2f3` |
 
 ---
 
