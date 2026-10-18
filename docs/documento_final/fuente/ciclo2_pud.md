@@ -530,12 +530,13 @@ El segundo ciclo extiende los mismos servicios (backend NestJS, frontend React y
 - **Identidad en el socket (`socket-auth.ts`):** el JWT del *handshake* identifica al usuario; el guard JWT global ya no intercepta los mensajes WebSocket.
 - **Chat grupal (`ChatGateway`):**
   - eventos `chat:send`, `chat:new-message`, `ai:status` y `chat:error`;
-  - solo el cliente de quien pidió un cambio aplica las operaciones.
+  - solo el cliente de quien pidió un cambio aplica las operaciones;
+  - evento `ai:settings`: interruptor por sala «IA edita el lienzo» / «IA solo sugiere», guardado en el diagrama y registrado en la bitácora.
 - **Moderador IA (`ModeratorService`, `moderator-prompt.ts`):**
   - contexto dual (25 entradas de bitácora, 8 mensajes de la sala y 8 del hilo individual);
   - prompt completo para Gemini y prompt *lite* con caché de prefijo para Ollama;
   - `ensureAddressed()` garantiza que la respuesta nombre a quien preguntó;
-  - `isExplicitChangeRequest()` impide cambios no pedidos.
+  - `applyCanvasPolicy()` aplica en el servidor el modo de la sala y `isExplicitChangeRequest()`: sin pedido explícito, o en modo «solo sugerencias», no se toca el lienzo; en ese modo las operaciones propuestas se devuelven como pasos para hacerlo a mano.
 - **Motor híbrido (`HybridAiProvider`):** cadena Gemini ⇄ Ollama según `AI_HYBRID_ORDER`, timeouts de 20 y 60 s, *circuit breaker* de 30 s y precalentamiento de Ollama al arrancar.
 - **Migración:** script idempotente `migrate-pg-to-mongo` (copió 8 diagramas y 55 entradas de historial conservando los UUID).
 
@@ -573,7 +574,7 @@ El segundo ciclo extiende los mismos servicios (backend NestJS, frontend React y
 
 ## 6.6 Pruebas del Segundo Ciclo
 
-- **Pruebas automatizadas:** 117 pruebas unitarias en 19 archivos (Vitest), todas aprobadas. Cubren autoría y bitácora, saneamiento del modelo, motor híbrido, prompt del moderador, detección de pedidos explícitos, validación de operaciones de la IA, generador y XMI.
+- **Pruebas automatizadas:** 125 pruebas unitarias en 20 archivos (Vitest), todas aprobadas. Cubren autoría y bitácora, saneamiento del modelo, motor híbrido, prompt del moderador, detección de pedidos explícitos, validación de operaciones de la IA, generador y XMI.
 - **CP-05 --- Autoría granular:** Marco crea una clase y Luis le agrega un atributo. El sistema registra a Marco como autor, a Luis como última edición y a Luis como autor del atributo; un autor enviado por el cliente se ignora. *Resultado: correcto.*
 - **CP-06 --- Sesión continua:** salir de la sala la deja PAUSED; volver la reactiva con el mismo identificador y restaura el chat. *Resultado: correcto.*
 - **CP-07 --- Moderador IA:**

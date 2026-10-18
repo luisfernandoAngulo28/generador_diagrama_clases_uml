@@ -122,6 +122,22 @@ Además, `validateOperations()` elimina operaciones sobre clases inexistentes y
 - `backend/src/ai/validate-operations.ts:13`
 - tests: `intent.spec.ts`
 
+**A4-bis. El enunciado dice que la IA modifica el diagrama "de manera configurable". ¿Dónde está?**
+- En el chat del equipo hay un **interruptor por sala**: **«IA edita el lienzo»** ⇄ **«IA solo sugiere»**.
+- Se guarda en el diagrama (`aiCanEditCanvas` en MongoDB). Cualquiera lo cambia con
+  el evento `ai:settings`, y **toda la sala** ve el nuevo modo y el aviso *"Luis puso a la IA en modo solo sugerencias"*.
+  El cambio queda en la bitácora.
+- **Lo impone el servidor**, no el modelo: `applyCanvasPolicy()`. En «solo sugerencias» las operaciones nunca
+  llegan al lienzo y la respuesta se **reescribe** con los pasos para hacerlo a mano ("• Crear la clase Reserva (fecha: LocalDate)").
+  Se reescribe porque el modelo local pequeño a veces dice "agregué…" aunque el prompt se lo prohíba.
+
+📍 Muéstralo:
+- `backend/src/ai/moderator/canvas-policy.ts`
+- `backend/src/ai/chat/chat.gateway.ts` (`handleSettings`)
+- `frontend/src/components/ChatPanel.tsx` (botón `role="switch"`)
+- tests: `canvas-policy.spec.ts`
+- **En vivo:** apaga el interruptor, pide "agrega la clase Reserva…", muestra los pasos; enciéndelo y repite: se crea.
+
 **A5. ¿Cómo se aplica al lienzo un cambio pedido a la IA?**
 - La respuesta viaja con `operations` a toda la sala, pero **solo el cliente de
   quien preguntó las aplica** (si no, se aplicarían una vez por cada persona
@@ -405,7 +421,7 @@ laptop, sin AWS ni internet.
 
 | Dato | Valor |
 |---|---|
-| Pruebas unitarias | **106** (19 archivos), todas en verde |
+| Pruebas unitarias | **125** (20 archivos), todas en verde |
 | Commits | 89 hasta la Sección 1 (79 del 1er Parcial + 10 del 2do) |
 | Tamaño del 2do Parcial | 94 archivos, +8.673 / −252 líneas |
 | Ollama, prompt completo → lite | 36–79 s → 5–18 s (CPU) |

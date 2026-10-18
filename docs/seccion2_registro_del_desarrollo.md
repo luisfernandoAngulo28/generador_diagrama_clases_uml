@@ -61,6 +61,9 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 | **Semana 3** — chat grupal | `814d912` | 17/10 | `chat:send` / `chat:new-message` / `ai:status`, ChatPanel público con badge del proveedor, autoría en vivo en el inspector | Prueba en navegador con dos usuarios simultáneos (ver 2.4.3) |
 | **Semana 4** — visor Flutter | `e5eeae3` | 17/10 | `UmlViewerScreen` de solo lectura con chat y notificaciones locales | `flutter analyze` sin problemas; versión web probada contra el backend; `flutter build apk --release` exitoso |
 | Documentación | `b014a42` | 17/10 | Sección 1 del SDD (fundamentación teórica) | Cada afirmación referida a un archivo del código |
+| Despliegue en AWS | `90f081a` | 17/10 | MongoDB en el VPS, migración y nueva Elastic IP | Dominio, TLS y WebSocket verificados en producción |
+| Corrección en producción | `4daba22` | 17/10 | Renombres encadenados y confirmaciones ("sí, hazlo") | 8 tests nuevos; prueba real en producción (Capturas 6 y 12) |
+| **Ejecutor configurable** | `d003cf8` | 18/10 | Interruptor por sala «IA edita el lienzo» / «IA solo sugiere» (`ai:settings`, `applyCanvasPolicy`) | 8 tests nuevos; prueba local con Ollama en ambos modos |
 
 **Tamaño del cambio del 2do Parcial:** 94 archivos, **+8.673 / −252 líneas** (`348f1aa..b014a42`).
 
@@ -70,8 +73,9 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 
 ### 2.4.1 Pruebas automatizadas
 
-- **Backend:** **117 pruebas unitarias en 19 archivos, todas aprobadas**
-  (`npx vitest run`, 17/10/2026). Cubren el generador y sus plantillas,
+- **Backend:** **125 pruebas unitarias en 20 archivos, todas aprobadas**
+  (`npx vitest run`, 18/10/2026; la Captura 3 muestra la corrida del 17/10,
+  con 117, antes del interruptor configurable). Cubren el generador y sus plantillas,
   validación, XMI, autoría y bitácora (`authorship.util.spec.ts`), saneamiento
   del modelo, motor híbrido (`hybrid.provider.spec.ts`), prompt del moderador,
   detección de pedidos explícitos y validación de operaciones de la IA.
@@ -150,6 +154,8 @@ efectivo.
 | 6 | Las clases perdían su posición al recargar (defecto del 1er Parcial, desde `4198c8b`) | `PositionDto` sin decoradores: el `ValidationPipe` borraba `x`/`y` | Decoradores de validación + saneamiento del modelo | `814d912` |
 | 7 | Entradas falsas en la bitácora ("modificó estereotipo…") | Mongo guardaba `undefined` como `null` | `sanitizeModel` + `ignoreUndefined` | `814d912` |
 | 8 | El botón del visor quedaba cortado en celulares de 375 px | La AppBar no tenía espacio | Botón flotante "Visor UML en vivo" | `e5eeae3` |
+| 9 | En producción la IA decía "renombré y agregué" pero el lienzo no cambiaba | El validador no seguía un renombre dentro del mismo lote, y "sí, hazlo" no contaba como pedido explícito | El validador sigue renombres y eliminaciones; se aceptan confirmaciones; si se descarta algo, la respuesta lo aclara | `4daba22` |
+| 10 | En modo «solo sugerencias», el modelo local respondía "agregué la clase…" sin haberla agregado | El modelo pequeño ignora la instrucción del prompt | El servidor reescribe la respuesta con los pasos a seguir, generados desde las operaciones | `d003cf8` |
 
 ---
 
@@ -160,6 +166,7 @@ efectivo.
 | La IA nombra a quien responde | `moderator-prompt.ts` (regla 1) + `ensureAddressed()` | `moderator-prompt.spec.ts`; respuestas reales |
 | Chat completamente público | `chat.gateway.ts` (difunde a toda la sala) | Prueba con dos usuarios |
 | Mentor teórico y práctico | Prompt del moderador + operaciones + `intent.ts` | `intent.spec.ts`, `validate-operations.spec.ts` |
+| Ejecutor **configurable** | `aiCanEditCanvas` en el diagrama + `ai:settings` + `canvas-policy.ts` | `canvas-policy.spec.ts`; prueba en ambos modos |
 | Contexto grupal e individual | `moderator.service.ts` (bitácora, sala, hilo) | Respuestas "creada por Marco" / "como te comenté antes" |
 | IA híbrida local + nube | `hybrid.provider.ts` | `hybrid.provider.spec.ts`; tres escenarios medidos |
 | Autoría granular | `authorship.util.ts` | `authorship.util.spec.ts`; inspector y visor |
@@ -183,9 +190,9 @@ efectivo.
 
 ---
 
-## 2.8 Pendientes registrados (al 17/10/2026)
+## 2.8 Pendientes registrados (al 18/10/2026)
 
-- [ ] Desplegar en el VPS: levantar Mongo y correr una sola vez `migrate-pg-to-mongo.js`.
+- [x] Desplegar en el VPS: levantar Mongo y correr una sola vez `migrate-pg-to-mongo.js` (17/10).
 - [ ] Probar las notificaciones en un Android real (en web no se pudo conceder el permiso).
 - [ ] Probar el corte de internet real (WiFi apagado) con `cloud-first`.
 - [ ] Limitación conocida: el guardado reemplaza el modelo completo
