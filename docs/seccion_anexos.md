@@ -150,7 +150,7 @@ correspondiente (`docs/estandar_de_codificacion.md`). Incluye:
 |---|---|
 | Documento | **Segundo Examen Parcial** |
 | Materia | Ingeniería de Software 1 (SW1) |
-| Docente | Ing. Rolando Martínez Canedo |
+| Docente | Ing. Rolando Martínez |
 | Grupo | **43** |
 | Integrantes | **Elizabeth Rivero Peña** (registro ⟨…⟩) · **Luis Fernando Angulo Heredia** (registro ⟨…⟩) |
 | Fecha de entrega | Miércoles 11 de noviembre de 2026, 08:00 |

@@ -287,11 +287,11 @@ def construir_referencia() -> Path:
         st.paragraph_format.space_after = Pt(after)
         return st
 
-    para_style("Cover Institution", 13, True, azul, before=24, after=4)
-    para_style("Cover Subject", 13, False, azul, after=60)
+    para_style("Cover Institution", 13, True, azul, before=6, after=4)
+    para_style("Cover Subject", 13, False, azul, after=32)
     para_style("Cover Title", 26, True, azul, after=18)
     para_style("Cover App", 20, True, RGBColor(0x2C, 0x3E, 0x50), after=6)
-    para_style("Cover Subtitle", 12, False, RGBColor(0x55, 0x55, 0x55), after=48)
+    para_style("Cover Subtitle", 12, False, RGBColor(0x55, 0x55, 0x55), after=20)
     para_style("Cover Info", 12, False, None, after=2)
     para_style("Cover QR", 11, False, None, before=36, after=0)
     para_style("Cover QR Caption", 10, True, azul, after=0)

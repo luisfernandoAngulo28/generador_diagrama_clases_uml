@@ -38,7 +38,12 @@ PAGE_BREAK = bd.PAGE_BREAK
 def caratula() -> str:
     qr_repo = (bd.OUT_DIR / "img" / "qr_repositorio.png").as_posix()
     qr_prod = (bd.OUT_DIR / "img" / "qr_produccion.png").as_posix()
+    logo = (bd.OUT_DIR / "img" / "logo_ficct.png").as_posix()
     return f"""
+::: {{custom-style="Cover Institution"}}
+![]({logo}){{width=0.72in height=1in}}
+:::
+
 ::: {{custom-style="Cover Institution"}}
 UNIVERSIDAD AUTÓNOMA GABRIEL RENÉ MORENO
 :::
@@ -70,9 +75,9 @@ Peña Rivero Elizabeth — Registro: 215053745
 
 **Materia:** Ingeniería de Software I
 
-**Sigla:** INF 422 ⟨verificar grupo⟩
+**Sigla:** INF422-SB
 
-**Docente:** Ing. Martínez Canedo Rolando Antonio
+**Docente:** Ing. Rolando Martínez
 
 **Semestre:** 2026-2
 
