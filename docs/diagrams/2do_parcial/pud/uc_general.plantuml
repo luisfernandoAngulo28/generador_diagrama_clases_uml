@@ -1,0 +1,86 @@
+@startuml uc_general
+' Diagrama de casos de uso — ciclos 1 y 2 — UML 2.5.1 (OMG)
+!include ../_estilo.iuml
+left to right direction
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #EAF2FB
+  BorderColor #2C3E50
+}
+title Diagrama General de Casos de Uso — Ciclo 1 (CU1–CU12) y Ciclo 2 (CU13–CU20)\n<size:11>UML 2.5.1</size>
+
+actor "Integrante del equipo" as U
+actor "Usuario Colaborador" as UC
+actor "Integrante (móvil)" as UM
+actor "Moderador IA\n(Gemini / Ollama)" as IA <<sistema>>
+
+rectangle "Herramienta CASE — Diagramador UML" {
+  package "Modelado (Ciclo 1)" {
+    usecase "CU1 Crear Clase UML" as CU1
+    usecase "CU2 Editar Clase UML" as CU2
+    usecase "CU3 Eliminar Clase UML" as CU3
+    usecase "CU4 Crear Relación" as CU4
+    usecase "CU5 Guardar Diagrama" as CU5
+    usecase "CU6 Cargar Diagrama Compartido" as CU6
+  }
+  package "Colaboración y Generación (Ciclo 1)" {
+    usecase "CU7 Colaborar en Tiempo Real" as CU7
+    usecase "CU8 Generar Backend Spring Boot" as CU8
+    usecase "CU9 Exportar a XMI" as CU9
+  }
+  package "Asistencia IA (Ciclo 1)" {
+    usecase "CU10 Consultar Asistente de IA" as CU10
+    usecase "CU11 Dictar Comando por Voz" as CU11
+    usecase "CU12 Interpretar Foto de Pizarra" as CU12
+  }
+  package "Sala grupal con Moderador IA (Ciclo 2)" #F4FAF6 {
+    usecase "CU13 Iniciar Sesión" as CU13
+    usecase "CU14 Enviar Mensaje al Chat Grupal" as CU14
+    usecase "CU15 Consultar al Moderador IA" as CU15
+    usecase "CU16 Solicitar Cambio del Diagrama a la IA" as CU16
+    usecase "CU17 Consultar Autoría y Bitácora" as CU17
+    usecase "CU18 Reanudar Sesión de Trabajo" as CU18
+    usecase "Responder con IA local\n(sin internet)" as RL
+  }
+  package "Visor móvil (Ciclo 2)" #F4FAF6 {
+    usecase "CU19 Visualizar Diagrama en Vivo" as CU19
+    usecase "CU20 Recibir Notificaciones" as CU20
+  }
+}
+
+U --> CU1
+U --> CU2
+U --> CU3
+U --> CU4
+U --> CU5
+U --> CU6
+U --> CU7
+U --> CU8
+U --> CU9
+U --> CU10
+U --> CU11
+U --> CU12
+UC --> CU7
+U --> CU13
+U --> CU14
+U --> CU15
+U --> CU16
+U --> CU17
+U --> CU18
+UM --> CU13
+UM --> CU19
+UM --> CU20
+CU10 --> IA
+CU12 --> IA
+CU15 --> IA
+CU16 --> IA
+
+CU15 .> CU14 : <<include>>
+CU16 .> CU15 : <<extend>>
+RL .> CU15 : <<extend>>
+CU16 .> CU5 : <<include>>
+CU18 .> CU13 : <<include>>
+CU19 .> CU13 : <<include>>
+CU20 .> CU19 : <<extend>>
+CU11 .> CU10 : <<include>>
+@enduml

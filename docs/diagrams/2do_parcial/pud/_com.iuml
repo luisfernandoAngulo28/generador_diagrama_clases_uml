@@ -1,0 +1,19 @@
+' Estilo de los diagramas de comunicación (UML 2.5.1): objetos con
+' estereotipo ECB y mensajes numerados sobre los enlaces.
+!include ../_estilo.iuml
+allowmixing
+hide empty members
+hide circle
+skinparam object {
+  BackgroundColor #EAF2FB
+  BorderColor #2C3E50
+}
+skinparam object<<boundary>> {
+  BackgroundColor #FDF2E9
+}
+skinparam object<<control>> {
+  BackgroundColor #EAF2FB
+}
+skinparam object<<entity>> {
+  BackgroundColor #E8F8F5
+}

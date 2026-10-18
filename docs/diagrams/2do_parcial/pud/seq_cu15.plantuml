@@ -1,0 +1,34 @@
+@startuml seq_cu15
+!include _seq.iuml
+title CU15 — Consultar al Moderador IA\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+actor Integrante as A
+boundary ":ChatPanel" as B
+control ":ChatGateway" as G
+control ":ModeratorService" as M
+database "MongoDB" as DB
+control ":HybridAiProvider" as H
+participant "Gemini / Ollama" as LLM
+collections "Sala" as R
+A -> B : "¿Qué es una composición?"
+B -> G : chat:send {askAi: true}
+G -> M : storeUserMessage()
+G -> R : chat:new-message (pregunta)
+G -> R : ai:status {isThinking: true, promptBy}
+G -> M : answer(user, question)
+par contexto dual
+  M -> DB : diagrama + autoría
+else
+  M -> DB : bitácora (contexto grupal)
+else
+  M -> DB : hilo del usuario (contexto individual)
+end
+M -> H : editDiagram(prompt completo / lite)
+H -> LLM : generar (Gemini primero; Ollama si no hay internet)
+LLM --> H : {reply, operations}
+H --> M : resultado + providerUsed
+M -> M : ensureAddressed(reply, nombre)
+M -> DB : insert respuesta {addressedTo, providerUsed}
+M --> G : answer
+G -> R : chat:new-message ("Luis, …" + badge del proveedor)
+G -> R : ai:status {isThinking: false}
+@enduml

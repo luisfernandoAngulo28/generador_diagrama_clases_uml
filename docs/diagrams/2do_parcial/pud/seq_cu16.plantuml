@@ -1,0 +1,28 @@
+@startuml seq_cu16
+!include _seq.iuml
+title CU16 — Solicitar Cambio del Diagrama a la IA\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+actor "Integrante (Luis)" as A
+boundary ":ChatPanel (Luis)" as B
+control ":ChatGateway" as G
+control ":ModeratorService" as M
+control ":OperationValidator\n/ Intent" as V
+boundary ":App (lienzo de Luis)" as L
+control ":DiagramsService" as D
+collections "Sala" as R
+A -> B : "Agrega la clase Producto y relaciónala\nmuchos a muchos con Pedido"
+B -> G : chat:send {askAi: true}
+G -> M : answer() (ver CU15)
+M -> V : validateOperations()\nisExplicitChangeRequest()
+V --> M : operaciones válidas
+M --> G : answer + operations
+G -> R : chat:new-message {operations}
+R -> B : mensaje dirigido a Luis
+opt el cliente es el de quien pidió el cambio
+  B -> L : applyAiOperations(ops)
+  L -> R : diagram-update (sincroniza a todos)
+  L -> D : PATCH /diagrams/:id {source: AI}
+  D -> D : applyAuthorship (author = Luis, vía IA)\ndiffModel → bitácora "(vía IA)"
+  D --> L : 200 OK
+  D -> R : diagram:authorship
+end
+@enduml

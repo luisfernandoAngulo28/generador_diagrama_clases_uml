@@ -1,0 +1,27 @@
+@startuml seq_cu13
+!include _seq.iuml
+title CU13 — Iniciar Sesión\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+actor Integrante as A
+boundary ":LoginPage" as B
+participant ":AuthContext" as CTX
+control ":AuthController" as C
+control ":AuthService" as S
+database "PostgreSQL\n(users)" as DB
+A -> B : correo y contraseña
+B -> CTX : login(email, password)
+CTX -> C : POST /auth/login
+C -> S : login(dto)
+S -> DB : buscar usuario por email
+DB --> S : usuario (passwordHash)
+alt credenciales válidas
+  S -> S : bcrypt.compare()\njwt.sign({sub, email, name})
+  S --> C : {token, user}
+  C --> CTX : 201 {token, user}
+  CTX -> CTX : localStorage(token, user)
+  CTX --> B : sesión iniciada
+  B --> A : abre la herramienta; el socket\nenviará el JWT en el handshake
+else credenciales inválidas
+  S --> C : UnauthorizedException
+  C --> B : 401 "Credenciales inválidas"
+end
+@enduml

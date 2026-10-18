@@ -1,0 +1,21 @@
+@startuml com_cu16
+!include _com.iuml
+title CU16 — Solicitar Cambio del Diagrama a la IA\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":ChatPanel" as B <<boundary>>
+object ":ChatGateway" as C1 <<control>>
+object ":ModeratorService" as C2 <<control>>
+object ":Intent / OperationValidator" as C3 <<control>>
+object ":App (lienzo)" as B2 <<boundary>>
+object ":DiagramsService" as C4 <<control>>
+object ":Diagram" as E <<entity>>
+actor "Integrante" as A
+A -down- B : "1: 'agrega la clase Producto…' →"
+B -down- C1 : "2: chat:send {askAi:true} →"
+C1 -down- C2 : "3: answer() (ver CU15) →"
+C2 -down- C3 : "4: validateOperations() ·\n5: isExplicitChangeRequest() →"
+C2 -up- C1 : "6: {reply, operations} ←"
+C1 -up- B : "7: chat:new-message + operations ←"
+B -down- B2 : "8: applyAiOperations(ops)\n(solo en el cliente de quien pidió) →"
+B2 -down- C4 : "9: PATCH /diagrams/:id {source: AI} →"
+C4 -down- E : "10: applyAuthorship (vía IA) + bitácora →"
+@enduml

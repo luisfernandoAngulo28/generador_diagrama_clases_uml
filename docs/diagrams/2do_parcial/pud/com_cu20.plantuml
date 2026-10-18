@@ -1,0 +1,13 @@
+@startuml com_cu20
+!include _com.iuml
+title CU20 — Recibir Notificaciones en el Móvil\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":LiveRoom" as C1 <<control>>
+object ":LiveNotifications" as C2 <<control>>
+object ":ChatGateway / DiagramsGateway" as C3 <<control>>
+object ":Notificación del sistema" as B <<boundary>>
+actor "Integrante (móvil)" as A
+C3 -up- C1 : "1: chat:new-message /\ndiagram-update (editorName) →"
+C1 -down- C2 : "2: show(título, texto)\n(máx. 1 aviso de cambios cada 10 s) →"
+C2 -down- B : "3: notificación local →"
+B -up- A : "4: el integrante la ve aunque\nno mire la pantalla ←"
+@enduml

@@ -295,6 +295,11 @@ def construir_referencia() -> Path:
     para_style("Cover Info", 12, False, None, after=2)
     para_style("Cover QR", 11, False, None, before=36, after=0)
     para_style("Cover QR Caption", 10, True, azul, after=0)
+    # Portadillas de "PARTE N": página propia, centradas verticalmente.
+    parte = para_style("Parte", 28, True, azul, before=230, after=6)
+    parte.paragraph_format.page_break_before = True
+    parte.paragraph_format.keep_with_next = True
+    para_style("Parte Titulo", 16, False, RGBColor(0x2C, 0x3E, 0x50), after=0)
     ph = para_style("Placeholder", 10, False, RGBColor(0x7A, 0x5C, 0x00), align=WD_ALIGN_PARAGRAPH.LEFT,
                     before=4, after=8)
     ppr = ph.element.get_or_add_pPr()
@@ -333,6 +338,23 @@ def _borde(tbl):
     tblPr.append(borders)
 
 
+def _anchos_tabla_de_ficha(tbl):
+    """Fichas de dos columnas (Propósito | …, Campo | Valor): la etiqueta en una
+    columna de 1,6" para que "Propósito" no se parta en dos líneas."""
+    if len(tbl.columns) != 2:
+        return
+    etiquetas = [row.cells[0].text.strip() for row in tbl.rows]
+    if any(len(e) > 28 for e in etiquetas):
+        return
+    anchos = (Cm(4.1), Cm(12.4))
+    grid = tbl._tbl.tblGrid
+    for col, ancho in zip(grid.findall(qn("w:gridCol")), anchos):
+        col.set(qn("w:w"), str(int(ancho.twips)))
+    for row in tbl.rows:
+        for cell, ancho in zip(row.cells, anchos):
+            cell.width = ancho
+
+
 def post_procesar(path: Path):
     """Bordes y encabezado sombreado en las tablas, y tamaño de letra compacto."""
     doc = Document(path)
@@ -353,6 +375,7 @@ def post_procesar(path: Path):
                             run.font.color.rgb = RGBColor(0x1F, 0x3A, 0x5F)
             continue
         _borde(tbl)
+        _anchos_tabla_de_ficha(tbl)
         for i, row in enumerate(tbl.rows):
             for cell in row.cells:
                 for p in cell.paragraphs:

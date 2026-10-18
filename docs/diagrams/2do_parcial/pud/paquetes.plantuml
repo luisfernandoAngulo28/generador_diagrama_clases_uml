@@ -1,0 +1,39 @@
+@startuml paquetes
+' Diagrama de paquetes — ciclos 1 y 2 — UML 2.5.1
+!include ../_estilo.iuml
+title Diagrama de Paquetes del Sistema — Ciclo 2\n<size:11>UML 2.5.1 · dependencias «use» unidireccionales · en verde, lo nuevo del ciclo 2</size>
+
+package "frontend (React)" {
+  package "lienzo"
+  package "chat grupal" #E9F7EF
+  package "api"
+}
+package "app móvil (Flutter)" {
+  package "cliente de la API generada"
+  package "live (visor UML)" #E9F7EF
+}
+package "backend (NestJS)" {
+  package "auth"
+  package "users"
+  package "diagrams (autoría, bitácora, sesiones)" #E9F7EF
+  package "ai (motor híbrido, moderador, chat)" #E9F7EF
+  package "generator"
+  package "attachments"
+}
+
+"lienzo" ..> "api" : <<use>>
+"chat grupal" ..> "api" : <<use>>
+"api" ..> "auth" : <<use>>
+"api" ..> "diagrams (autoría, bitácora, sesiones)" : <<use>>
+"api" ..> "ai (motor híbrido, moderador, chat)" : <<use>>
+"api" ..> "generator" : <<use>>
+"live (visor UML)" ..> "diagrams (autoría, bitácora, sesiones)" : <<use>>
+"live (visor UML)" ..> "ai (motor híbrido, moderador, chat)" : <<use>>
+"live (visor UML)" ..> "auth" : <<use>>
+"auth" ..> "users" : <<use>>
+"diagrams (autoría, bitácora, sesiones)" ..> "auth" : <<use>>
+"ai (motor híbrido, moderador, chat)" ..> "diagrams (autoría, bitácora, sesiones)" : <<use>>
+"ai (motor híbrido, moderador, chat)" ..> "auth" : <<use>>
+"generator" ..> "diagrams (autoría, bitácora, sesiones)" : <<use>>
+"attachments" ..> "auth" : <<use>>
+@enduml

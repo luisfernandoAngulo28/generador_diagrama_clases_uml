@@ -1,0 +1,18 @@
+@startuml com_cu17
+!include _com.iuml
+title CU17 — Consultar Autoría y Bitácora\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":ClassInspector" as B1 <<boundary>>
+object ":HistoryPanel" as B2 <<boundary>>
+object ":DiagramsGateway" as C1 <<control>>
+object ":DiagramsService" as C2 <<control>>
+object ":Diagram" as E1 <<entity>>
+object ":ActivityLog" as E2 <<entity>>
+actor "Integrante" as A
+A -down- B1 : "1: abre una clase →"
+C1 -up- B1 : "2: diagram:authorship (en vivo) →\n3: muestra 'Creada por… · vía IA' →"
+A -down- B2 : "4: abre Historial →"
+B2 -down- C2 : "5: GET /diagrams/:id/history →"
+C2 -down- E2 : "6: find(diagramId) orden desc →"
+C2 -down- E1 : "(autoría embebida en el modelo)"
+C2 -up- B2 : "7: entradas {usuario, acción, resumen} ←"
+@enduml

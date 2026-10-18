@@ -1,0 +1,21 @@
+@startuml seq_cu14
+!include _seq.iuml
+title CU14 — Enviar Mensaje al Chat Grupal\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+actor Integrante as A
+boundary ":ChatPanel" as B
+control ":ChatGateway" as G
+control ":ModeratorService" as M
+database "MongoDB\n(group_chat_messages)" as DB
+collections "Sala del diagrama" as R
+A -> B : escribe un mensaje (botón IA apagado)
+B -> B : onEnsureSaved()
+B -> G : chat:send {diagramId, text, askAi: false}
+G -> G : resolveSocketUser() (JWT)
+G -> M : storeUserMessage(diagramId, user, text)
+M -> DB : insert {sender, text, timestamp}
+DB --> M : id
+M --> G : ChatMessage
+G -> R : chat:new-message
+R --> A : todos los integrantes (web y móvil)\nven el mensaje
+note over G : askAi = false y sin "@IA":\nla IA no interviene
+@enduml

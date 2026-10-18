@@ -1,0 +1,22 @@
+@startuml seq_cu17
+!include _seq.iuml
+title CU17 — Consultar Autoría y Bitácora\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+actor Integrante as A
+boundary ":ClassInspector" as I
+boundary ":HistoryPanel" as H
+control ":DiagramsController" as C
+control ":DiagramsService" as S
+database "MongoDB" as DB
+control ":DiagramsGateway" as G
+G -> I : diagram:authorship (después de cada guardado)
+A -> I : abre una clase (doble clic)
+I --> A : "Creada por Marco · Última edición: Luis · vía IA"\n+ autor de cada atributo
+A -> H : abre "Historial"
+H -> C : GET /diagrams/:id/history
+C -> S : getHistory(id)
+S -> DB : activity_logs.find({diagramId})\n.sort(timestamp desc).limit(50)
+DB --> S : entradas
+S --> C : [{userName, action, summary, createdAt}]
+C --> H : 200
+H --> A : "Luis: Creó la clase Producto (vía IA)" …
+@enduml

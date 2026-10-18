@@ -6,15 +6,16 @@
 # Notas: Word corre oculto dentro de un job con límite de tiempo, para que un
 # diálogo invisible no deje el proceso colgado. Si queda un archivo de bloqueo
 # "~$..." de una ejecución anterior, se borra antes de abrir.
+param([string]$Nombre = 'Examen_Parcial_2_Grupo43_SW1')
 $ErrorActionPreference = 'Stop'
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Get-ChildItem -LiteralPath $dir -Filter '~$*' -Force | Remove-Item -Force
 
 $inicio = Get-Date
-$job = Start-Job -ArgumentList $dir {
-    param($dir)
-    $docx = Join-Path $dir 'Segundo_Parcial_Grupo43_SW1.docx'
-    $pdf  = Join-Path $dir 'Segundo_Parcial_Grupo43_SW1.pdf'
+$job = Start-Job -ArgumentList $dir, $Nombre {
+    param($dir, $nombre)
+    $docx = Join-Path $dir ($nombre + '.docx')
+    $pdf  = Join-Path $dir ($nombre + '.pdf')
     $word = New-Object -ComObject Word.Application
     $word.Visible = $false
     $word.DisplayAlerts = 0

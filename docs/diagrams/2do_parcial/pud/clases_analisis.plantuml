@@ -1,0 +1,57 @@
+@startuml clases_analisis
+' Clases de análisis del ciclo 2 — patrón ECB — UML 2.5.1
+!include ../_estilo.iuml
+hide empty members
+skinparam class<<boundary>> {
+  BackgroundColor #FDF2E9
+}
+skinparam class<<entity>> {
+  BackgroundColor #E8F8F5
+}
+title Clases de Análisis — Ciclo 2 (Sala grupal, Moderador IA y Visor móvil)\n<size:11>UML 2.5.1 · Boundary-Control-Entity</size>
+
+package "Boundary" {
+  class LoginPage <<boundary>>
+  class ChatPanel <<boundary>>
+  class ClassInspector <<boundary>>
+  class HistoryPanel <<boundary>>
+  class UmlViewerScreen <<boundary>>
+}
+package "Control" {
+  class AuthController <<control>>
+  class ChatGateway <<control>>
+  class DiagramsGateway <<control>>
+  class ModeratorService <<control>>
+  class HybridAiProvider <<control>>
+  class DiagramsService <<control>>
+  class SessionsService <<control>>
+  class LiveRoom <<control>>
+}
+package "Entity" {
+  class User <<entity>>
+  class Diagram <<entity>>
+  class AuthorStamp <<entity>>
+  class ActivityLog <<entity>>
+  class DiagramSession <<entity>>
+  class GroupChatMessage <<entity>>
+}
+
+LoginPage --> AuthController
+ChatPanel --> ChatGateway
+ClassInspector ..> DiagramsGateway : diagram:authorship
+HistoryPanel --> DiagramsService
+UmlViewerScreen --> LiveRoom
+LiveRoom --> DiagramsGateway
+LiveRoom --> ChatGateway
+AuthController --> User
+ChatGateway --> ModeratorService
+ModeratorService --> HybridAiProvider
+ModeratorService --> DiagramsService
+ModeratorService --> SessionsService
+ModeratorService --> GroupChatMessage
+DiagramsGateway --> SessionsService
+DiagramsService --> Diagram
+DiagramsService --> ActivityLog
+SessionsService --> DiagramSession
+Diagram *-- AuthorStamp
+@enduml
