@@ -10,6 +10,13 @@ describe('isExplicitChangeRequest', () => {
     'Quiero que renombres... no, renombra Pedido a Orden',
     'Ordena el diagrama por favor',
     'Añade el atributo total a Pedido',
+    'Avancemos con el modelo de la cafetería',
+    'Transforma NuevaClase en Cliente',
+    'Sí, hazlo',
+    'si porfavor',
+    'si, adelante',
+    'dale',
+    'Ok, perfecto',
   ])('detects a change request: %s', (msg) => {
     expect(isExplicitChangeRequest(msg)).toBe(true);
   });
@@ -20,6 +27,8 @@ describe('isExplicitChangeRequest', () => {
     '¿Y cómo se representaría eso que me explicaste antes en nuestro diagrama?',
     '¿Es correcta la relación entre Cliente y Pedido?',
     'Explícame la diferencia entre agregación y composición',
+    'si quito la clase Pago, ¿qué relaciones se pierden?',
+    'Sigo sin entender la herencia',
   ])('treats as a question: %s', (msg) => {
     expect(isExplicitChangeRequest(msg)).toBe(false);
   });

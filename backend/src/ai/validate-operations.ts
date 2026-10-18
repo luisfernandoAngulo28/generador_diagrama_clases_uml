@@ -32,10 +32,20 @@ export function validateOperations(result: EditDiagramResult, model: UmlModel): 
       case 'RENAME_CLASS':
       case 'ADD_ATTRIBUTE':
       case 'REMOVE_ATTRIBUTE':
-        if (knowsClass(op.className)) {
-          kept.push(op);
-        } else {
+        if (!knowsClass(op.className)) {
           dropped.push(`${op.op} sobre "${op.className}" (esa clase no existe)`);
+          break;
+        }
+        kept.push(op);
+        // Later operations of the same batch refer to the class by its new
+        // name ("renombra NuevaClase a Cliente y agrégale email"), so the
+        // set of known names must follow renames and deletions — the
+        // frontend applies the batch in order the same way.
+        if (op.op === 'RENAME_CLASS') {
+          known.delete(op.className);
+          known.add(op.newName);
+        } else if (op.op === 'DELETE_CLASS') {
+          known.delete(op.className);
         }
         break;
       case 'CREATE_RELATION':

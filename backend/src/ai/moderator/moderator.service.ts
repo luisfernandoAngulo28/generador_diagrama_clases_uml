@@ -142,17 +142,22 @@ export class ModeratorService implements OnModuleInit {
 
     // Rule "solo modifica el lienzo si te lo piden": enforced here, not trusted to the model.
     let operations = result.operations;
+    let reply = result.reply;
     if (operations.length && !isExplicitChangeRequest(text)) {
       this.logger.warn(
         `Se descartaron ${operations.length} operación(es) de ${result.providerUsed}: "${text}" no pide cambios al diagrama`,
       );
       operations = [];
+      // Don't let the answer claim changes that were not applied.
+      reply +=
+        '\n\n(No apliqué cambios en el lienzo porque el mensaje no los pide explícitamente. ' +
+        'Si quieres que los haga, respóndeme «sí, hazlo» o pídemelo con «agrega…», «renombra…», «relaciona…».)';
     }
 
     const answer = await this.chatModel.create({
       diagramId,
       sender: AI_ACTOR,
-      text: ensureAddressed(result.reply, asker.userName),
+      text: ensureAddressed(reply, asker.userName),
       isAiResponse: true,
       addressedTo: asker,
       appliedOperationsCount: operations.length,
