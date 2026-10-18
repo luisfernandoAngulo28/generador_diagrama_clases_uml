@@ -4,6 +4,7 @@ import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { EditDiagramResult } from '../operations.types.js';
 import { EDIT_SYSTEM_PROMPT, VISION_SYSTEM_PROMPT, stripJsonFences } from '../prompts.js';
 import type { AiCallOptions, AiProvider } from './ai-provider.interface.js';
+import { BASE_MODEL, CUSTOM_MODEL_NAME } from '../ollama-modelfile.js';
 
 interface OllamaGenerateResponse {
   response: string;
@@ -34,7 +35,7 @@ export class OllamaProvider implements AiProvider {
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl = this.configService.get<string>('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
-    this.textModel = this.configService.get<string>('OLLAMA_TEXT_MODEL') ?? 'qwen2.5:1.5b-instruct';
+    this.textModel = this.configService.get<string>('OLLAMA_TEXT_MODEL') ?? CUSTOM_MODEL_NAME;
     this.visionModel = this.configService.get<string>('OLLAMA_VISION_MODEL') ?? 'moondream';
   }
 
@@ -79,6 +80,14 @@ export class OllamaProvider implements AiProvider {
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
+      // The team's model (moderador-uml) exists only after `npm run ollama:modelo`:
+      // fall back to its base model instead of leaving the room without AI.
+      if (res.status === 404 && params.model === CUSTOM_MODEL_NAME) {
+        this.logger.warn(
+          `El modelo "${CUSTOM_MODEL_NAME}" no está creado (npm run ollama:modelo); se usa ${BASE_MODEL}.`,
+        );
+        return this.generate({ ...params, model: BASE_MODEL });
+      }
       throw new BadRequestException(`Ollama respondió ${res.status}: ${body.slice(0, 300)}`);
     }
 
