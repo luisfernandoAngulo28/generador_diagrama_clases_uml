@@ -197,7 +197,7 @@ Rumbaugh, 1999). Sus tres principios se ven en el proyecto:
 
 ---
 
-## Anexo E. Bibliografía (APA 7)
+## Anexo F. Bibliografía (APA 7)
 
 Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). *Design patterns: Elements of reusable object-oriented software*. Addison-Wesley.
 
