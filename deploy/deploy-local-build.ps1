@@ -18,7 +18,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $PEM     = ".deploy\diagramador-uml-key.pem"
-$SERVER  = "ubuntu@34.231.176.225"
+$SERVER  = "ubuntu@100.56.70.99"
 $APP_DIR = "app"
 
 function Log-Step { param($msg); Write-Host "`n== $msg ==" -ForegroundColor Cyan }
