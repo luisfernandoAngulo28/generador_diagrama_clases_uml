@@ -190,7 +190,7 @@ costo total ocurre después de la primera versión, en mantenimiento y evolució
    plantillas independientes en el generador y contratos explícitos
    (`AiProvider`). Agregar un tercer proveedor de IA o una nueva capa generada
    no obliga a modificar el resto.
-3. **Pruebas automatizadas:** **125 pruebas unitarias** (Vitest) cubren el
+3. **Pruebas automatizadas:** **129 pruebas unitarias** (Vitest) cubren el
    generador, la validación, XMI, la autoría, el motor híbrido y el prompt del
    moderador. Fallan si un cambio rompe un comportamiento existente.
 4. **Evolución sin romper lo anterior:** el 2do Parcial agregó MongoDB, IA
@@ -226,6 +226,12 @@ en la nube. Lo configuramos así:
 - **Ejemplos (few-shot)** y un mini glosario UML para el modelo pequeño.
 - **Parámetros de inferencia:** temperatura 0 (respuestas deterministas) y
   salida en JSON con un contrato fijo de operaciones.
+- **Modelo propio en Ollama: `moderador-uml`.** Lo construimos con un
+  *Modelfile* (`FROM qwen2.5:1.5b-instruct`) que fija el rol del moderador, el
+  glosario y los parámetros (temperatura 0, ventana de 4.096 tokens, límite de
+  256 tokens de respuesta). El Modelfile se **genera desde el código**
+  (`npm run ollama:modelo`), así que el modelo y el backend nunca quedan
+  desincronizados. Si el modelo no está creado, el backend usa qwen2.5 base.
 - **Validación determinista:** el servidor descarta operaciones inválidas y las
   que no responden a un pedido explícito. **La IA nunca toca el diagrama sin
   control.**

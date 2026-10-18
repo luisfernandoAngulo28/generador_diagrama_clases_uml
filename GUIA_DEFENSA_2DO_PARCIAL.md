@@ -214,6 +214,19 @@ Gemini) y lo guiamos con:
 
 📍 Muéstralo: `moderator-prompt.ts` (`ROLE`, `LITE_STATIC`).
 
+**C1-bis. ¿Entonces qué tiene de "personalizado por ustedes" el modelo local?**
+- Creamos nuestro propio modelo en Ollama, **`moderador-uml`**, con un *Modelfile*:
+  `FROM qwen2.5:1.5b-instruct` + `SYSTEM` (rol, reglas y glosario del moderador) +
+  `PARAMETER` (temperatura 0, `num_ctx` 4096, `num_predict` 256, `repeat_penalty` 1.1).
+- El Modelfile **se genera desde el código** (`buildModelfile()` usa el mismo `LITE_STATIC` que el backend)
+  con `npm run ollama:modelo`, que también ejecuta `ollama create`.
+- El backend lo usa por defecto (`OLLAMA_TEXT_MODEL=moderador-uml`) y, si no existe, vuelve a qwen2.5 base.
+- Es **configuración**, no entrenamiento: no cambiamos pesos. Tampoco lo vendan como más rápido: en CPU tarda lo mismo.
+- **En vivo:** `ollama show moderador-uml --modelfile` y `ollama run moderador-uml "¿Qué es un atributo derivado?"`
+  (responde como moderador aunque no lo llame el backend).
+
+📍 Muéstralo: `backend/src/ai/ollama-modelfile.ts`, `backend/ollama/Modelfile`, `backend/src/scripts/crear-modelo-ollama.ts`.
+
 **C2. ¿Cómo funciona el fallback? ¿Qué pasa si se cae internet en plena defensa?**
 - `HybridAiProvider` arma una **cadena de proveedores** según `AI_HYBRID_ORDER`.
 - Por defecto es *cloud-first*: Gemini primero.
@@ -421,7 +434,7 @@ laptop, sin AWS ni internet.
 
 | Dato | Valor |
 |---|---|
-| Pruebas unitarias | **125** (20 archivos), todas en verde |
+| Pruebas unitarias | **129** (22 archivos), todas en verde |
 | Commits | 89 hasta la Sección 1 (79 del 1er Parcial + 10 del 2do) |
 | Tamaño del 2do Parcial | 94 archivos, +8.673 / −252 líneas |
 | Ollama, prompt completo → lite | 36–79 s → 5–18 s (CPU) |
@@ -451,7 +464,7 @@ regla del ensayo: **responder abriendo el archivo**.
 
 - [ ] Backend, MongoDB y PostgreSQL arriba; `npx vitest run` en verde.
 - [ ] Dos cuentas listas; el celular con el APK y el visor probado.
-- [ ] Ollama con `qwen2.5:1.5b-instruct` precalentado (si usan `local-first`).
+- [ ] Ollama con `moderador-uml` creado (`npm run ollama:modelo`) y precalentado (si usan `local-first`).
 - [ ] VS Code con estos archivos en pestañas: `hybrid.provider.ts`,
       `moderator.service.ts`, `moderator-prompt.ts`, `authorship.util.ts`,
       `chat.gateway.ts`, `sessions.service.ts`, `ChatPanel.tsx`.

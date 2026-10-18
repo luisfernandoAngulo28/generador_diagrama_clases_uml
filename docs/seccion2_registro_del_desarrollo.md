@@ -64,6 +64,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 | Despliegue en AWS | `90f081a` | 17/10 | MongoDB en el VPS, migración y nueva Elastic IP | Dominio, TLS y WebSocket verificados en producción |
 | Corrección en producción | `4daba22` | 17/10 | Renombres encadenados y confirmaciones ("sí, hazlo") | 8 tests nuevos; prueba real en producción (Capturas 6 y 12) |
 | **Ejecutor configurable** | `d003cf8` | 18/10 | Interruptor por sala «IA edita el lienzo» / «IA solo sugiere» (`ai:settings`, `applyCanvasPolicy`) | 8 tests nuevos; prueba local con Ollama en ambos modos |
+| **Modelo propio en Ollama** | `83e4e9e` | 18/10 | `moderador-uml`: Modelfile generado desde el código, `npm run ollama:modelo`, respaldo a qwen2.5 base | 4 tests nuevos; respuesta real en el chat con 🏠 Ollama Local |
 
 **Tamaño del cambio del 2do Parcial:** 94 archivos, **+8.673 / −252 líneas** (`348f1aa..b014a42`).
 
@@ -73,7 +74,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 
 ### 2.4.1 Pruebas automatizadas
 
-- **Backend:** **125 pruebas unitarias en 20 archivos, todas aprobadas**
+- **Backend:** **129 pruebas unitarias en 22 archivos, todas aprobadas**
   (`npx vitest run`, 18/10/2026; la Captura 3 muestra la corrida del 17/10,
   con 117, antes del interruptor configurable). Cubren el generador y sus plantillas,
   validación, XMI, autoría y bitácora (`authorship.util.spec.ts`), saneamiento
@@ -169,6 +170,7 @@ efectivo.
 | Ejecutor **configurable** | `aiCanEditCanvas` en el diagrama + `ai:settings` + `canvas-policy.ts` | `canvas-policy.spec.ts`; prueba en ambos modos |
 | Contexto grupal e individual | `moderator.service.ts` (bitácora, sala, hilo) | Respuestas "creada por Marco" / "como te comenté antes" |
 | IA híbrida local + nube | `hybrid.provider.ts` | `hybrid.provider.spec.ts`; tres escenarios medidos |
+| Modelo local configurado por el equipo | `ollama-modelfile.ts` + `backend/ollama/Modelfile` | `ollama-modelfile.spec.ts`, `ollama.provider.spec.ts`; `ollama run moderador-uml` |
 | Autoría granular | `authorship.util.ts` | `authorship.util.spec.ts`; inspector y visor |
 | Sesiones continuas | `sessions.service.ts` | E2E: pausa y reanudación con el mismo ID |
 | Visor móvil en tiempo real | `flutter-template/lib/live/` | Prueba en vivo web → móvil; APK compilado |
