@@ -31,14 +31,13 @@ certificado SSL válido (HTTPS):
 - **Almacenamiento en la nube:** los archivos adjuntos de los diagramas se
   guardan en un *bucket* de Amazon S3.
 
-*(Figura A.1: sitio en producción con el candado de seguridad (HTTPS).)*
+![Figura A.1: verificación del sitio en producción: certificado de Let's Encrypt válido hasta el 03/12/2026, TLS 1.3 y redirección de HTTP a HTTPS.](docs/documento_final/img/evidencias/prod_https.png){width=6in}
 
 ### A.2 Modelado y generación de código
 
-*(Figura A.2: lienzo principal con un diagrama de clases.)*
-*(Figura A.3: edición de atributos y operaciones de una clase.)*
-*(Figura A.4: relaciones con multiplicidades en notación UML 2.5.)*
-*(Figura A.5: código Java generado y Swagger UI con los endpoints CRUD.)*
+Evidencia del lienzo, las relaciones con multiplicidades (1, 0..\*) y la edición de atributos: Capturas 6 y 7 del capítulo 7.
+
+![Figura A.5: vista previa del código Java Spring Boot generado: entidades, controladores REST y servicios en arquitectura de 4 capas.](docs/documento_final/img/evidencias/codigo_java.jpg){width=6in}
 
 ### A.3 Colaboración en tiempo real
 
@@ -85,8 +84,9 @@ Evidencia: Captura 3 del capítulo 7 (`npx vitest run` con "117 passed").
 - Migración desde PostgreSQL con IDs conservados: 8 diagramas y 55 entradas de
   historial. Se ejecutó dos veces sin duplicar datos.
 
-*(Figura A.11: documento de un diagrama en MongoDB con los campos `author` y `lastModifiedBy`.)*
-*(Figura A.12: panel de historial con la bitácora por cambio, incluido "(vía IA)".)*
+![Figura A.11: documento real en el MongoDB de producción: la clase Cliente con `author` (Luis, manual) y `lastModifiedBy` (Fernando, vía IA), y el atributo email con su propia autoría.](docs/documento_final/img/evidencias/prod_mongo_autoria.jpg){width=6in}
+
+![Figura A.12: bitácora de cambios en producción, con cada cambio atribuido a su autor e indicando los hechos «(vía IA)».](docs/documento_final/img/evidencias/prod_bitacora.jpg){width=6in}
 
 ### A.9 Chat grupal público con el Moderador IA (2do Parcial)
 
