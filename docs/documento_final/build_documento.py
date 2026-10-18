@@ -96,9 +96,9 @@ Herramienta CASE colaborativa con Moderador IA para diagramas de clases UML 2.5 
 
 **Integrantes:**
 
-Elizabeth Rivero Peña
+Angulo Heredia Luis Fernando — Registro: 215001958
 
-Luis Fernando Angulo Heredia
+Peña Rivero Elizabeth — Registro: 215053745
 
 **Docente:** Ing. Rolando Martínez Canedo
 

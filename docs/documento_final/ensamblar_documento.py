@@ -64,9 +64,9 @@ Modelado de diagramas de clases UML 2.5 y generación de backends Spring Boot �
 
 **Integrantes:**
 
-Elizabeth Rivero Peña — Registro: ⟨…⟩
+Angulo Heredia Luis Fernando — Registro: 215001958
 
-Luis Fernando Angulo Heredia — Registro: ⟨…⟩
+Peña Rivero Elizabeth — Registro: 215053745
 
 **Materia:** Ingeniería de Software I
 

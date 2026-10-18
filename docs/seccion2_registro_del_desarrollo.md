@@ -68,7 +68,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 
 ### 2.4.1 Pruebas automatizadas
 
-- **Backend:** **106 pruebas unitarias en 19 archivos, todas aprobadas**
+- **Backend:** **117 pruebas unitarias en 19 archivos, todas aprobadas**
   (`npx vitest run`, 17/10/2026). Cubren el generador y sus plantillas,
   validación, XMI, autoría y bitácora (`authorship.util.spec.ts`), saneamiento
   del modelo, motor híbrido (`hybrid.provider.spec.ts`), prompt del moderador,
@@ -78,7 +78,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 - **Flutter:** `flutter analyze` sin problemas en el código nuevo; APK de
   release compilado.
 
-*(Captura 3: salida de `npx vitest run` con "106 passed".)*
+*(Captura 3: salida de `npx vitest run` con "117 passed".)*
 
 ### 2.4.2 Motor de IA híbrido — mediciones reales (laptop del equipo, CPU)
 
@@ -112,7 +112,9 @@ Dos sesiones simultáneas (Marco y Luis) sobre el mismo diagrama:
    entradas falsas.
 5. La barra indica **"2 conectados"**.
 
-*(Captura 6: chat público con la respuesta de la IA. Captura 7: inspector con la autoría "vía IA".)*
+![Captura 6: chat público en producción. Fernando pide un cambio y el Moderador IA lo aplica en el lienzo ("3 cambios en el lienzo", Gemini Cloud).](docs/documento_final/img/evidencias/prod_moderador_cambios.jpg){width=6in}
+
+*(Captura 7: inspector con la autoría "vía IA".)*
 
 ### 2.4.4 Visor móvil en tiempo real
 

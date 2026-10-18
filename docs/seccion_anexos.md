@@ -68,14 +68,14 @@ de pizarra.)*
 
 ### A.7 Pruebas automatizadas
 
-El backend tiene **106 pruebas unitarias en 19 archivos** (Vitest), todas
+El backend tiene **117 pruebas unitarias en 19 archivos** (Vitest), todas
 aprobadas al 17/10/2026. Cubren:
 - el generador y cada plantilla;
 - validación y XMI;
 - autoría y bitácora;
 - el motor de IA híbrido y el prompt del moderador.
 
-*(Figura A.10: ejecución de `npx vitest run` con "106 passed".)*
+*(Figura A.10: ejecución de `npx vitest run` con "117 passed".)*
 
 ### A.8 Persistencia en MongoDB con autoría granular (2do Parcial)
 

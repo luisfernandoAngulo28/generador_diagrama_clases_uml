@@ -190,7 +190,7 @@ costo total ocurre después de la primera versión, en mantenimiento y evolució
    plantillas independientes en el generador y contratos explícitos
    (`AiProvider`). Agregar un tercer proveedor de IA o una nueva capa generada
    no obliga a modificar el resto.
-3. **Pruebas automatizadas:** **106 pruebas unitarias** (Vitest) cubren el
+3. **Pruebas automatizadas:** **117 pruebas unitarias** (Vitest) cubren el
    generador, la validación, XMI, la autoría, el motor híbrido y el prompt del
    moderador. Fallan si un cambio rompe un comportamiento existente.
 4. **Evolución sin romper lo anterior:** el 2do Parcial agregó MongoDB, IA

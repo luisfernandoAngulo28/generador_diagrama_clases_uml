@@ -33,7 +33,7 @@ Software"* con cuatro puntos de partida:
 
 **Implementación:** `frontend/src/components/CanvasEmptyState.tsx`
 
-*(Captura 9: estado vacío del lienzo.)*
+![Captura 9: estado vacío del lienzo con accesos rápidos y el chat del equipo.](docs/documento_final/img/evidencias/prod_lienzo_vacio.jpg){width=6in}
 
 ---
 
@@ -128,7 +128,7 @@ El chat público del equipo funciona como un **docente en el aula**:
 
 `ChatPanel.tsx`, `backend/src/ai/moderator/`, `backend/src/ai/chat/chat.gateway.ts`
 
-*(Captura 12: el Moderador IA respondiendo una pregunta teórica por nombre.)*
+![Captura 12: el Moderador IA responde por nombre una pregunta teórica y no modifica el lienzo.](docs/documento_final/img/evidencias/prod_moderador_pregunta.jpg){width=6in}
 
 ---
 
