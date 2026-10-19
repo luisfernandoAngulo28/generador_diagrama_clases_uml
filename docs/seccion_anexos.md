@@ -41,8 +41,7 @@ Evidencia del lienzo, las relaciones con multiplicidades (1, 0..\*) y la edició
 
 ### A.3 Colaboración en tiempo real
 
-*(Figura A.6: dos navegadores editando el mismo diagrama, con la presencia de
-usuarios y el bloqueo por clase.)*
+![Figura A.6: el mismo diagrama abierto en dos navegadores, Edge con la sesión de Luis y Chrome con la de Fernando. Ambos muestran «2 conectados», el mismo lienzo y el mismo chat público, incluida la pregunta de Elizabeth y la respuesta del Moderador IA dirigida a ella.](docs/documento_final/img/evidencias/prod_dos_navegadores.png){width=6.4in}
 
 ### A.4 Asistencia por inteligencia artificial (1er Parcial)
 
