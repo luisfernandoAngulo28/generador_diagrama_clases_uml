@@ -151,8 +151,8 @@ con la versión que incluye el Moderador IA:
 | Generar el backend Spring Boot | ZIP del generador → `docker compose up` (PostgreSQL + Spring Boot) | ✅ Compila y arranca; Swagger en `/swagger-ui.html` |
 | Probar con Postman | Las 30 requests de la colección generada, en orden (como el *Runner*) | ✅ **30/30 con 2xx** (CRUD de las 6 entidades, incluida `Reserva`, creada por la IA) |
 | Edición del diagrama por chat | Chat del equipo con pedidos explícitos | ✅ Probado en producción (Capturas 5 y 6) |
-| Dictado por voz | Mismo hook `useSpeechRecognition` del 1er Parcial, ahora en el chat del equipo | ⏳ Requiere micrófono: prueba manual del equipo |
-| Foto de pizarra | Mismo endpoint `POST /ai/interpret-photo` y menú *Archivo → Foto de pizarra (IA)* | ⏳ Requiere una foto y Gemini: prueba manual del equipo (Figura A.7) |
+| Dictado por voz | Luis dictó "Agrega la clase factura con número y total" en el chat del equipo, en producción | ✅ La IA respondió por su nombre y creó `Factura` (Figura A.7b) |
+| Foto de pizarra | *Archivo → Foto de pizarra (IA)* con un diagrama dibujado a mano, en producción | ✅ Reconoció 5 clases con sus atributos y relaciones (Figura A.7a) |
 
 **Limitación conocida (heredada del 1er Parcial):** el proyecto generado trae
 `data.sql` con datos de ejemplo, pero esos datos se cargan en las tablas de
@@ -180,6 +180,7 @@ efectivo.
 | 9 | En producción la IA decía "renombré y agregué" pero el lienzo no cambiaba | El validador no seguía un renombre dentro del mismo lote, y "sí, hazlo" no contaba como pedido explícito | El validador sigue renombres y eliminaciones; se aceptan confirmaciones; si se descarta algo, la respuesta lo aclara | `4daba22` |
 | 10 | En modo «solo sugerencias», el modelo local respondía "agregué la clase…" sin haberla agregado | El modelo pequeño ignora la instrucción del prompt | El servidor reescribe la respuesta con los pasos a seguir, generados desde las operaciones | `d003cf8` |
 | 11 | Con el *Runner* de Postman, 6 de 30 requests daban 404 sobre una base vacía | La colección generada hacía `GET /{id}` antes del `POST` | Cada carpeta ahora es POST → GET → GET/{id} → PUT → DELETE (30/30) | `9faa2f3` |
+| 12 | Al cambiar de diagrama, el navegador seguía recibiendo los cambios del diagrama anterior | El servidor nunca sacaba al socket de la sala vieja | Al unirse a otra sala (o con `leave-diagram`) se sale de la anterior, liberando locks y presencia; nuevo *Archivo → Nuevo diagrama* | `1a2fce3` |
 
 ---
 

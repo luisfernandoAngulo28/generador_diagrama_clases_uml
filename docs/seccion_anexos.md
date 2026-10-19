@@ -46,8 +46,9 @@ usuarios y el bloqueo por clase.)*
 
 ### A.4 Asistencia por inteligencia artificial (1er Parcial)
 
-*(Figura A.7: generación de clases por chat e interpretación de una fotografía
-de pizarra.)*
+![Figura A.7a: diagrama creado desde una fotografía de pizarra (Archivo → Foto de pizarra (IA)): cinco clases con sus atributos y relaciones, en producción.](docs/documento_final/img/evidencias/prod_foto_pizarra.png){width=6.2in}
+
+![Figura A.7b: clase Factura creada por dictado de voz en el chat del equipo; el Moderador IA responde a Luis por su nombre y aplica el cambio.](docs/documento_final/img/evidencias/prod_voz_factura.png){width=6.2in}
 
 ### A.5 Interoperabilidad con Enterprise Architect (XMI)
 
