@@ -77,6 +77,10 @@ export class DiagramsGateway implements OnGatewayConnection, OnGatewayDisconnect
     const diagramId = typeof payload === 'string' ? payload : payload.diagramId;
     const userName = typeof payload === 'string' ? undefined : payload.userName?.trim();
 
+    // Switching diagrams: leave the previous room, or its edits would keep
+    // reaching (and overwriting) the canvas of the diagram now open.
+    const previous = client.data.diagramId as string | undefined;
+    if (previous && previous !== diagramId) this.leaveRoom(client, previous);
     client.data.diagramId = diagramId;
     resolveSocketUser(client, this.authService);
     if (!client.data.authenticated) {
@@ -155,10 +159,24 @@ export class DiagramsGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.persistLocks(payload.diagramId);
   }
 
+  /** "Nuevo diagrama": the client stops collaborating on the diagram it had open. */
+  @SubscribeMessage('leave-diagram')
+  handleLeave(@ConnectedSocket() client: Socket) {
+    const diagramId = client.data?.diagramId as string | undefined;
+    if (!diagramId) return;
+    this.leaveRoom(client, diagramId);
+    client.data.diagramId = undefined;
+  }
+
   handleDisconnect(client: Socket) {
     const diagramId = client.data?.diagramId as string | undefined;
     if (!diagramId) return;
+    this.leaveRoom(client, diagramId);
+  }
 
+  /** Releases the client's locks in a room, takes it out and updates presence and the session. */
+  private leaveRoom(client: Socket, diagramId: string) {
+    void client.leave(diagramId);
     const roomLocks = this.locks.get(diagramId);
     if (roomLocks) {
       let releasedAny = false;

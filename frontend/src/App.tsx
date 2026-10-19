@@ -23,6 +23,7 @@ import {
   Grid3x3,
   Undo2,
   Redo2,
+  FilePlus,
   FolderOpen,
   Upload,
   Download,
@@ -443,6 +444,40 @@ function AppInner() {
     window.history.replaceState({}, '', url);
     loadDiagram(id);
     setShowDiagramsList(false);
+  }
+
+  /** Archivo → Nuevo diagrama: saves the current one, leaves its room and starts an empty canvas. */
+  async function startNewDiagram() {
+    if (diagramId) {
+      try {
+        await saveDiagram(true);
+      } catch {
+        // An autosave failure must not trap the user in the current diagram.
+      }
+      getSocket().emit('leave-diagram');
+    } else if (nodes.length > 0 && !window.confirm('El diagrama actual no está guardado. ¿Descartarlo y empezar uno nuevo?')) {
+      return;
+    }
+    if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    myLocksRef.current.clear();
+    setDiagramId(null);
+    setDiagramName('Mi Diagrama');
+    setNodes([]);
+    setEdges([]);
+    setAuthorship({});
+    setAiCanEditCanvas(true);
+    setLocks({});
+    setCollaboratorCount(0);
+    setEditingClassId(null);
+    setEditingEdgeId(null);
+    setValidationResult(null);
+    setLastSavedAt(null);
+    setPast([]);
+    setFuture([]);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('diagram');
+    window.history.replaceState({}, '', url);
+    toast.success('Lienzo vacío: ponle un nombre y presiona Guardar para crearlo', 'Nuevo diagrama');
   }
 
   async function handleXmiSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1264,6 +1299,13 @@ function AppInner() {
             icon={<FolderOpen size={15} />}
             label="Archivo"
             items={[
+              {
+                key: 'new-diagram',
+                icon: <FilePlus size={15} />,
+                label: 'Nuevo diagrama',
+                title: 'Guarda el diagrama actual y abre un lienzo vacío',
+                onClick: () => void startNewDiagram(),
+              },
               {
                 key: 'my-diagrams',
                 icon: <FolderOpen size={15} />,
