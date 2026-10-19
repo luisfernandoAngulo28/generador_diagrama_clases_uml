@@ -1,6 +1,13 @@
 # Despliegue en AWS (EC2 + Docker Compose)
 
-## Estado actual (desplegado)
+## Estado actual: APAGADO (18/10/2026)
+
+> El servidor se terminó para no generar costos. Los datos, los secretos y el
+> certificado están respaldados en `.deploy/`. Para volver a levantarlo, sigue
+> **[GUIA_REDESPLIEGUE_AWS.md](GUIA_REDESPLIEGUE_AWS.md)** (≈ 30–40 min). La IP
+> `100.56.70.99` ya fue liberada: al recrearlo habrá una IP nueva.
+
+## Cómo estaba desplegado
 
 - **Servidor**: EC2 `t3.micro`, **Ubuntu 24.04 LTS**, región `us-east-1`.
 - **IP pública fija (Elastic IP)**: `100.56.70.99`

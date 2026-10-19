@@ -8,17 +8,19 @@
 #   .\deploy\deploy-local-build.ps1              # backend + frontend
 #   .\deploy\deploy-local-build.ps1 -BackendOnly # solo backend
 #   .\deploy\deploy-local-build.ps1 -FrontendOnly # solo frontend
+#   .\deploy\deploy-local-build.ps1 -Server ubuntu@NUEVA_IP  # servidor recreado
 # =============================================================================
 
 param(
     [switch]$BackendOnly,
-    [switch]$FrontendOnly
+    [switch]$FrontendOnly,
+    # Cambia si se recrea el servidor (ver deploy/GUIA_REDESPLIEGUE_AWS.md).
+    [string]$Server = "ubuntu@100.56.70.99"
 )
 
 $ErrorActionPreference = "Stop"
 
 $PEM     = ".deploy\diagramador-uml-key.pem"
-$SERVER  = "ubuntu@100.56.70.99"
 $APP_DIR = "app"
 
 function Log-Step { param($msg); Write-Host "`n== $msg ==" -ForegroundColor Cyan }
