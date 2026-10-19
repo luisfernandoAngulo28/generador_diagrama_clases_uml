@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:speech_to_text/speech_to_text.dart' show SpeechListenOptions;
 
+import 'live/uml_viewer_screen.dart';
 import 'offline_chat_screen.dart';
 import 'offline_sync_service.dart';
 
@@ -28,7 +29,7 @@ import 'offline_sync_service.dart';
 //   Celular físico    → http://<IP-LAN-DE-TU-PC>:8080  (ej: http://192.168.0.7:8080)
 //   Flutter Web       → http://localhost:8080
 // URL default: para Flutter Web en Chrome → localhost:8080
-String _baseUrl = 'http://192.168.0.7:8085';
+String _baseUrl = 'http://10.89.156.209:8085';
 String get baseUrl => _baseUrl;
 
 // ---------------------------------------------------------------------------
@@ -698,7 +699,7 @@ class _ApiScreenState extends State<ApiScreen> {
               const SizedBox(height: 6),
               const Text(
                 'Emulador Android:\nhttp://10.0.2.2:8080\n\n'
-                'Celular fisico (misma WiFi):\nhttp://192.168.0.7:8085\n\n'
+                'Celular fisico (misma WiFi / Hotspot):\nhttp://10.89.156.209:8085\n\n'
                 'Flutter Web / misma PC:\nhttp://localhost:8085',
                 style: TextStyle(fontSize: 11, color: Colors.grey),
               ),
@@ -710,7 +711,7 @@ class _ApiScreenState extends State<ApiScreen> {
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'URL base',
-                  hintText: 'http://192.168.0.7:8085',
+                  hintText: 'http://10.89.156.209:8085',
                 ),
               ),
             ],
@@ -744,6 +745,15 @@ class _ApiScreenState extends State<ApiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // 2do Parcial: visor en tiempo real del diagrama UML y del chat del equipo.
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'uml-live',
+        icon: const Icon(Icons.account_tree_outlined),
+        label: const Text('Visor UML en vivo'),
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const UmlViewerScreen()),
+        ),
+      ),
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

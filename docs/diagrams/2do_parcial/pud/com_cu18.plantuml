@@ -1,0 +1,20 @@
+@startuml com_cu18
+!include _com.iuml
+title CU18 — Reanudar Sesión de Trabajo\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":App" as B <<boundary>>
+object ":DiagramsGateway" as C1 <<control>>
+object ":SessionsService" as C2 <<control>>
+object ":DiagramSession" as E1 <<entity>>
+object ":GroupChatMessage" as E2 <<entity>>
+object ":ActivityLog" as E3 <<entity>>
+actor "Integrante" as A
+A -down- B : "1: abre el diagrama otro día →"
+B -down- C1 : "2: join-diagram (JWT) →"
+C1 -down- C2 : "3: join(diagramId, user) →"
+C2 -down- E1 : "4: sesión PAUSED → ACTIVE (misma _id) →"
+C1 -down- C2 : "5: getInitState() →"
+C2 -down- E2 : "6: chat reciente →"
+C2 -down- E3 : "7: actividad reciente →"
+C1 -up- B : "8: session:init-state ←"
+B -up- A : "9: continúa donde se quedó ←"
+@enduml

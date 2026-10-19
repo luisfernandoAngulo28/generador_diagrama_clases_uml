@@ -1,0 +1,42 @@
+@startuml 07_estados_sesion
+' Máquina de estados — sesión continua de un diagrama — UML 2.5.1 (OMG)
+' Refleja: backend/src/diagrams/sessions.service.ts (join, leave, saveLocks)
+'          y backend/src/diagrams/diagrams.gateway.ts (handleJoin, handleDisconnect)
+!include _estilo.iuml
+skinparam state {
+  BackgroundColor #EAF2FB
+  BorderColor #2C3E50
+}
+title Máquina de Estados — DiagramSession (sesiones continuas)\n<size:11>UML 2.5.1 · evento [guarda] / efecto</size>
+
+[*] --> ACTIVE : join-diagram [no existe sesión abierta]\n/ crear sesión, participante online
+
+state ACTIVE {
+  [*] --> Colaborando
+  Colaborando : entry / status = ACTIVE
+  Colaborando : do / sincronizar diagrama y chat en la sala
+  Colaborando : join-diagram [participante nuevo] / $push participante (online)
+  Colaborando : join-diagram [participante conocido] / online = true, lastSeenAt = ahora
+  Colaborando : lock-class, unlock-class / saveLocks(activeLocks)
+  Colaborando : disconnect [quedan usuarios conectados] / online = false, liberar sus locks
+}
+
+ACTIVE --> PAUSED : disconnect [nadie conectado en la sala]\n/ status = PAUSED, liberar locks
+PAUSED --> ACTIVE : join-diagram\n/ reanudar la MISMA sesión,\nemitir session:init-state (chat + bitácora)
+
+state PAUSED : entry / status = PAUSED
+state PAUSED : la sesión conserva participantes,\nhistorial de chat y bitácora
+
+state CLOSED
+CLOSED : estado definido en el esquema;
+CLOSED : las consultas lo excluyen ($ne CLOSED).
+CLOSED : Aún sin transición implementada
+CLOSED : (cierre manual previsto).
+CLOSED --> [*]
+
+note right of PAUSED
+  Pausar y reanudar es lo que permite
+  continuar el trabajo otro día
+  "exactamente donde se quedó".
+end note
+@enduml

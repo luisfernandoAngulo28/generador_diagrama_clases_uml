@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?><XMI xmlns:UML="href://org.omg/UML/1.3" xmi.version="1.1">
+    <XMI.header>
+        <XMI.documentation>
+            <XMI.exporter>PlantUML</XMI.exporter>
+            <XMI.exporterVersion>1.2024.3</XMI.exporterVersion>
+        </XMI.documentation>
+        <XMI.metamodel xmi.name="UML" xmi.version="1.4"/>
+    </XMI.header>
+    <XMI.content>
+        <UML:Model name="PlantUML" xmi.id="model1">
+            <UML:Namespace.ownedElement>
+                <UML:Class name="Role" xmi.id="cl0002">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="enumeration"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="DESIGNER" xmi.id="att58"/>
+                        <UML:Attribute name="OFFICER" xmi.id="att59"/>
+                        <UML:Attribute name="CLIENT" xmi.id="att60"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="PolicyStatus" xmi.id="cl0003">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="enumeration"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="ACTIVE" xmi.id="att61"/>
+                        <UML:Attribute name="INACTIVE" xmi.id="att62"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="NodeType" xmi.id="cl0004">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="enumeration"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="INITIAL" xmi.id="att63"/>
+                        <UML:Attribute name="ACTION" xmi.id="att64"/>
+                        <UML:Attribute name="DECISION" xmi.id="att65"/>
+                        <UML:Attribute name="FORK" xmi.id="att66"/>
+                        <UML:Attribute name="JOIN" xmi.id="att67"/>
+                        <UML:Attribute name="FINAL" xmi.id="att68"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="FlowType" xmi.id="cl0005">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="enumeration"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="SEQUENTIAL" xmi.id="att69"/>
+                        <UML:Attribute name="CONDITIONAL" xmi.id="att70"/>
+                        <UML:Attribute name="ITERATIVE" xmi.id="att71"/>
+                        <UML:Attribute name="PARALLEL" xmi.id="att72"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="CaseStatus" xmi.id="cl0006">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="enumeration"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="OPEN" xmi.id="att73"/>
+                        <UML:Attribute name="IN_PROGRESS" xmi.id="att74"/>
+                        <UML:Attribute name="COMPLETED" xmi.id="att75"/>
+                        <UML:Attribute name="CANCELLED" xmi.id="att76"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="TaskStatus" xmi.id="cl0007">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="enumeration"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="PENDING" xmi.id="att77"/>
+                        <UML:Attribute name="IN_PROGRESS" xmi.id="att78"/>
+                        <UML:Attribute name="DONE" xmi.id="att79"/>
+                        <UML:Attribute name="BLOCKED" xmi.id="att80"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="InputMode" xmi.id="cl0008">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="enumeration"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="MANUAL" xmi.id="att81"/>
+                        <UML:Attribute name="VOICE" xmi.id="att82"/>
+                        <UML:Attribute name="AI" xmi.id="att83"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="User" xmi.id="cl0009">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Document"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String  {id}" visibility="private" xmi.id="att84"/>
+                        <UML:Attribute name="email : String  {unique}" visibility="private" xmi.id="att85"/>
+                        <UML:Attribute name="name : String" visibility="private" xmi.id="att86"/>
+                        <UML:Attribute name="passwordHash : String" visibility="private" xmi.id="att87"/>
+                        <UML:Attribute name="role : Role" visibility="private" xmi.id="att88"/>
+                        <UML:Attribute name="departmentId : String" visibility="private" xmi.id="att89"/>
+                        <UML:Attribute name="fcmToken : String" visibility="private" xmi.id="att90"/>
+                        <UML:Attribute name="createdAt : Instant" visibility="private" xmi.id="att91"/>
+                        <UML:Attribute name="--" xmi.id="att92"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att93"/>
+                        <UML:Operation name="getEmail() : String" visibility="public" xmi.id="att94"/>
+                        <UML:Operation name="getRole() : Role" visibility="public" xmi.id="att95"/>
+                        <UML:Operation name="getDepartmentId() : String" visibility="public" xmi.id="att96"/>
+                        <UML:Operation name="getFcmToken() : String" visibility="public" xmi.id="att97"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="Department" xmi.id="cl0010">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Document"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String  {id}" visibility="private" xmi.id="att98"/>
+                        <UML:Attribute name="name : String" visibility="private" xmi.id="att99"/>
+                        <UML:Attribute name="createdAt : Instant" visibility="private" xmi.id="att100"/>
+                        <UML:Attribute name="--" xmi.id="att101"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att102"/>
+                        <UML:Operation name="getName() : String" visibility="public" xmi.id="att103"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="Policy" xmi.id="cl0011">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Document"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String  {id}" visibility="private" xmi.id="att104"/>
+                        <UML:Attribute name="name : String" visibility="private" xmi.id="att105"/>
+                        <UML:Attribute name="status : PolicyStatus" visibility="private" xmi.id="att106"/>
+                        <UML:Attribute name="createdBy : String" visibility="private" xmi.id="att107"/>
+                        <UML:Attribute name="nodes : List&lt;PolicyNode&gt;" visibility="private" xmi.id="att108"/>
+                        <UML:Attribute name="edges : List&lt;PolicyEdge&gt;" visibility="private" xmi.id="att109"/>
+                        <UML:Attribute name="createdAt : Instant" visibility="private" xmi.id="att110"/>
+                        <UML:Attribute name="updatedAt : Instant" visibility="private" xmi.id="att111"/>
+                        <UML:Attribute name="--" xmi.id="att112"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att113"/>
+                        <UML:Operation name="getNodes() : List&lt;PolicyNode&gt;" visibility="public" xmi.id="att114"/>
+                        <UML:Operation name="getEdges() : List&lt;PolicyEdge&gt;" visibility="public" xmi.id="att115"/>
+                        <UML:Operation name="getStatus() : PolicyStatus" visibility="public" xmi.id="att116"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="PolicyNode" xmi.id="cl0012">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="EmbeddedDocument"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String" visibility="private" xmi.id="att117"/>
+                        <UML:Attribute name="departmentId : String" visibility="private" xmi.id="att118"/>
+                        <UML:Attribute name="nodeType : NodeType" visibility="private" xmi.id="att119"/>
+                        <UML:Attribute name="title : String" visibility="private" xmi.id="att120"/>
+                        <UML:Attribute name="description : String" visibility="private" xmi.id="att121"/>
+                        <UML:Attribute name="positionX : double" visibility="private" xmi.id="att122"/>
+                        <UML:Attribute name="positionY : double" visibility="private" xmi.id="att123"/>
+                        <UML:Attribute name="formTemplate : Object" visibility="private" xmi.id="att124"/>
+                        <UML:Attribute name="--" xmi.id="att125"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att126"/>
+                        <UML:Operation name="getNodeType() : NodeType" visibility="public" xmi.id="att127"/>
+                        <UML:Operation name="getDepartmentId() : String" visibility="public" xmi.id="att128"/>
+                        <UML:Operation name="getFormTemplate() : Object" visibility="public" xmi.id="att129"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="PolicyEdge" xmi.id="cl0013">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="EmbeddedDocument"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String" visibility="private" xmi.id="att130"/>
+                        <UML:Attribute name="fromNodeId : String" visibility="private" xmi.id="att131"/>
+                        <UML:Attribute name="toNodeId : String" visibility="private" xmi.id="att132"/>
+                        <UML:Attribute name="flowType : FlowType" visibility="private" xmi.id="att133"/>
+                        <UML:Attribute name="conditionLabel : String" visibility="private" xmi.id="att134"/>
+                        <UML:Attribute name="conditionJson : Object" visibility="private" xmi.id="att135"/>
+                        <UML:Attribute name="--" xmi.id="att136"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att137"/>
+                        <UML:Operation name="getFlowType() : FlowType" visibility="public" xmi.id="att138"/>
+                        <UML:Operation name="getFromNodeId() : String" visibility="public" xmi.id="att139"/>
+                        <UML:Operation name="getToNodeId() : String" visibility="public" xmi.id="att140"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="Case" xmi.id="cl0014">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Document"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String  {id}" visibility="private" xmi.id="att141"/>
+                        <UML:Attribute name="policyId : String" visibility="private" xmi.id="att142"/>
+                        <UML:Attribute name="currentNodeId : String" visibility="private" xmi.id="att143"/>
+                        <UML:Attribute name="status : CaseStatus" visibility="private" xmi.id="att144"/>
+                        <UML:Attribute name="clientId : String" visibility="private" xmi.id="att145"/>
+                        <UML:Attribute name="tasks : List&lt;Task&gt;" visibility="private" xmi.id="att146"/>
+                        <UML:Attribute name="eventLogs : List&lt;EventLog&gt;" visibility="private" xmi.id="att147"/>
+                        <UML:Attribute name="startedAt : Instant" visibility="private" xmi.id="att148"/>
+                        <UML:Attribute name="finishedAt : Instant" visibility="private" xmi.id="att149"/>
+                        <UML:Attribute name="--" xmi.id="att150"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att151"/>
+                        <UML:Operation name="getStatus() : CaseStatus" visibility="public" xmi.id="att152"/>
+                        <UML:Operation name="getTasks() : List&lt;Task&gt;" visibility="public" xmi.id="att153"/>
+                        <UML:Operation name="getEventLogs() : List&lt;EventLog&gt;" visibility="public" xmi.id="att154"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="Task" xmi.id="cl0015">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="EmbeddedDocument"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String" visibility="private" xmi.id="att155"/>
+                        <UML:Attribute name="nodeId : String" visibility="private" xmi.id="att156"/>
+                        <UML:Attribute name="assignedUserId : String" visibility="private" xmi.id="att157"/>
+                        <UML:Attribute name="status : TaskStatus" visibility="private" xmi.id="att158"/>
+                        <UML:Attribute name="formSubmission : FormSubmission" visibility="private" xmi.id="att159"/>
+                        <UML:Attribute name="startedAt : Instant" visibility="private" xmi.id="att160"/>
+                        <UML:Attribute name="finishedAt : Instant" visibility="private" xmi.id="att161"/>
+                        <UML:Attribute name="dueAt : Instant" visibility="private" xmi.id="att162"/>
+                        <UML:Attribute name="--" xmi.id="att163"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att164"/>
+                        <UML:Operation name="getStatus() : TaskStatus" visibility="public" xmi.id="att165"/>
+                        <UML:Operation name="getAssignedUserId() : String" visibility="public" xmi.id="att166"/>
+                        <UML:Operation name="getNodeId() : String" visibility="public" xmi.id="att167"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="FormSubmission" xmi.id="cl0016">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="EmbeddedDocument"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="id : String" visibility="private" xmi.id="att168"/>
+                        <UML:Attribute name="payloadJson : Object" visibility="private" xmi.id="att169"/>
+                        <UML:Attribute name="inputMode : InputMode" visibility="private" xmi.id="att170"/>
+                        <UML:Attribute name="createdAt : Instant" visibility="private" xmi.id="att171"/>
+                        <UML:Attribute name="--" xmi.id="att172"/>
+                        <UML:Operation name="getId() : String" visibility="public" xmi.id="att173"/>
+                        <UML:Operation name="getInputMode() : InputMode" visibility="public" xmi.id="att174"/>
+                        <UML:Operation name="getPayloadJson() : Object" visibility="public" xmi.id="att175"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="EventLog" xmi.id="cl0017">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="EmbeddedDocument"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="type : String" visibility="private" xmi.id="att176"/>
+                        <UML:Attribute name="payloadJson : Object" visibility="private" xmi.id="att177"/>
+                        <UML:Attribute name="createdAt : Instant" visibility="private" xmi.id="att178"/>
+                        <UML:Attribute name="--" xmi.id="att179"/>
+                        <UML:Operation name="getType() : String" visibility="public" xmi.id="att180"/>
+                        <UML:Operation name="getCreatedAt() : Instant" visibility="public" xmi.id="att181"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="CaseDetailDto" xmi.id="cl0018">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="DTO"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="caseId : String" visibility="public" xmi.id="att182"/>
+                        <UML:Attribute name="policyId : String" visibility="public" xmi.id="att183"/>
+                        <UML:Attribute name="policyName : String" visibility="public" xmi.id="att184"/>
+                        <UML:Attribute name="currentNodeId : String" visibility="public" xmi.id="att185"/>
+                        <UML:Attribute name="currentNodeTitle : String" visibility="public" xmi.id="att186"/>
+                        <UML:Attribute name="currentDepartmentId : String" visibility="public" xmi.id="att187"/>
+                        <UML:Attribute name="currentDepartmentName : String" visibility="public" xmi.id="att188"/>
+                        <UML:Attribute name="status : String" visibility="public" xmi.id="att189"/>
+                        <UML:Attribute name="clientId : String" visibility="public" xmi.id="att190"/>
+                        <UML:Attribute name="tasks : List&lt;TaskSummary&gt;" visibility="public" xmi.id="att191"/>
+                        <UML:Attribute name="eventLogs : List&lt;EventLog&gt;" visibility="public" xmi.id="att192"/>
+                        <UML:Attribute name="startedAt : Instant" visibility="public" xmi.id="att193"/>
+                        <UML:Attribute name="finishedAt : Instant" visibility="public" xmi.id="att194"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="MyTaskDto" xmi.id="cl0019">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="DTO"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="caseId : String" visibility="public" xmi.id="att195"/>
+                        <UML:Attribute name="taskId : String" visibility="public" xmi.id="att196"/>
+                        <UML:Attribute name="policyId : String" visibility="public" xmi.id="att197"/>
+                        <UML:Attribute name="policyName : String" visibility="public" xmi.id="att198"/>
+                        <UML:Attribute name="nodeId : String" visibility="public" xmi.id="att199"/>
+                        <UML:Attribute name="nodeTitle : String" visibility="public" xmi.id="att200"/>
+                        <UML:Attribute name="departmentId : String" visibility="public" xmi.id="att201"/>
+                        <UML:Attribute name="departmentName : String" visibility="public" xmi.id="att202"/>
+                        <UML:Attribute name="status : String" visibility="public" xmi.id="att203"/>
+                        <UML:Attribute name="formTemplate : Object" visibility="public" xmi.id="att204"/>
+                        <UML:Attribute name="startedAt : Instant" visibility="public" xmi.id="att205"/>
+                        <UML:Attribute name="dueAt : Instant" visibility="public" xmi.id="att206"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="AuthResponse" xmi.id="cl0020">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="DTO"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="token : String" visibility="public" xmi.id="att207"/>
+                        <UML:Attribute name="userId : String" visibility="public" xmi.id="att208"/>
+                        <UML:Attribute name="email : String" visibility="public" xmi.id="att209"/>
+                        <UML:Attribute name="name : String" visibility="public" xmi.id="att210"/>
+                        <UML:Attribute name="role : String" visibility="public" xmi.id="att211"/>
+                        <UML:Attribute name="departmentId : String" visibility="public" xmi.id="att212"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="CaseService" xmi.id="cl0021">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Service"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="caseRepository : CaseRepository" visibility="private" xmi.id="att213"/>
+                        <UML:Attribute name="policyService : PolicyService" visibility="private" xmi.id="att214"/>
+                        <UML:Attribute name="departmentService : DepartmentService" visibility="private" xmi.id="att215"/>
+                        <UML:Attribute name="eventPublisher : EventPublisher" visibility="private" xmi.id="att216"/>
+                        <UML:Attribute name="notificationService : NotificationService" visibility="private" xmi.id="att217"/>
+                        <UML:Attribute name="--" xmi.id="att218"/>
+                        <UML:Operation name="create(policyId, userId) : Case" visibility="public" xmi.id="att219"/>
+                        <UML:Operation name="startMyCase(userId, policyId) : Case" visibility="public" xmi.id="att220"/>
+                        <UML:Operation name="advanceTask(caseId, taskId, userId, payload) : Case" visibility="public" xmi.id="att221"/>
+                        <UML:Operation name="findAll() : List&lt;Case&gt;" visibility="public" xmi.id="att222"/>
+                        <UML:Operation name="findByClientId(clientId) : List&lt;Case&gt;" visibility="public" xmi.id="att223"/>
+                        <UML:Operation name="findByPolicyId(policyId) : List&lt;Case&gt;" visibility="public" xmi.id="att224"/>
+                        <UML:Operation name="routeNextStep(case, completedNodeId) : void" visibility="private" xmi.id="att225"/>
+                        <UML:Operation name="handleDecisionNode(case, node) : void" visibility="private" xmi.id="att226"/>
+                        <UML:Operation name="handleForkNode(case, node) : void" visibility="private" xmi.id="att227"/>
+                        <UML:Operation name="handleJoinNode(case, node) : void" visibility="private" xmi.id="att228"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="PolicyService" xmi.id="cl0022">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Service"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="policyRepository : PolicyRepository" visibility="private" xmi.id="att229"/>
+                        <UML:Attribute name="--" xmi.id="att230"/>
+                        <UML:Operation name="create(policy) : Policy" visibility="public" xmi.id="att231"/>
+                        <UML:Operation name="update(id, policy) : Policy" visibility="public" xmi.id="att232"/>
+                        <UML:Operation name="delete(id) : void" visibility="public" xmi.id="att233"/>
+                        <UML:Operation name="findAll() : List&lt;Policy&gt;" visibility="public" xmi.id="att234"/>
+                        <UML:Operation name="findById(id) : Policy" visibility="public" xmi.id="att235"/>
+                        <UML:Operation name="saveGraph(id, nodes, edges) : Policy" visibility="public" xmi.id="att236"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="NotificationService" xmi.id="cl0023">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Service"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="userRepository : UserRepository" visibility="private" xmi.id="att237"/>
+                        <UML:Attribute name="firebaseMessaging : FirebaseMessaging" visibility="private" xmi.id="att238"/>
+                        <UML:Attribute name="--" xmi.id="att239"/>
+                        <UML:Operation name="sendToUser(userId, title, body, data) : void" visibility="public" xmi.id="att240"/>
+                        <UML:Operation name="sendToOfficer(userId, caseId, taskId) : void" visibility="public" xmi.id="att241"/>
+                        <UML:Operation name="sendToClient(clientId, caseId, status) : void" visibility="public" xmi.id="att242"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+                <UML:Class name="AnalyticsService" xmi.id="cl0024">
+                    <UML:ModelElement.stereotype>
+                        <UML:Stereotype name="Service"/>
+                    </UML:ModelElement.stereotype>
+                    <UML:Classifier.feature>
+                        <UML:Attribute name="caseRepository : CaseRepository" visibility="private" xmi.id="att243"/>
+                        <UML:Attribute name="--" xmi.id="att244"/>
+                        <UML:Operation name="getBottleneckStats() : Map&lt;String,Object&gt;" visibility="public" xmi.id="att245"/>
+                        <UML:Operation name="getKpis() : Map&lt;String,Object&gt;" visibility="public" xmi.id="att246"/>
+                        <UML:Operation name="analyzeWithAI(caseId) : String" visibility="public" xmi.id="att247"/>
+                    </UML:Classifier.feature>
+                </UML:Class>
+            </UML:Namespace.ownedElement>
+        </UML:Model>
+    </XMI.content>
+</XMI>

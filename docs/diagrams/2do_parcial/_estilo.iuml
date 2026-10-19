@@ -1,0 +1,33 @@
+' Estilo común de los diagramas del 2do Parcial (notación UML 2.5.1, OMG).
+!pragma layout smetana
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam roundCorner 6
+skinparam ArrowColor #2C3E50
+skinparam ArrowFontSize 11
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #C9B458
+skinparam class {
+  BackgroundColor #EAF2FB
+  BorderColor #2C3E50
+  HeaderBackgroundColor #D6EAF8
+  StereotypeFontColor #555555
+}
+skinparam component {
+  BackgroundColor #EAF2FB
+  BorderColor #2C3E50
+}
+skinparam node {
+  BackgroundColor #F4F6F7
+  BorderColor #2C3E50
+}
+skinparam artifact {
+  BackgroundColor #FDFEFE
+  BorderColor #566573
+}
+skinparam database {
+  BackgroundColor #E8F8F5
+  BorderColor #117A65
+}

@@ -1,0 +1,23 @@
+@startuml com_cu15
+!include _com.iuml
+title CU15 — Consultar al Moderador IA\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":ChatPanel" as B <<boundary>>
+object ":ChatGateway" as C1 <<control>>
+object ":ModeratorService" as C2 <<control>>
+object ":HybridAiProvider" as C3 <<control>>
+object ":ActivityLog" as E1 <<entity>>
+object ":GroupChatMessage" as E2 <<entity>>
+object ":Diagram" as E3 <<entity>>
+actor "Integrante" as A
+actor "Moderador IA" as IA
+A -down- B : "1: pregunta (IA activa) →"
+B -down- C1 : "2: chat:send {askAi:true} →"
+C1 -down- C2 : "3: storeUserMessage() · 4: ai:status thinking →\n5: answer(user, question) →"
+C2 -down- E3 : "6: modelo + autoría →"
+C2 -down- E1 : "7: bitácora (contexto grupal) →"
+C2 -down- E2 : "8: hilo del usuario (contexto individual) →"
+C2 -down- C3 : "9: editDiagram(prompts) →"
+C3 -down- IA : "10: generar respuesta →\n11: {reply} ←"
+C2 -up- C1 : "12: respuesta 'Luis, …' ←"
+C1 -up- B : "13: chat:new-message (a toda la sala) ←"
+@enduml

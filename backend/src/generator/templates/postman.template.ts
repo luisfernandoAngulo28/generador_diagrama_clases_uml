@@ -20,16 +20,26 @@ function buildSampleJson(
     } else if (lower.includes('apellido')) {
       obj[name] = isUpdate ? 'Gómez' : 'Mendoza';
     } else if (lower.includes('email') || lower.includes('correo')) {
-      obj[name] = isUpdate ? 'usuario.actualizado@example.com' : 'nuevo.usuario@example.com';
+      obj[name] = isUpdate
+        ? 'usuario.actualizado@example.com'
+        : 'nuevo.usuario@example.com';
     } else if (lower.includes('telefono') || lower.includes('celular')) {
       obj[name] = '+591 71234567';
     } else if (lower.includes('direccion') || lower.includes('address')) {
       obj[name] = 'Av. Las Palmeras #456';
-    } else if (lower.includes('precio') || lower.includes('monto') || lower.includes('total')) {
+    } else if (
+      lower.includes('precio') ||
+      lower.includes('monto') ||
+      lower.includes('total')
+    ) {
       obj[name] = isUpdate ? 75.5 : 50.0;
     } else if (lower.includes('codigo') || lower.includes('code')) {
       obj[name] = isUpdate ? 'COD-ACT-99' : 'COD-001';
-    } else if (lower.includes('stock') || lower.includes('cantidad') || lower.includes('capacidad')) {
+    } else if (
+      lower.includes('stock') ||
+      lower.includes('cantidad') ||
+      lower.includes('capacidad')
+    ) {
       obj[name] = isUpdate ? 25 : 10;
     } else if (lower.includes('estado') || lower.includes('status')) {
       obj[name] = isUpdate ? 'COMPLETADO' : 'ACTIVO';
@@ -39,7 +49,11 @@ function buildSampleJson(
       obj[name] = true;
     } else if (javaType === 'Integer' || javaType === 'Long') {
       obj[name] = 100;
-    } else if (javaType === 'Double' || javaType === 'Float' || javaType === 'BigDecimal') {
+    } else if (
+      javaType === 'Double' ||
+      javaType === 'Float' ||
+      javaType === 'BigDecimal'
+    ) {
       obj[name] = 29.99;
     } else {
       obj[name] = isUpdate ? 'Valor Actualizado' : 'Valor Inicial';
@@ -70,9 +84,14 @@ function buildSampleJson(
   return obj;
 }
 
-export function renderPostmanCollection(model: UmlModel, projectName: string): string {
+export function renderPostmanCollection(
+  model: UmlModel,
+  projectName: string,
+): string {
   const entities = model.classes.filter(
-    (c) => !c.stereotype || (c.stereotype !== 'enum' && c.stereotype !== 'interface'),
+    (c) =>
+      !c.stereotype ||
+      (c.stereotype !== 'enum' && c.stereotype !== 'interface'),
   );
 
   const folders = entities.map((cls) => {
@@ -80,106 +99,114 @@ export function renderPostmanCollection(model: UmlModel, projectName: string): s
     const basePath = pluralize(varName);
     const entityTitle = pluralize(cls.name);
 
-    const postBody = JSON.stringify(buildSampleJson(cls, model, false), null, 2);
+    const postBody = JSON.stringify(
+      buildSampleJson(cls, model, false),
+      null,
+      2,
+    );
     const putBody = JSON.stringify(buildSampleJson(cls, model, true), null, 2);
+
+    // Postman's Runner executes in order: create first, so on an empty database
+    // the GET/PUT/DELETE by id that follow find the record (CRUD flow 2xx).
+    const [list, getById, create, update, remove] = [
+      {
+        name: `Listar todos los ${basePath}`,
+        request: {
+          method: 'GET',
+          header: [],
+          url: {
+            raw: `{{baseUrl}}/${basePath}`,
+            host: ['{{baseUrl}}'],
+            path: [basePath],
+          },
+          description: `Recupera la lista completa de registros de ${cls.name}.`,
+        },
+      },
+      {
+        name: `Obtener ${cls.name} por ID`,
+        request: {
+          method: 'GET',
+          header: [],
+          url: {
+            raw: `{{baseUrl}}/${basePath}/1`,
+            host: ['{{baseUrl}}'],
+            path: [basePath, '1'],
+          },
+          description: `Recupera un registro específico de ${cls.name} mediante su ID.`,
+        },
+      },
+      {
+        name: `Crear ${cls.name}`,
+        request: {
+          method: 'POST',
+          header: [
+            {
+              key: 'Content-Type',
+              value: 'application/json',
+            },
+          ],
+          body: {
+            mode: 'raw',
+            raw: postBody,
+            options: {
+              raw: {
+                language: 'json',
+              },
+            },
+          },
+          url: {
+            raw: `{{baseUrl}}/${basePath}`,
+            host: ['{{baseUrl}}'],
+            path: [basePath],
+          },
+          description: `Crea un nuevo registro de ${cls.name}.`,
+        },
+      },
+      {
+        name: `Actualizar ${cls.name} por ID`,
+        request: {
+          method: 'PUT',
+          header: [
+            {
+              key: 'Content-Type',
+              value: 'application/json',
+            },
+          ],
+          body: {
+            mode: 'raw',
+            raw: putBody,
+            options: {
+              raw: {
+                language: 'json',
+              },
+            },
+          },
+          url: {
+            raw: `{{baseUrl}}/${basePath}/1`,
+            host: ['{{baseUrl}}'],
+            path: [basePath, '1'],
+          },
+          description: `Actualiza los campos de un ${cls.name} existente.`,
+        },
+      },
+      {
+        name: `Eliminar ${cls.name} por ID`,
+        request: {
+          method: 'DELETE',
+          header: [],
+          url: {
+            raw: `{{baseUrl}}/${basePath}/1`,
+            host: ['{{baseUrl}}'],
+            path: [basePath, '1'],
+          },
+          description: `Elimina un registro de ${cls.name} por su ID.`,
+        },
+      },
+    ];
 
     return {
       name: entityTitle,
-      item: [
-        {
-          name: `Listar todos los ${basePath}`,
-          request: {
-            method: 'GET',
-            header: [],
-            url: {
-              raw: `{{baseUrl}}/${basePath}`,
-              host: ['{{baseUrl}}'],
-              path: [basePath],
-            },
-            description: `Recupera la lista completa de registros de ${cls.name}.`,
-          },
-        },
-        {
-          name: `Obtener ${cls.name} por ID`,
-          request: {
-            method: 'GET',
-            header: [],
-            url: {
-              raw: `{{baseUrl}}/${basePath}/1`,
-              host: ['{{baseUrl}}'],
-              path: [basePath, '1'],
-            },
-            description: `Recupera un registro específico de ${cls.name} mediante su ID.`,
-          },
-        },
-        {
-          name: `Crear ${cls.name}`,
-          request: {
-            method: 'POST',
-            header: [
-              {
-                key: 'Content-Type',
-                value: 'application/json',
-              },
-            ],
-            body: {
-              mode: 'raw',
-              raw: postBody,
-              options: {
-                raw: {
-                  language: 'json',
-                },
-              },
-            },
-            url: {
-              raw: `{{baseUrl}}/${basePath}`,
-              host: ['{{baseUrl}}'],
-              path: [basePath],
-            },
-            description: `Crea un nuevo registro de ${cls.name}.`,
-          },
-        },
-        {
-          name: `Actualizar ${cls.name} por ID`,
-          request: {
-            method: 'PUT',
-            header: [
-              {
-                key: 'Content-Type',
-                value: 'application/json',
-              },
-            ],
-            body: {
-              mode: 'raw',
-              raw: putBody,
-              options: {
-                raw: {
-                  language: 'json',
-                },
-              },
-            },
-            url: {
-              raw: `{{baseUrl}}/${basePath}/1`,
-              host: ['{{baseUrl}}'],
-              path: [basePath, '1'],
-            },
-            description: `Actualiza los campos de un ${cls.name} existente.`,
-          },
-        },
-        {
-          name: `Eliminar ${cls.name} por ID`,
-          request: {
-            method: 'DELETE',
-            header: [],
-            url: {
-              raw: `{{baseUrl}}/${basePath}/1`,
-              host: ['{{baseUrl}}'],
-              path: [basePath, '1'],
-            },
-            description: `Elimina un registro de ${cls.name} por su ID.`,
-          },
-        },
-      ],
+      item: [create, list, getById, update, remove],
     };
   });
 
@@ -188,7 +215,8 @@ export function renderPostmanCollection(model: UmlModel, projectName: string): s
       _postman_id: crypto.randomUUID(),
       name: `${projectName} API`,
       description: `Colección Postman v2.1 generada automáticamente para ${projectName}. Contiene los endpoints CRUD de la arquitectura Spring Boot de 4 capas.`,
-      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      schema:
+        'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
     },
     variable: [
       {

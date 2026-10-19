@@ -1,0 +1,51 @@
+@startuml 08_actividad_motor_hibrido
+' Diagrama de actividad — decisión del motor de IA híbrido — UML 2.5.1 (OMG)
+' Refleja: backend/src/ai/providers/hybrid.provider.ts (textChain, usable,
+'          timeoutFor, withTimeout, onFailure) y backend/src/ai/ai.service.ts
+!include _estilo.iuml
+skinparam activity {
+  BackgroundColor #EAF2FB
+  BorderColor #2C3E50
+  DiamondBackgroundColor #FDF2E9
+}
+title Diagrama de Actividad — Motor de IA híbrido (editDiagram)\n<size:11>UML 2.5.1 · nodos de decisión con guardas</size>
+
+start
+:Recibir pregunta + modelo + prompts\n(completo para Gemini, lite para Ollama);
+if (¿AI_PROVIDER?) then ([gemini])
+  :cadena = [Gemini];
+elseif (¿AI_PROVIDER?) then ([ollama])
+  :cadena = [Ollama];
+else ([hybrid])
+  if (¿AI_HYBRID_ORDER?) then ([cloud-first])
+    :orden = [Gemini, Ollama];
+  else ([local-first])
+    :orden = [Ollama, Gemini];
+  endif
+  :quitar Gemini si no hay GEMINI_API_KEY;
+  :quitar proveedores con circuit breaker abierto\n(si todos lo están, intentar igual);
+  :cadena = orden filtrado;
+endif
+
+repeat :tomar el siguiente proveedor de la cadena;
+  if (¿es Ollama en modo hybrid?) then ([sí])
+    :llamar con timeout\n(20 s si va primero · 60 s si es respaldo)\ny AbortController;
+  else ([no])
+    :llamar sin timeout;
+  endif
+  if (¿respondió?) then ([sí])
+    :providerUsed = proveedor;
+    :validateOperations(resultado);
+    :devolver respuesta + providerUsed;
+    stop
+  else ([no])
+    if (¿fue timeout?) then ([sí])
+      :registrar "sin respuesta en N ms"\n(no abre el breaker: el modelo\npudo estar cargando en RAM);
+    else ([error: caído / sin red])
+      :abrir circuit breaker 30 s;
+    endif
+  endif
+repeat while (¿quedan proveedores?) is ([sí]) not ([no])
+:lanzar 503 "Ningún proveedor de IA respondió";
+stop
+@enduml

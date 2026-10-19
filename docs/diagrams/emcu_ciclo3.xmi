@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1"
+          xmlns:uml="http://www.omg.org/spec/UML/20090901"
+          xmlns:xmi="http://www.omg.org/spec/XMI/20110701">
+
+  <xmi:Documentation exporter="PlantUML-to-XMI" exporterVersion="1.0"/>
+
+  <!--
+    3.1.5 EMCU — Ciclo de Vida #3
+    Generacion de Backend y Asistente de IA
+    11 de Septiembre - 22 de Septiembre
+  -->
+  <uml:Model xmi:type="uml:Model" xmi:id="_MODEL_C3" name="EMCU_Ciclo3" visibility="public">
+
+    <packagedElement xmi:type="uml:Package" xmi:id="_PKG_C3"
+                     name="Ciclo 3 — Backend Spring Boot e IA (11 Sep - 22 Sep)" visibility="public">
+
+      <!-- ── ACTORES ── -->
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C3_USUARIO" name="Usuario" visibility="public"/>
+
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C3_EDITOR" name="Editor" visibility="public">
+        <generalization xmi:type="uml:Generalization" xmi:id="_C3_GEN_EDITOR"
+                        general="_C3_USUARIO"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C3_CREADOR" name="Creador" visibility="public">
+        <generalization xmi:type="uml:Generalization" xmi:id="_C3_GEN_CREADOR"
+                        general="_C3_USUARIO"/>
+      </packagedElement>
+
+      <!-- Actor secundario: Asistente IA -->
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C3_IA"
+                       name="Asistente IA (Gemini API)" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="_C3_CMT_IA" annotatedElement="_C3_IA">
+          <body>Actor secundario (sistema externo). Invocado por CU06. Soporta texto, voz e imagen.</body>
+        </ownedComment>
+      </packagedElement>
+
+      <!-- ── LIMITE DEL SISTEMA ── -->
+      <packagedElement xmi:type="uml:Component" xmi:id="_C3_SYSTEM"
+                       name="Herramienta CASE" visibility="public"/>
+
+      <!-- ── CASOS DE USO ── -->
+      <!-- Ciclo 1 (heredados) -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C3_UC01"
+                       name="CU01 Gestionar Clases UML"
+                       visibility="public" subject="_C3_SYSTEM"/>
+
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C3_UC02"
+                       name="CU02 Gestionar Diagrama"
+                       visibility="public" subject="_C3_SYSTEM">
+        <include xmi:type="uml:Include" xmi:id="_C3_INC_02_01"
+                 includingCase="_C3_UC02" addition="_C3_UC01"/>
+      </packagedElement>
+
+      <!-- Ciclo 2 (heredados) -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C3_UC03"
+                       name="CU03 Colaborar en Tiempo Real"
+                       visibility="public" subject="_C3_SYSTEM">
+        <extend xmi:type="uml:Extend" xmi:id="_C3_EXT_03_02"
+                extendedCase="_C3_UC02" extension="_C3_UC03"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C3_UC05"
+                       name="CU05 Exportar Diagrama a XMI"
+                       visibility="public" subject="_C3_SYSTEM">
+        <extend xmi:type="uml:Extend" xmi:id="_C3_EXT_05_02"
+                extendedCase="_C3_UC02" extension="_C3_UC05"/>
+      </packagedElement>
+
+      <!-- Nuevos Ciclo 3 -->
+      <!-- CU04 extiende CU02 e incluye CU06 -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C3_UC04"
+                       name="CU04 Generar Backend Spring Boot"
+                       visibility="public" subject="_C3_SYSTEM">
+        <extend xmi:type="uml:Extend" xmi:id="_C3_EXT_04_02"
+                extendedCase="_C3_UC02" extension="_C3_UC04"/>
+        <include xmi:type="uml:Include" xmi:id="_C3_INC_04_06"
+                 includingCase="_C3_UC04" addition="_C3_UC06"/>
+      </packagedElement>
+
+      <!-- CU06 extiende CU01 e invoca al Asistente IA -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C3_UC06"
+                       name="CU06 Utilizar Asistente de IA"
+                       visibility="public" subject="_C3_SYSTEM">
+        <extend xmi:type="uml:Extend" xmi:id="_C3_EXT_06_01"
+                extendedCase="_C3_UC01" extension="_C3_UC06"/>
+      </packagedElement>
+
+      <!-- ── ASOCIACIONES Actor → Caso de Uso ── -->
+      <!-- Usuario → CU01 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C3_ASS_USR_UC01" name="" visibility="public">
+        <memberEnd xmi:idref="_C3_E_USR_UC01_1"/>
+        <memberEnd xmi:idref="_C3_E_USR_UC01_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC01_1"
+                  type="_C3_USUARIO" association="_C3_ASS_USR_UC01"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC01_2"
+                  type="_C3_UC01"   association="_C3_ASS_USR_UC01"/>
+      </packagedElement>
+
+      <!-- Usuario → CU02 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C3_ASS_USR_UC02" name="" visibility="public">
+        <memberEnd xmi:idref="_C3_E_USR_UC02_1"/>
+        <memberEnd xmi:idref="_C3_E_USR_UC02_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC02_1"
+                  type="_C3_USUARIO" association="_C3_ASS_USR_UC02"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC02_2"
+                  type="_C3_UC02"   association="_C3_ASS_USR_UC02"/>
+      </packagedElement>
+
+      <!-- Usuario → CU03 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C3_ASS_USR_UC03" name="" visibility="public">
+        <memberEnd xmi:idref="_C3_E_USR_UC03_1"/>
+        <memberEnd xmi:idref="_C3_E_USR_UC03_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC03_1"
+                  type="_C3_USUARIO" association="_C3_ASS_USR_UC03"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC03_2"
+                  type="_C3_UC03"   association="_C3_ASS_USR_UC03"/>
+      </packagedElement>
+
+      <!-- Usuario → CU06 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C3_ASS_USR_UC06" name="" visibility="public">
+        <memberEnd xmi:idref="_C3_E_USR_UC06_1"/>
+        <memberEnd xmi:idref="_C3_E_USR_UC06_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC06_1"
+                  type="_C3_USUARIO" association="_C3_ASS_USR_UC06"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_USR_UC06_2"
+                  type="_C3_UC06"   association="_C3_ASS_USR_UC06"/>
+      </packagedElement>
+
+      <!-- Creador → CU04 (exclusivo) -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C3_ASS_CRE_UC04" name="" visibility="public">
+        <memberEnd xmi:idref="_C3_E_CRE_UC04_1"/>
+        <memberEnd xmi:idref="_C3_E_CRE_UC04_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_CRE_UC04_1"
+                  type="_C3_CREADOR" association="_C3_ASS_CRE_UC04"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_CRE_UC04_2"
+                  type="_C3_UC04"    association="_C3_ASS_CRE_UC04"/>
+      </packagedElement>
+
+      <!-- Creador → CU05 (exclusivo) -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C3_ASS_CRE_UC05" name="" visibility="public">
+        <memberEnd xmi:idref="_C3_E_CRE_UC05_1"/>
+        <memberEnd xmi:idref="_C3_E_CRE_UC05_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_CRE_UC05_1"
+                  type="_C3_CREADOR" association="_C3_ASS_CRE_UC05"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C3_E_CRE_UC05_2"
+                  type="_C3_UC05"    association="_C3_ASS_CRE_UC05"/>
+      </packagedElement>
+
+      <!-- Dependencia CU06 → Asistente IA (invoca) -->
+      <packagedElement xmi:type="uml:Dependency" xmi:id="_C3_DEP_UC06_IA"
+                       name="invoca" visibility="public"
+                       client="_C3_UC06" supplier="_C3_IA"/>
+
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>

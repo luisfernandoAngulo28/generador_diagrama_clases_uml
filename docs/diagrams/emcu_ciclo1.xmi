@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1"
+          xmlns:uml="http://www.omg.org/spec/UML/20090901"
+          xmlns:xmi="http://www.omg.org/spec/XMI/20110701">
+
+  <xmi:Documentation exporter="PlantUML-to-XMI" exporterVersion="1.0"/>
+
+  <!--
+    3.1.5 EMCU — Ciclo de Vida #1
+    Modelado Base del Diagrama
+    26 de Agosto - 2 de Septiembre
+  -->
+  <uml:Model xmi:type="uml:Model" xmi:id="_MODEL_C1" name="EMCU_Ciclo1" visibility="public">
+
+    <packagedElement xmi:type="uml:Package" xmi:id="_PKG_C1"
+                     name="Ciclo 1 — Modelado Base (26 Ago - 2 Sep)" visibility="public">
+
+      <!-- ── ACTORES ── -->
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C1_USUARIO" name="Usuario" visibility="public">
+        <ownedComment xmi:type="uml:Comment" xmi:id="_C1_CMT_USR" annotatedElement="_C1_USUARIO">
+          <body>Actor base. Editor y Creador heredan de este actor.</body>
+        </ownedComment>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C1_EDITOR" name="Editor" visibility="public">
+        <generalization xmi:type="uml:Generalization" xmi:id="_C1_GEN_EDITOR"
+                        general="_C1_USUARIO"/>
+        <ownedComment xmi:type="uml:Comment" xmi:id="_C1_CMT_EDI" annotatedElement="_C1_EDITOR">
+          <body>Usuario colaborador invitado. Hereda todos los casos de uso de Usuario.</body>
+        </ownedComment>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C1_CREADOR" name="Creador" visibility="public">
+        <generalization xmi:type="uml:Generalization" xmi:id="_C1_GEN_CREADOR"
+                        general="_C1_USUARIO"/>
+        <ownedComment xmi:type="uml:Comment" xmi:id="_C1_CMT_CRE" annotatedElement="_C1_CREADOR">
+          <body>Usuario propietario del proyecto. Tiene acceso completo.</body>
+        </ownedComment>
+      </packagedElement>
+
+      <!-- ── LIMITE DEL SISTEMA ── -->
+      <packagedElement xmi:type="uml:Component" xmi:id="_C1_SYSTEM"
+                       name="Herramienta CASE" visibility="public"/>
+
+      <!-- ── CASOS DE USO ── -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C1_UC01"
+                       name="CU01 Gestionar Clases UML"
+                       visibility="public" subject="_C1_SYSTEM"/>
+
+      <!-- CU02 incluye CU01 -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C1_UC02"
+                       name="CU02 Gestionar Diagrama"
+                       visibility="public" subject="_C1_SYSTEM">
+        <include xmi:type="uml:Include" xmi:id="_C1_INC_02_01"
+                 includingCase="_C1_UC02" addition="_C1_UC01"/>
+      </packagedElement>
+
+      <!-- ── ASOCIACIONES Actor → Caso de Uso ── -->
+      <!-- Usuario → CU01 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C1_ASS_USR_UC01" name="" visibility="public">
+        <memberEnd xmi:idref="_C1_ASS_USR_UC01_E1"/>
+        <memberEnd xmi:idref="_C1_ASS_USR_UC01_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C1_ASS_USR_UC01_E1"
+                  type="_C1_USUARIO" association="_C1_ASS_USR_UC01"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C1_ASS_USR_UC01_E2"
+                  type="_C1_UC01"   association="_C1_ASS_USR_UC01"/>
+      </packagedElement>
+
+      <!-- Usuario → CU02 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C1_ASS_USR_UC02" name="" visibility="public">
+        <memberEnd xmi:idref="_C1_ASS_USR_UC02_E1"/>
+        <memberEnd xmi:idref="_C1_ASS_USR_UC02_E2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C1_ASS_USR_UC02_E1"
+                  type="_C1_USUARIO" association="_C1_ASS_USR_UC02"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C1_ASS_USR_UC02_E2"
+                  type="_C1_UC02"   association="_C1_ASS_USR_UC02"/>
+      </packagedElement>
+
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>

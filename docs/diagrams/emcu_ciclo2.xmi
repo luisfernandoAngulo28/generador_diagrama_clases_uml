@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1"
+          xmlns:uml="http://www.omg.org/spec/UML/20090901"
+          xmlns:xmi="http://www.omg.org/spec/XMI/20110701">
+
+  <xmi:Documentation exporter="PlantUML-to-XMI" exporterVersion="1.0"/>
+
+  <!--
+    3.1.5 EMCU — Ciclo de Vida #2
+    Colaboracion en Tiempo Real y Exportacion XMI
+    3 de Septiembre - 10 de Septiembre
+  -->
+  <uml:Model xmi:type="uml:Model" xmi:id="_MODEL_C2" name="EMCU_Ciclo2" visibility="public">
+
+    <packagedElement xmi:type="uml:Package" xmi:id="_PKG_C2"
+                     name="Ciclo 2 — Colaboracion y Exportacion (3 Sep - 10 Sep)" visibility="public">
+
+      <!-- ── ACTORES ── -->
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C2_USUARIO" name="Usuario" visibility="public"/>
+
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C2_EDITOR" name="Editor" visibility="public">
+        <generalization xmi:type="uml:Generalization" xmi:id="_C2_GEN_EDITOR"
+                        general="_C2_USUARIO"/>
+      </packagedElement>
+
+      <packagedElement xmi:type="uml:Actor" xmi:id="_C2_CREADOR" name="Creador" visibility="public">
+        <generalization xmi:type="uml:Generalization" xmi:id="_C2_GEN_CREADOR"
+                        general="_C2_USUARIO"/>
+      </packagedElement>
+
+      <!-- ── LIMITE DEL SISTEMA ── -->
+      <packagedElement xmi:type="uml:Component" xmi:id="_C2_SYSTEM"
+                       name="Herramienta CASE" visibility="public"/>
+
+      <!-- ── CASOS DE USO ── -->
+      <!-- Ciclo 1 (heredados) -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C2_UC01"
+                       name="CU01 Gestionar Clases UML"
+                       visibility="public" subject="_C2_SYSTEM"/>
+
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C2_UC02"
+                       name="CU02 Gestionar Diagrama"
+                       visibility="public" subject="_C2_SYSTEM">
+        <!-- CU02 incluye CU01 -->
+        <include xmi:type="uml:Include" xmi:id="_C2_INC_02_01"
+                 includingCase="_C2_UC02" addition="_C2_UC01"/>
+      </packagedElement>
+
+      <!-- Nuevos Ciclo 2 -->
+      <!-- CU03 extiende CU02 -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C2_UC03"
+                       name="CU03 Colaborar en Tiempo Real"
+                       visibility="public" subject="_C2_SYSTEM">
+        <extend xmi:type="uml:Extend" xmi:id="_C2_EXT_03_02"
+                extendedCase="_C2_UC02" extension="_C2_UC03"/>
+      </packagedElement>
+
+      <!-- CU05 extiende CU02 -->
+      <packagedElement xmi:type="uml:UseCase" xmi:id="_C2_UC05"
+                       name="CU05 Exportar Diagrama a XMI"
+                       visibility="public" subject="_C2_SYSTEM">
+        <extend xmi:type="uml:Extend" xmi:id="_C2_EXT_05_02"
+                extendedCase="_C2_UC02" extension="_C2_UC05"/>
+      </packagedElement>
+
+      <!-- ── ASOCIACIONES Actor → Caso de Uso ── -->
+      <!-- Usuario → CU01 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C2_ASS_USR_UC01" name="" visibility="public">
+        <memberEnd xmi:idref="_C2_E_USR_UC01_1"/>
+        <memberEnd xmi:idref="_C2_E_USR_UC01_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_USR_UC01_1"
+                  type="_C2_USUARIO" association="_C2_ASS_USR_UC01"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_USR_UC01_2"
+                  type="_C2_UC01"   association="_C2_ASS_USR_UC01"/>
+      </packagedElement>
+
+      <!-- Usuario → CU02 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C2_ASS_USR_UC02" name="" visibility="public">
+        <memberEnd xmi:idref="_C2_E_USR_UC02_1"/>
+        <memberEnd xmi:idref="_C2_E_USR_UC02_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_USR_UC02_1"
+                  type="_C2_USUARIO" association="_C2_ASS_USR_UC02"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_USR_UC02_2"
+                  type="_C2_UC02"   association="_C2_ASS_USR_UC02"/>
+      </packagedElement>
+
+      <!-- Usuario → CU03 -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C2_ASS_USR_UC03" name="" visibility="public">
+        <memberEnd xmi:idref="_C2_E_USR_UC03_1"/>
+        <memberEnd xmi:idref="_C2_E_USR_UC03_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_USR_UC03_1"
+                  type="_C2_USUARIO" association="_C2_ASS_USR_UC03"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_USR_UC03_2"
+                  type="_C2_UC03"   association="_C2_ASS_USR_UC03"/>
+      </packagedElement>
+
+      <!-- Creador → CU05 (exclusivo) -->
+      <packagedElement xmi:type="uml:Association" xmi:id="_C2_ASS_CRE_UC05" name="" visibility="public">
+        <memberEnd xmi:idref="_C2_E_CRE_UC05_1"/>
+        <memberEnd xmi:idref="_C2_E_CRE_UC05_2"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_CRE_UC05_1"
+                  type="_C2_CREADOR" association="_C2_ASS_CRE_UC05"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="_C2_E_CRE_UC05_2"
+                  type="_C2_UC05"    association="_C2_ASS_CRE_UC05"/>
+      </packagedElement>
+
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>

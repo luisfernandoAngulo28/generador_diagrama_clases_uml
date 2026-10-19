@@ -22,4 +22,6 @@ export type DiagramOperation =
 export interface EditDiagramResult {
   reply: string;
   operations: DiagramOperation[];
+  /** Filled in by HybridAiProvider: which engine actually answered. */
+  providerUsed?: 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
 }

@@ -1,0 +1,60 @@
+@startuml 06_secuencia_guardado_autoria
+' Diagrama de secuencia — guardado del diagrama con autoría granular — UML 2.5.1 (OMG)
+' Refleja: frontend/src/App.tsx (saveDiagram), diagrams.controller.ts, diagrams.service.ts,
+'          authorship.util.ts, model-sanitize.util.ts, diagrams.gateway.ts
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam ParticipantBackgroundColor #EAF2FB
+skinparam ParticipantBorderColor #2C3E50
+skinparam NoteBackgroundColor #FFF8DC
+autonumber "<b>0."
+title Secuencia — Guardar el diagrama con autoría granular y bitácora (2do Parcial)\n<size:11>UML 2.5.1</size>
+
+actor "Marco\n(navegador)" as marco
+participant ":App\n(lienzo)" as app
+participant ":JwtAuthGuard" as guard
+participant ":DiagramsController" as ctl
+participant ":DiagramsService" as svc
+participant "authorship.util" as auth
+database "MongoDB" as mongo
+participant ":DiagramsGateway" as gw
+collections "Sala del diagrama" as room
+
+marco -> app : agrega el atributo "total" a Pedido
+app -> room : diagram-update {nodes, edges, editorName}\n(sincronización inmediata, sin guardar)
+note right of room : el visor móvil resalta la clase\ncambiada y notifica
+...autoguardado (30 s), botón Guardar o cambio aplicado por la IA...
+app -> guard : PATCH /diagrams/:id {name, model, source}\nAuthorization: Bearer JWT
+guard -> guard : verifyToken()
+alt token inválido
+  guard --> app : 401 Unauthorized
+else válido
+  guard -> ctl : update(id, dto, user)
+  note right of ctl : ValidationPipe (whitelist):\nlos campos author/lastModifiedBy\nque envíe el cliente se descartan
+  ctl -> svc : update(id, dto, user, source)
+  svc -> mongo : findById(id)
+  mongo --> svc : modelo anterior
+  svc -> svc : sanitizeModel(anterior), sanitizeModel(nuevo)
+  svc -> auth : applyAuthorship(anterior, nuevo, stamp{Marco, ahora, source})
+  note right of auth
+    elemento nuevo     → author = Marco
+    elemento cambiado  → conserva author, lastModifiedBy = Marco
+    sin cambios        → conserva sus sellos
+    (mover la clase NO cuenta como cambio)
+  end note
+  auth --> svc : modelo con autoría
+  svc -> auth : diffModel(anterior, nuevo)
+  auth --> svc : [ATTRIBUTE_ADDED "Agregó el atributo total: Double a Pedido"]
+  svc -> mongo : findByIdAndUpdate($set model, lastModifiedBy)
+  opt hay cambios reales
+    svc -> mongo : insertMany diagram_activity_logs\n(+ "(vía IA)" si source = AI)
+  end
+  svc --> ctl : diagrama guardado
+  ctl -> gw : emitAuthorship(id, model)
+  gw -> room : diagram:authorship {classId → author, lastModifiedBy, atributos}
+  note right of room : ClassInspector (web) y el visor\nFlutter actualizan "Creada por…"
+  ctl --> app : 200 OK (diagrama)
+end
+@enduml

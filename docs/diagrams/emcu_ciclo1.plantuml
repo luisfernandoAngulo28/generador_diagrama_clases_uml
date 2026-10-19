@@ -1,0 +1,62 @@
+@startuml emcu_ciclo1
+
+' ─────────────────────────────────────────────
+'  Estilos
+' ─────────────────────────────────────────────
+skinparam actorStyle awesome
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+skinparam actor {
+    BorderColor     #2C3E50
+    BackgroundColor #D6EAF8
+    FontColor       #1A252F
+    FontStyle       bold
+}
+skinparam usecase {
+    BorderColor     #2980B9
+    BackgroundColor #EBF5FB
+    FontColor       #1A252F
+    ArrowColor      #2C3E50
+}
+skinparam rectangle {
+    BorderColor     #2C3E50
+    BackgroundColor #FDFEFE
+    FontStyle       bold
+    FontSize        13
+}
+
+title <b>3.1.5 EMCU — Ciclo de Vida #1</b>\nModelado Base del Diagrama\n<i>26 de Agosto — 2 de Septiembre</i>
+
+left to right direction
+
+' ─────────────────────────────────────────────
+'  Actores
+' ─────────────────────────────────────────────
+actor "Editor"  as Editor
+actor "Creador" as Creador
+actor "Usuario" as Usuario
+
+Editor  --|> Usuario : extends
+Creador --|> Usuario : extends
+
+' ─────────────────────────────────────────────
+'  Limite del sistema
+' ─────────────────────────────────────────────
+rectangle "Herramienta CASE" {
+    usecase "CU01 Gestionar\nClases UML"  as CU01
+    usecase "CU02 Gestionar\nDiagrama"    as CU02
+}
+
+' ─────────────────────────────────────────────
+'  Relaciones
+' ─────────────────────────────────────────────
+' Ambos actores gestionan clases y el diagrama
+Usuario --> CU01
+Usuario --> CU02
+
+' Gestionar el diagrama incluye gestionar sus clases
+CU02 .> CU01 : <<include>>
+
+@enduml

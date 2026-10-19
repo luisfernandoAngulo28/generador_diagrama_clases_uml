@@ -1,5 +1,5 @@
-import { Code2, Copy, GitCommitHorizontal, Terminal, Trash2, X } from 'lucide-react';
-import type { ClassStereotype, UmlClass } from '../types/uml';
+import { Code2, Copy, GitCommitHorizontal, Terminal, Trash2, UserRound, X } from 'lucide-react';
+import type { AuthorStamp, AuthorshipIndex, ClassStereotype, UmlClass } from '../types/uml';
 
 const STEREOTYPE_OPTIONS: { value: ClassStereotype | ''; label: string; hint: string }[] = [
   { value: '', label: 'Ninguno', hint: '' },
@@ -17,6 +17,8 @@ interface ClassInspectorProps {
   onPreviewCode?: () => void;
   onOpenSequence?: () => void;
   onOpenMockApi?: () => void;
+  /** Who created / last edited this class and its attributes (from the server). */
+  authorship?: AuthorshipIndex[string];
 }
 
 /**
@@ -34,6 +36,7 @@ export function ClassInspector({
   onPreviewCode,
   onOpenSequence,
   onOpenMockApi,
+  authorship,
 }: ClassInspectorProps) {
   const currentStereotype = STEREOTYPE_OPTIONS.find((o) => o.value === (umlClass.stereotype ?? ''));
 
@@ -50,6 +53,8 @@ export function ClassInspector({
           <X size={16} />
         </button>
       </div>
+
+      <AuthorshipSection umlClass={umlClass} authorship={authorship} />
 
       <label className="inspector__field">
         Estereotipo
@@ -121,5 +126,86 @@ export function ClassInspector({
         </button>
       </div>
     </aside>
+  );
+}
+
+const SOURCE_LABEL: Record<NonNullable<AuthorStamp['source']>, string> = {
+  MANUAL: '',
+  AI: 'vía IA',
+  XMI_IMPORT: 'importado de XMI',
+  PHOTO: 'desde foto',
+};
+
+function formatStamp(stamp: AuthorStamp): string {
+  return new Date(stamp.timestamp).toLocaleString('es-BO', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function Who({ stamp }: { stamp: AuthorStamp }) {
+  const source = stamp.source ? SOURCE_LABEL[stamp.source] : '';
+  return (
+    <span>
+      <strong>{stamp.userName}</strong>
+      {source && <span className="inspector__authorship-ai"> · {source}</span>} · {formatStamp(stamp)}
+    </span>
+  );
+}
+
+/**
+ * Granular authorship (2do Parcial): who created the class, who edited it
+ * last, and who added each attribute. Comes from the server, updated live
+ * through the `diagram:authorship` socket event after every save.
+ */
+function AuthorshipSection({
+  umlClass,
+  authorship,
+}: {
+  umlClass: UmlClass;
+  authorship?: AuthorshipIndex[string];
+}) {
+  const author = authorship?.author;
+  const editor = authorship?.lastModifiedBy;
+  const attrAuthors = umlClass.attributes
+    .map((a) => ({ name: a.name, stamp: authorship?.attributes[a.name]?.author }))
+    .filter((a) => a.stamp && a.stamp.userId !== author?.userId);
+
+  return (
+    <section className="inspector__authorship" aria-label="Autoría">
+      <div className="inspector__authorship-title">
+        <UserRound size={13} /> Autoría
+      </div>
+      {author ? (
+        <>
+          <div className="inspector__authorship-row">
+            <span>Creada por</span>
+            <Who stamp={author} />
+          </div>
+          {editor && (
+            <div className="inspector__authorship-row">
+              <span>Última edición</span>
+              <Who stamp={editor} />
+            </div>
+          )}
+          {attrAuthors.length > 0 && (
+            <ul className="inspector__authorship-attrs">
+              {attrAuthors.map((a) => (
+                <li key={a.name}>
+                  {a.name}: agregado por {a.stamp!.userName}
+                  {a.stamp!.source === 'AI' ? ' (vía IA)' : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : (
+        <span className="inspector__authorship-empty">
+          Sin registro todavía: se asigna al guardar (o la clase viene del 1er Parcial).
+        </span>
+      )}
+    </section>
   );
 }

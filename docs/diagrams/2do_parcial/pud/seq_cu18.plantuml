@@ -1,0 +1,24 @@
+@startuml seq_cu18
+!include _seq.iuml
+title CU18 — Reanudar Sesión de Trabajo\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+actor Integrante as A
+boundary ":App" as B
+control ":DiagramsGateway" as G
+control ":SessionsService" as S
+database "MongoDB" as DB
+A -> B : abre el diagrama (otro día)
+B -> G : join-diagram {diagramId} (JWT en el handshake)
+G -> S : join(diagramId, user)
+S -> DB : getLatest(diagramId) [status ≠ CLOSED]
+alt existe una sesión PAUSED
+  S -> DB : status = ACTIVE, participante online
+else no existe sesión
+  S -> DB : crear sesión ACTIVE
+end
+G -> S : getInitState(diagramId)
+S -> DB : sesión + 50 entradas de bitácora + 50 mensajes
+S --> G : {session, recentActivity, chat}
+G --> B : session:init-state
+B --> A : chat e historial restaurados
+note over S : al salir el último integrante:\nleave() → status = PAUSED
+@enduml

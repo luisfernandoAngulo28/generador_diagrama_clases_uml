@@ -1,0 +1,16 @@
+@startuml com_cu13
+!include _com.iuml
+title CU13 — Iniciar Sesión\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":LoginPage" as B <<boundary>>
+object ":AuthController" as C1 <<control>>
+object ":AuthService" as C2 <<control>>
+object ":User" as E <<entity>>
+actor "Integrante" as A
+A -down- B : "1: ingresa correo y contraseña →"
+B -down- C1 : "2: POST /auth/login →"
+C1 -down- C2 : "3: login(dto) →"
+C2 -down- E : "4: findByEmail() →\n5: bcrypt.compare() ←"
+C2 -up- C1 : "6: JWT {sub, name} ←"
+C1 -up- B : "7: {token, user} ←"
+B -up- A : "8: guarda token y abre la sala ←"
+@enduml

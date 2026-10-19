@@ -1,0 +1,89 @@
+@startuml 05_secuencia_chat_ia
+' Diagrama de secuencia — pregunta al Moderador IA en el chat grupal — UML 2.5.1 (OMG)
+' Refleja: frontend/src/components/ChatPanel.tsx, backend/src/ai/chat/chat.gateway.ts,
+'          backend/src/ai/moderator/moderator.service.ts, backend/src/ai/providers/hybrid.provider.ts
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam ParticipantBackgroundColor #EAF2FB
+skinparam ParticipantBorderColor #2C3E50
+skinparam NoteBackgroundColor #FFF8DC
+autonumber "<b>0."
+title Secuencia — Pregunta pública al Moderador IA (2do Parcial)\n<size:11>UML 2.5.1 · fragmentos combinados alt / opt / par</size>
+
+actor "Luis\n(navegador)" as luis
+participant ":ChatPanel" as panel
+participant ":ChatGateway" as gw
+participant ":ModeratorService" as mod
+database "MongoDB" as mongo
+participant ":AiService" as ai
+participant ":HybridAiProvider" as hybrid
+participant "Gemini API" as gemini
+participant "Ollama local" as ollama
+collections "Sala del diagrama\n(Marco web, Elizabeth móvil)" as room
+
+luis -> panel : escribe "¿Qué es una composición?"\n(botón IA activo)
+panel -> panel : onEnsureSaved()\n(guarda el diagrama actual)
+panel -> gw : emit chat:send {diagramId, text, askAi: true}
+gw -> gw : resolveSocketUser(client)\n(JWT del handshake)
+alt usuario no autenticado
+  gw --> panel : chat:error "Inicia sesión…"
+else autenticado
+  gw -> mod : storeUserMessage(diagramId, user, text)
+  mod -> mongo : insert group_chat_messages
+  mongo --> mod : mensaje (id)
+  mod --> gw : question
+  gw -> room : chat:new-message (question)
+  note right : todos ven la pregunta\nal instante (chat público)
+  gw -> room : ai:status {isThinking: true, promptBy: "Luis"}
+  gw -> mod : answer(diagramId, user, question)
+  par contexto dual
+    mod -> mongo : diagrams.findById (modelo + autoría)
+  else
+    mod -> mongo : activity_logs (últimas 25) — contexto grupal
+  else
+    mod -> mongo : chat de la sala (últimos 8)
+  else
+    mod -> mongo : hilo de Luis (últimos 8) — contexto individual
+  else
+    mod -> mongo : sesión (participantes conectados)
+  end
+  mod -> mod : buildModeratorPrompt(ctx)\nbuildModeratorLitePrompt(ctx)
+  mod -> ai : editDiagram(text, modelo, prompts)
+  ai -> hybrid : editDiagram(...)
+  alt AI_HYBRID_ORDER = cloud-first (defecto)
+    hybrid -> gemini : generateContent(systemPrompt, pregunta)
+    alt Gemini responde
+      gemini --> hybrid : {reply, operations}
+    else sin internet / error
+      gemini --> hybrid : error
+      hybrid -> hybrid : abre circuit breaker de Gemini (30 s)
+      hybrid -> ollama : /api/generate (prompt lite, timeout 60 s)
+      ollama --> hybrid : {reply, operations}
+    end
+  else AI_HYBRID_ORDER = local-first (demo)
+    hybrid -> ollama : /api/generate (prompt lite, timeout 20 s)
+    alt responde a tiempo
+      ollama --> hybrid : {reply, operations}
+    else timeout
+      hybrid -> gemini : generateContent(...)
+      gemini --> hybrid : {reply, operations}
+    end
+  end
+  hybrid --> ai : resultado + providerUsed
+  ai -> ai : validateOperations()\n(descarta clases inexistentes/duplicadas)
+  ai --> mod : EditDiagramResult
+  opt el mensaje NO pide un cambio explícito
+    mod -> mod : operations = []\n(isExplicitChangeRequest)
+  end
+  mod -> mod : ensureAddressed(reply, "Luis")
+  mod -> mongo : insert respuesta {addressedTo: Luis, providerUsed}
+  mod --> gw : answer, operations
+  gw -> room : chat:new-message {"Luis, …", providerUsed, operations}
+  gw -> room : ai:status {isThinking: false}
+  opt operations no vacías y el cliente es el de Luis
+    room -> room : el cliente de Luis aplica las operaciones\ny guarda con source = AI\n(ver 06_secuencia_guardado_autoria)
+  end
+end
+@enduml

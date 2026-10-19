@@ -1,0 +1,18 @@
+@startuml com_cu19
+!include _com.iuml
+title CU19 — Visualizar Diagrama en Vivo (Móvil)\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":UmlViewerScreen" as B <<boundary>>
+object ":CaseApi" as C1 <<control>>
+object ":LiveRoom" as C2 <<control>>
+object ":DiagramsController" as C3 <<control>>
+object ":DiagramsGateway" as C4 <<control>>
+object ":Diagram" as E <<entity>>
+actor "Integrante (móvil)" as A
+A -down- B : "1: elige un diagrama →"
+B -down- C1 : "2: getDiagram(id) →"
+C1 -down- C3 : "3: GET /diagrams/:id →"
+C3 -down- E : "4: findById →"
+B -down- C2 : "5: connect() →"
+C2 -down- C4 : "6: join-diagram (JWT) →\n7: diagram-update / diagram:authorship ←"
+C2 -up- B : "8: redibuja y resalta cambios ←"
+@enduml

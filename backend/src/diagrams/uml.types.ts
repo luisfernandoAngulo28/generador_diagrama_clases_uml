@@ -1,10 +1,30 @@
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
+/** Where a model element came from: drawn by hand, applied by the AI, imported from XMI or a photo. */
+export type AuthorSource = 'MANUAL' | 'AI' | 'XMI_IMPORT' | 'PHOTO';
+
+/**
+ * Granular authorship stamp (2do Parcial): who created/last touched a class,
+ * attribute or relation, and when. Always computed server-side in
+ * DiagramsService (the ValidationPipe whitelist strips it from client input),
+ * so a client can't forge it. Optional everywhere: the generator, XMI export
+ * and validation ignore it.
+ */
+export interface AuthorStamp {
+  userId: string;
+  userName: string;
+  /** ISO-8601 timestamp. */
+  timestamp: string;
+  source?: AuthorSource;
+}
+
 export interface UmlAttribute {
   name: string;
   type: string;
   visibility: Visibility;
   isPrimaryKey?: boolean;
+  author?: AuthorStamp;
+  lastModifiedBy?: AuthorStamp;
 }
 
 export interface UmlOperation {
@@ -33,6 +53,8 @@ export interface UmlClass {
   description?: string;
   /** Canvas position; not used by the generator, kept only for the frontend layout. */
   position?: { x: number; y: number };
+  author?: AuthorStamp;
+  lastModifiedBy?: AuthorStamp;
 }
 
 export type RelationType =
@@ -54,6 +76,8 @@ export interface UmlRelation {
   targetClassId: string;
   sourceRole?: string;
   targetRole?: string;
+  author?: AuthorStamp;
+  lastModifiedBy?: AuthorStamp;
 }
 
 export interface UmlNote {

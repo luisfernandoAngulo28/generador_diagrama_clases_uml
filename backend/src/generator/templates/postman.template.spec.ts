@@ -36,6 +36,8 @@ describe('renderPostmanCollection — Postman v2.1 Collection generator', () => 
     expect(methods).toContain('POST');
     expect(methods).toContain('PUT');
     expect(methods).toContain('DELETE');
+    // Create first so the Runner's GET/PUT/DELETE by id work on an empty database.
+    expect(methods).toEqual(['POST', 'GET', 'GET', 'PUT', 'DELETE']);
   });
 
   it('excludes enums and interfaces from having direct CRUD endpoints', () => {

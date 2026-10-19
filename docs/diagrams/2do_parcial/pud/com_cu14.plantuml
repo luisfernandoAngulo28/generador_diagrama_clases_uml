@@ -1,0 +1,16 @@
+@startuml com_cu14
+!include _com.iuml
+title CU14 — Enviar Mensaje al Chat Grupal\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB</size>
+object ":ChatPanel" as B <<boundary>>
+object ":ChatGateway" as C1 <<control>>
+object ":ModeratorService" as C2 <<control>>
+object ":GroupChatMessage" as E <<entity>>
+object ":Sala del diagrama" as R <<boundary>>
+actor "Integrante" as A
+A -down- B : "1: escribe mensaje (IA desactivada) →"
+B -down- C1 : "2: chat:send {diagramId, text, askAi:false} →"
+C1 -down- C2 : "3: storeUserMessage(user, text) →"
+C2 -down- E : "4: insert →"
+C1 -down- R : "5: chat:new-message →"
+R -up- A : "6: todos ven el mensaje ←"
+@enduml

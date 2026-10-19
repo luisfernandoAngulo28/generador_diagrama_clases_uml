@@ -1,0 +1,23 @@
+@startuml seq_cu19
+!include _seq.iuml
+title CU19 — Visualizar Diagrama en Vivo (Móvil)\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+actor "Integrante (móvil)" as A
+boundary ":UmlViewerScreen" as V
+control ":CaseApi" as API
+control ":LiveRoom" as L
+control ":DiagramsController" as C
+control ":DiagramsGateway" as G
+actor "Integrante (web)" as W
+A -> V : elige un diagrama
+V -> API : getDiagram(id)
+API -> C : GET /diagrams/:id (JWT)
+C --> API : diagrama (modelo + autoría)
+V -> L : connect()
+L -> G : join-diagram (JWT)
+G --> L : session:init-state, presence, locks-update
+L --> V : dibuja clases y relaciones (solo lectura)
+W -> G : diagram-update {nodes, edges, editorName}
+G -> L : diagram-update
+L -> L : detectar clases cambiadas (contentKey)
+L --> V : resalta "Luis modificó Pedido"
+@enduml

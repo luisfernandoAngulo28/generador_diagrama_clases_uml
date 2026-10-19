@@ -1,80 +1,233 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Diagram } from './entities/diagram.entity.js';
-import { DiagramHistoryEntry } from './entities/diagram-history-entry.entity.js';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { DiagramDocument } from './schemas/diagram.schema.js';
+import { ActivityLogDocument } from './schemas/activity-log.schema.js';
+import type { Actor } from './schemas/author.schema.js';
 import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
-import { summarizeModelDiff } from './model-diff.util.js';
+import { applyAuthorship, diffModel, type ModelChange } from './authorship.util.js';
+import { sanitizeModel } from './model-sanitize.util.js';
+import type { AuthorSource, AuthorStamp, UmlModel } from './uml.types.js';
 import type { JwtPayload } from '../auth/auth.service.js';
 
 const HISTORY_PAGE_SIZE = 50;
 
+/** Public shape of a diagram (what the controller returns and the generator consumes). */
+export interface Diagram {
+  id: string;
+  name: string;
+  model: UmlModel;
+  createdBy?: Actor;
+  lastModifiedBy?: Actor;
+  /** Whether the AI moderator may modify the canvas (room setting). */
+  aiCanEditCanvas: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Same shape the frontend's HistoryPanel already renders, plus the structured fields. */
+export interface DiagramHistoryEntry {
+  id: string;
+  diagramId: string;
+  userId: string;
+  userName: string;
+  summary: string;
+  createdAt: Date;
+  action: ModelChange['action'];
+  target: ModelChange['target'];
+}
+
 @Injectable()
 export class DiagramsService {
   constructor(
-    @InjectRepository(Diagram)
-    private readonly diagramsRepository: Repository<Diagram>,
-    @InjectRepository(DiagramHistoryEntry)
-    private readonly historyRepository: Repository<DiagramHistoryEntry>,
+    @InjectModel(DiagramDocument.name)
+    private readonly diagramModel: Model<DiagramDocument>,
+    @InjectModel(ActivityLogDocument.name)
+    private readonly activityModel: Model<ActivityLogDocument>,
   ) {}
 
-  async create(dto: CreateDiagramDto, author?: JwtPayload): Promise<Diagram> {
-    const diagram = this.diagramsRepository.create(dto);
-    const saved = await this.diagramsRepository.save(diagram);
+  async create(
+    dto: CreateDiagramDto,
+    author?: JwtPayload,
+    source: AuthorSource = 'MANUAL',
+  ): Promise<Diagram> {
+    const stamp = author ? toStamp(author, source) : undefined;
+    const incoming = sanitizeModel(dto.model);
+    const model = stamp ? applyAuthorship(undefined, incoming, stamp) : incoming;
+    const actor = author ? toActor(author) : undefined;
+
+    const saved = await this.diagramModel.create({
+      name: dto.name,
+      model,
+      createdBy: actor,
+      lastModifiedBy: actor,
+    });
+
     if (author) {
-      await this.logChange(saved.id, author, 'Creó el diagrama');
+      const created: ModelChange = {
+        action: source === 'XMI_IMPORT' ? 'DIAGRAM_IMPORTED' : 'DIAGRAM_CREATED',
+        target: { entityType: 'DIAGRAM', entityId: saved._id, entityName: saved.name },
+        details: { source },
+        summary: source === 'XMI_IMPORT' ? `Importó el diagrama desde XMI` : 'Creó el diagrama',
+      };
+      await this.logChanges(saved._id, author, [created, ...diffModel(undefined, model)]);
     }
-    return saved;
+    return toDiagram(saved.toObject());
   }
 
-  findAll(): Promise<Diagram[]> {
-    return this.diagramsRepository.find({ order: { updatedAt: 'DESC' } });
+  async findAll(): Promise<Diagram[]> {
+    const docs = await this.diagramModel.find().sort({ updatedAt: -1 }).lean();
+    return docs.map(toDiagram);
   }
 
   async findOne(id: string): Promise<Diagram> {
-    const diagram = await this.diagramsRepository.findOneBy({ id });
-    if (!diagram) {
+    const doc = await this.diagramModel.findById(id).lean();
+    if (!doc) {
       throw new NotFoundException(`Diagram ${id} not found`);
     }
-    return diagram;
+    return toDiagram(doc);
   }
 
-  async update(id: string, dto: UpdateDiagramDto, author?: JwtPayload): Promise<Diagram> {
-    const diagram = await this.findOne(id);
-    const previousModel = diagram.model;
-    Object.assign(diagram, dto);
-    const saved = await this.diagramsRepository.save(diagram);
+  async update(
+    id: string,
+    dto: UpdateDiagramDto,
+    author?: JwtPayload,
+    source: AuthorSource = 'MANUAL',
+  ): Promise<Diagram> {
+    const current = await this.findOne(id);
+    const changes: ModelChange[] = [];
+    const set: Partial<DiagramDocument> = {};
 
-    if (author && dto.model) {
-      const summary = summarizeModelDiff(previousModel, saved.model);
-      await this.logChange(id, author, summary);
+    if (dto.name !== undefined && dto.name !== current.name) {
+      set.name = dto.name;
+      changes.push({
+        action: 'DIAGRAM_RENAMED',
+        target: { entityType: 'DIAGRAM', entityId: id, entityName: dto.name },
+        details: { from: current.name, to: dto.name },
+        summary: `Renombró el diagrama a ${dto.name}`,
+      });
     }
 
-    return saved;
+    if (dto.model) {
+      const previous = sanitizeModel(current.model);
+      const incoming = sanitizeModel(dto.model);
+      // Authorship is computed from the stored model, never trusted from the client.
+      set.model = author ? applyAuthorship(previous, incoming, toStamp(author, source)) : incoming;
+      changes.push(...diffModel(previous, incoming));
+    }
+
+    if (author && changes.length) set.lastModifiedBy = toActor(author);
+
+    const saved = await this.diagramModel
+      .findByIdAndUpdate(id, { $set: set }, { returnDocument: 'after' })
+      .lean();
+    if (!saved) {
+      throw new NotFoundException(`Diagram ${id} not found`);
+    }
+
+    if (author && changes.length) {
+      await this.logChanges(
+        id,
+        author,
+        source === 'MANUAL'
+          ? changes
+          : changes.map((c) => ({
+              ...c,
+              details: { ...c.details, source },
+              summary: `${c.summary} (vía IA)`,
+            })),
+      );
+    }
+    return toDiagram(saved);
+  }
+
+  /**
+   * Turns the AI moderator's canvas edits on or off for the whole room and
+   * records who did it, so the change shows up in the bitácora (and the AI
+   * can answer "¿quién desactivó la edición?").
+   */
+  async setAiCanEditCanvas(id: string, enabled: boolean, user: JwtPayload): Promise<Diagram> {
+    const saved = await this.diagramModel
+      .findByIdAndUpdate(
+        id,
+        { $set: { aiCanEditCanvas: enabled } },
+        // A setting is not a model edit: keep updatedAt as the last canvas change.
+        { returnDocument: 'after', timestamps: false },
+      )
+      .lean();
+    if (!saved) {
+      throw new NotFoundException(`Diagram ${id} not found`);
+    }
+    await this.logChanges(id, user, [
+      {
+        action: 'AI_SETTINGS_CHANGED',
+        target: { entityType: 'DIAGRAM', entityId: id, entityName: saved.name },
+        details: { aiCanEditCanvas: enabled },
+        summary: enabled
+          ? 'Permitió que la IA modifique el lienzo'
+          : 'Puso a la IA en modo solo sugerencias',
+      },
+    ]);
+    return toDiagram(saved);
   }
 
   async remove(id: string): Promise<void> {
-    const diagram = await this.findOne(id);
-    await this.diagramsRepository.remove(diagram);
+    const result = await this.diagramModel.deleteOne({ _id: id });
+    if (result.deletedCount === 0) {
+      throw new NotFoundException(`Diagram ${id} not found`);
+    }
   }
 
-  private async logChange(diagramId: string, author: JwtPayload, summary: string): Promise<void> {
-    await this.historyRepository.save(
-      this.historyRepository.create({
-        diagramId,
-        userId: author.sub,
-        userName: author.name,
-        summary,
-      }),
+  async getHistory(diagramId: string): Promise<DiagramHistoryEntry[]> {
+    const logs = await this.activityModel
+      .find({ diagramId })
+      .sort({ timestamp: -1 })
+      .limit(HISTORY_PAGE_SIZE)
+      .lean();
+    return logs.map((log) => ({
+      id: String(log._id),
+      diagramId: log.diagramId,
+      userId: log.actor.userId,
+      userName: log.actor.userName,
+      summary: log.summary,
+      createdAt: log.timestamp,
+      action: log.action,
+      target: log.target,
+    }));
+  }
+
+  private async logChanges(
+    diagramId: string,
+    author: JwtPayload,
+    changes: ModelChange[],
+  ): Promise<void> {
+    if (!changes.length) return;
+    const actor = toActor(author);
+    const timestamp = new Date();
+    await this.activityModel.insertMany(
+      changes.map((change) => ({ diagramId, actor, timestamp, ...change })),
     );
   }
+}
 
-  getHistory(diagramId: string): Promise<DiagramHistoryEntry[]> {
-    return this.historyRepository.find({
-      where: { diagramId },
-      order: { createdAt: 'DESC' },
-      take: HISTORY_PAGE_SIZE,
-    });
-  }
+function toActor(user: JwtPayload): Actor {
+  return { userId: user.sub, userName: user.name, type: 'USER' };
+}
+
+function toStamp(user: JwtPayload, source: AuthorSource): AuthorStamp {
+  return { userId: user.sub, userName: user.name, timestamp: new Date().toISOString(), source };
+}
+
+function toDiagram(doc: DiagramDocument): Diagram {
+  return {
+    id: doc._id,
+    name: doc.name,
+    model: doc.model,
+    createdBy: doc.createdBy,
+    lastModifiedBy: doc.lastModifiedBy,
+    aiCanEditCanvas: doc.aiCanEditCanvas ?? true,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
 }

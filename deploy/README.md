@@ -1,9 +1,16 @@
 # Despliegue en AWS (EC2 + Docker Compose)
 
-## Estado actual (desplegado)
+## Estado actual: APAGADO (18/10/2026)
+
+> El servidor se terminó para no generar costos. Los datos, los secretos y el
+> certificado están respaldados en `.deploy/`. Para volver a levantarlo, sigue
+> **[GUIA_REDESPLIEGUE_AWS.md](GUIA_REDESPLIEGUE_AWS.md)** (≈ 30–40 min). La IP
+> `100.56.70.99` ya fue liberada: al recrearlo habrá una IP nueva.
+
+## Cómo estaba desplegado
 
 - **Servidor**: EC2 `t3.micro`, **Ubuntu 24.04 LTS**, región `us-east-1`.
-- **IP pública fija (Elastic IP)**: `34.231.176.225`
+- **IP pública fija (Elastic IP)**: `100.56.70.99`
 - **Dominio**: `diagramasw1pracial100.duckdns.org` (DuckDNS, gratuito),
   apuntando a la Elastic IP de arriba.
 - **URL**: **https://diagramasw1pracial100.duckdns.org** (HTTP
@@ -60,7 +67,7 @@ Una sola instancia EC2 corre 3 contenedores vía Docker Compose:
 ## Conectarse por SSH
 
 ```bash
-ssh -i .deploy/diagramador-uml-key.pem ubuntu@34.231.176.225
+ssh -i .deploy/diagramador-uml-key.pem ubuntu@100.56.70.99
 ```
 
 ## Redesplegar tras un cambio (git push a `main`)
@@ -74,16 +81,16 @@ ssh -i .deploy/diagramador-uml-key.pem ubuntu@34.231.176.225
 scp -i ".deploy/diagramador-uml-key.pem" `
   backend/src/generator/generator.service.ts `
   backend/src/generator/generator.service.spec.ts `
-  ubuntu@34.231.176.225:app/backend/src/generator/
+  ubuntu@100.56.70.99:app/backend/src/generator/
 
 scp -i ".deploy/diagramador-uml-key.pem" `
   backend/src/generator/templates/controller.template.ts `
   backend/src/generator/templates/project-files.template.ts `
   backend/src/generator/templates/openapi-config.template.ts `
-  ubuntu@34.231.176.225:app/backend/src/generator/templates/
+  ubuntu@100.56.70.99:app/backend/src/generator/templates/
 
 # 2. Rebuild y restart del contenedor backend:
-ssh -i ".deploy/diagramador-uml-key.pem" ubuntu@34.231.176.225 `
+ssh -i ".deploy/diagramador-uml-key.pem" ubuntu@100.56.70.99 `
   "cd app && bash deploy/deploy.sh"
 ```
 
@@ -95,7 +102,7 @@ icacls ".deploy\diagramador-uml-key.pem" /inheritance:r /grant:r "$($env:USERNAM
 ## Ver logs / diagnosticar
 
 ```bash
-ssh -i .deploy/diagramador-uml-key.pem ubuntu@34.231.176.225
+ssh -i .deploy/diagramador-uml-key.pem ubuntu@100.56.70.99
 cd app
 sudo docker compose -f docker-compose.prod.yml logs -f backend   # o db / frontend
 sudo docker compose -f docker-compose.prod.yml ps
@@ -107,7 +114,7 @@ Viven en `app/.env.production` **en el servidor**, nunca en el repo.
 Para editarlas:
 
 ```bash
-ssh -i .deploy/diagramador-uml-key.pem ubuntu@34.231.176.225
+ssh -i .deploy/diagramador-uml-key.pem ubuntu@100.56.70.99
 nano app/.env.production
 cd app && bash deploy/deploy.sh
 ```

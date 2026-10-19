@@ -1,0 +1,12 @@
+' Estilo de los diagramas de secuencia por caso de uso (UML 2.5.1)
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam ParticipantBackgroundColor #EAF2FB
+skinparam ParticipantBorderColor #2C3E50
+skinparam BoundaryBackgroundColor #FDF2E9
+skinparam ControlBackgroundColor #EAF2FB
+skinparam EntityBackgroundColor #E8F8F5
+skinparam NoteBackgroundColor #FFF8DC
+autonumber

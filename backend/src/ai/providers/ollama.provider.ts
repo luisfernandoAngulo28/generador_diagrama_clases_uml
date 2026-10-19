@@ -3,11 +3,20 @@ import { ConfigService } from '@nestjs/config';
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { EditDiagramResult } from '../operations.types.js';
 import { EDIT_SYSTEM_PROMPT, VISION_SYSTEM_PROMPT, stripJsonFences } from '../prompts.js';
-import type { AiProvider } from './ai-provider.interface.js';
+import type { AiCallOptions, AiProvider } from './ai-provider.interface.js';
+import { BASE_MODEL, CUSTOM_MODEL_NAME } from '../ollama-modelfile.js';
 
 interface OllamaGenerateResponse {
   response: string;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+  total_duration?: number;
 }
+
+const ms = (ns: number | undefined) => Math.round((ns ?? 0) / 1e6);
 
 /**
  * Plan B / sin internet: mismo contrato que GeminiProvider (mismos prompts,
@@ -18,6 +27,7 @@ interface OllamaGenerateResponse {
  */
 @Injectable()
 export class OllamaProvider implements AiProvider {
+  readonly id = 'OLLAMA_LOCAL' as const;
   private readonly logger = new Logger(OllamaProvider.name);
   private readonly baseUrl: string;
   private readonly textModel: string;
@@ -25,7 +35,7 @@ export class OllamaProvider implements AiProvider {
 
   constructor(private readonly configService: ConfigService) {
     this.baseUrl = this.configService.get<string>('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
-    this.textModel = this.configService.get<string>('OLLAMA_TEXT_MODEL') ?? 'qwen2.5:1.5b-instruct';
+    this.textModel = this.configService.get<string>('OLLAMA_TEXT_MODEL') ?? CUSTOM_MODEL_NAME;
     this.visionModel = this.configService.get<string>('OLLAMA_VISION_MODEL') ?? 'moondream';
   }
 
@@ -34,12 +44,15 @@ export class OllamaProvider implements AiProvider {
     system: string;
     prompt: string;
     images?: string[];
+    signal?: AbortSignal;
+    numPredict?: number;
   }): Promise<string> {
     let res: Response;
     try {
       res = await fetch(`${this.baseUrl}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: params.signal,
         body: JSON.stringify({
           model: params.model,
           system: params.system,
@@ -47,13 +60,19 @@ export class OllamaProvider implements AiProvider {
           images: params.images,
           format: 'json',
           stream: false,
+          // Keep the model loaded between questions: the cold start (loading
+          // weights into RAM) is what usually blows the hybrid timeout.
+          keep_alive: '30m',
           // temperature 0 (greedy, determinista): en pruebas, la temperatura
           // por defecto de Ollama (0.8) hacía que modelos pequeños
           // inventaran clases/relaciones que nadie pidió.
-          options: { temperature: 0, top_p: 0.1 },
+          // num_predict: a CPU generates ~6 tok/s, so cap text answers
+          // (a reply plus a few operations fits comfortably in 256 tokens).
+          options: { temperature: 0, top_p: 0.1, num_predict: params.numPredict ?? (params.images ? undefined : 256) },
         }),
       });
     } catch (err) {
+      if (params.signal?.aborted) throw err;
       throw new BadRequestException(
         `No se pudo conectar con Ollama en ${this.baseUrl}. ¿Está corriendo ("ollama serve") y el modelo "${params.model}" descargado?`,
       );
@@ -61,23 +80,37 @@ export class OllamaProvider implements AiProvider {
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
+      // The team's model (moderador-uml) exists only after `npm run ollama:modelo`:
+      // fall back to its base model instead of leaving the room without AI.
+      if (res.status === 404 && params.model === CUSTOM_MODEL_NAME) {
+        this.logger.warn(
+          `El modelo "${CUSTOM_MODEL_NAME}" no está creado (npm run ollama:modelo); se usa ${BASE_MODEL}.`,
+        );
+        return this.generate({ ...params, model: BASE_MODEL });
+      }
       throw new BadRequestException(`Ollama respondió ${res.status}: ${body.slice(0, 300)}`);
     }
 
     const data = (await res.json()) as OllamaGenerateResponse;
+    // Latency breakdown, useful to tune OLLAMA_TIMEOUT_MS and prompt size.
+    this.logger.log(
+      `${params.model}: total ${ms(data.total_duration)} ms | carga ${ms(data.load_duration)} ms | ` +
+        `prompt ${data.prompt_eval_count ?? '?'} tok en ${ms(data.prompt_eval_duration)} ms | ` +
+        `respuesta ${data.eval_count ?? '?'} tok en ${ms(data.eval_duration)} ms`,
+    );
     return data.response ?? '';
   }
 
-  async editDiagram(message: string, model: UmlModel): Promise<EditDiagramResult> {
-    // Los modelos pequeños siguen un ejemplo concreto mucho mejor que una
-    // regla abstracta. Este ejemplo vive solo aqui (no en prompts.ts) para
-    // no arriesgar el comportamiento ya probado de Gemini.
-    const fewShotExample =
-      'Ejemplo — mensaje del usuario: "Crea una clase Producto con nombre y precio" con modelo actual {"classes":[],"relations":[]} ' +
-      '-> respuesta correcta: {"reply":"Cree la clase Producto.","operations":[{"op":"CREATE_CLASS","name":"Producto","attributes":[{"name":"nombre","type":"String","visibility":"private"},{"name":"precio","type":"Double","visibility":"private"}]}]}\n' +
-      'Nota: "reply" es SIEMPRE un string, nunca un objeto. NUNCA agregues una clase o relación que el usuario no haya pedido explícitamente.\n\n';
-    const prompt = `${fewShotExample}Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
-    const raw = await this.generate({ model: this.textModel, system: EDIT_SYSTEM_PROMPT, prompt });
+  async editDiagram(
+    message: string,
+    model: UmlModel,
+    options: AiCallOptions = {},
+  ): Promise<EditDiagramResult> {
+    const raw = await this.generate({
+      model: this.textModel,
+      ...this.buildTextPrompt(message, model, options),
+      signal: options.signal,
+    });
     const jsonText = stripJsonFences(raw);
 
     try {
@@ -90,6 +123,41 @@ export class OllamaProvider implements AiProvider {
       this.logger.warn(`Ollama (${this.textModel}) no devolvió JSON válido, usando texto crudo como reply.`);
       return { reply: raw, operations: [] };
     }
+  }
+
+  /**
+   * Loads the model into RAM and evaluates `system` once, so Ollama's KV
+   * cache already holds that prefix when the first real question arrives
+   * (cold, the first moderator answer took >20 s; warm, ~5–13 s).
+   */
+  async warmUp(system: string): Promise<void> {
+    const started = Date.now();
+    await this.generate({ model: this.textModel, system, prompt: 'ok', numPredict: 1 });
+    this.logger.log(`Modelo ${this.textModel} precalentado en ${Date.now() - started} ms`);
+  }
+
+  private buildTextPrompt(
+    message: string,
+    model: UmlModel,
+    options: AiCallOptions,
+  ): { system: string; prompt: string } {
+    // Lite prompt (moderator): it already contains the diagram, the context
+    // and its own few-shot examples; only the question goes in the prompt.
+    if (options.localSystemPrompt) {
+      return { system: options.localSystemPrompt, prompt: message };
+    }
+    // Los modelos pequeños siguen un ejemplo concreto mucho mejor que una
+    // regla abstracta. Este ejemplo es del asistente de edición: no se usa con
+    // otros prompts (el moderador lo copiaba y creaba "Producto" sin pedido).
+    const fewShotExample = options.systemPrompt
+      ? ''
+      : 'Ejemplo — mensaje del usuario: "Crea una clase Producto con nombre y precio" con modelo actual {"classes":[],"relations":[]} ' +
+        '-> respuesta correcta: {"reply":"Cree la clase Producto.","operations":[{"op":"CREATE_CLASS","name":"Producto","attributes":[{"name":"nombre","type":"String","visibility":"private"},{"name":"precio","type":"Double","visibility":"private"}]}]}\n' +
+        'Nota: "reply" es SIEMPRE un string, nunca un objeto. NUNCA agregues una clase o relación que el usuario no haya pedido explícitamente.\n\n';
+    return {
+      system: options.systemPrompt ?? EDIT_SYSTEM_PROMPT,
+      prompt: `${fewShotExample}Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`,
+    };
   }
 
   async interpretDiagramPhoto(

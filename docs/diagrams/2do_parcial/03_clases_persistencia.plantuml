@@ -1,0 +1,188 @@
+@startuml 03_clases_persistencia
+' Diagrama de clases (modelo de datos) — UML 2.5.1 (OMG), 2do Parcial
+' Refleja: backend/src/diagrams/schemas/*.schema.ts, backend/src/diagrams/uml.types.ts,
+'          backend/src/users/entities/user.entity.ts, attachments/entities/attachment.entity.ts
+!include _estilo.iuml
+hide empty methods
+title Diagrama de Clases — Persistencia políglota con autoría granular\n<size:11>UML 2.5.1 · «document» = colección MongoDB · «entity» = tabla PostgreSQL · rombo relleno = documento embebido</size>
+
+package "MongoDB" <<Database>> {
+  class DiagramDocument <<document>> {
+    + _id : String {id, UUID}
+    + name : String
+    + createdAt : Date
+    + updatedAt : Date
+  }
+  note right of DiagramDocument : colección «diagrams»\n_id UUID: conserva los IDs\nmigrados desde PostgreSQL
+
+  class UmlModel <<embedded>> {
+  }
+  class UmlClass <<embedded>> {
+    + id : String
+    + name : String
+    + stereotype : ClassStereotype [0..1]
+    + description : String [0..1]
+    + position : Point [0..1]
+  }
+  class UmlAttribute <<embedded>> {
+    + name : String
+    + type : String
+    + visibility : Visibility
+    + isPrimaryKey : Boolean [0..1]
+  }
+  class UmlOperation <<embedded>> {
+    + name : String
+    + returnType : String
+    + visibility : Visibility
+    + parameters : String [0..1]
+  }
+  class UmlRelation <<embedded>> {
+    + id : String
+    + type : RelationType
+    + sourceClassId : String
+    + targetClassId : String
+    + sourceRole : String [0..1]
+    + targetRole : String [0..1]
+  }
+  class UmlNote <<embedded>> {
+    + id : String
+    + text : String
+    + title : String [0..1]
+  }
+  class AuthorStamp <<embedded>> {
+    + userId : String
+    + userName : String
+    + timestamp : String {ISO-8601}
+    + source : AuthorSource [0..1]
+  }
+  class Actor <<embedded>> {
+    + userId : String
+    + userName : String
+    + type : ActorType = USER
+  }
+
+  class DiagramSessionDocument <<document>> {
+    + diagramId : String
+    + status : SessionStatus = ACTIVE
+    + startedAt : Date
+    + lastActivityAt : Date
+    + activeLocks : Map<classId, PersistedLock>
+  }
+  note right of DiagramSessionDocument : colección «diagram_sessions»
+  class SessionParticipant <<embedded>> {
+    + userId : String
+    + userName : String
+    + role : String = "editor"
+    + joinedAt : Date
+    + lastSeenAt : Date
+    + online : Boolean
+  }
+
+  class ActivityLogDocument <<document>> {
+    + diagramId : String
+    + action : ActivityAction
+    + details : Object
+    + summary : String
+    + timestamp : Date
+  }
+  note right of ActivityLogDocument : colección «diagram_activity_logs»\n(bitácora grupal: una entrada por cambio)
+  class ActivityTarget <<embedded>> {
+    + entityType : EntityType
+    + entityId : String [0..1]
+    + entityName : String [0..1]
+  }
+
+  class GroupChatMessageDocument <<document>> {
+    + diagramId : String
+    + text : String
+    + isAiResponse : Boolean = false
+    + appliedOperationsCount : Integer = 0
+    + providerUsed : AiProviderUsed [0..1]
+    + timestamp : Date
+  }
+  note right of GroupChatMessageDocument : colección «group_chat_messages»\n(chat público de la sala)
+}
+
+package "PostgreSQL" <<Database>> {
+  class User <<entity>> {
+    + id : UUID {id}
+    + name : String
+    + email : String {unique}
+    + passwordHash : String
+    + createdAt : Date
+  }
+  class Attachment <<entity>> {
+    + id : UUID {id}
+    + diagramId : String
+    + fileName : String
+    + mimeType : String
+    + sizeBytes : Integer
+    + s3Key : String
+    + uploadedByUserId : String
+    + uploadedByUserName : String
+    + createdAt : Date
+  }
+}
+
+enum AuthorSource <<enumeration>> {
+  MANUAL
+  AI
+  XMI_IMPORT
+  PHOTO
+}
+enum SessionStatus <<enumeration>> {
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+enum AiProviderUsed <<enumeration>> {
+  OLLAMA_LOCAL
+  GEMINI_CLOUD
+}
+enum RelationType <<enumeration>> {
+  ASSOCIATION
+  AGGREGATION
+  COMPOSITION
+  INHERITANCE
+  ONE_TO_ONE
+  ONE_TO_MANY
+  MANY_TO_ONE
+  MANY_TO_MANY
+  DEPENDENCY
+}
+
+DiagramDocument *-- "1" UmlModel : model
+DiagramDocument *-- "0..1" Actor : createdBy
+DiagramDocument *-- "0..1" Actor : lastModifiedBy
+UmlModel *-- "0..*" UmlClass : classes
+UmlModel *-- "0..*" UmlRelation : relations
+UmlModel *-- "0..*" UmlNote : notes
+UmlClass *-- "0..*" UmlAttribute : attributes
+UmlClass *-- "0..*" UmlOperation : operations
+UmlClass *-- "0..1" AuthorStamp : author
+UmlClass *-- "0..1" AuthorStamp : lastModifiedBy
+UmlAttribute *-- "0..1" AuthorStamp : author
+UmlAttribute *-- "0..1" AuthorStamp : lastModifiedBy
+UmlRelation *-- "0..1" AuthorStamp : author
+UmlRelation *-- "0..1" AuthorStamp : lastModifiedBy
+UmlRelation ..> UmlClass : sourceClassId /\ntargetClassId
+AuthorStamp ..> AuthorSource
+
+DiagramSessionDocument *-- "0..*" SessionParticipant : participants
+DiagramSessionDocument ..> SessionStatus
+ActivityLogDocument *-- "1" Actor : actor
+ActivityLogDocument *-- "1" ActivityTarget : target
+GroupChatMessageDocument *-- "1" Actor : sender
+GroupChatMessageDocument *-- "0..1" Actor : addressedTo
+GroupChatMessageDocument ..> AiProviderUsed
+UmlRelation ..> RelationType
+
+DiagramSessionDocument "0..*" ..> "1" DiagramDocument : diagramId
+ActivityLogDocument "0..*" ..> "1" DiagramDocument : diagramId
+GroupChatMessageDocument "0..*" ..> "1" DiagramDocument : diagramId
+Attachment "0..*" ..> "1" DiagramDocument : diagramId
+Actor ..> User : userId
+
+note "Referencias por ID (sin FK): la bitácora, el chat y los\nadjuntos sobreviven aunque se borre el diagrama." as N1
+N1 .. ActivityLogDocument
+@enduml

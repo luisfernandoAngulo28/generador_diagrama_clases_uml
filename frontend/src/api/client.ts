@@ -104,10 +104,12 @@ export async function updateDiagram(
   id: string,
   name: string,
   model: UmlModel,
+  source: 'MANUAL' | 'AI' = 'MANUAL',
 ): Promise<Diagram> {
   const { data } = await api.patch<Diagram>(`/diagrams/${id}`, {
     name,
     model,
+    source,
   });
   return data;
 }

@@ -23,6 +23,7 @@ import {
   Grid3x3,
   Undo2,
   Redo2,
+  FilePlus,
   FolderOpen,
   Upload,
   Download,
@@ -102,7 +103,7 @@ import type {
   UmlModel,
   ValidationResult,
 } from './types/uml';
-import { RELATION_LABELS } from './types/uml';
+import { RELATION_LABELS, authorshipIndexOf, type AuthorshipIndex } from './types/uml';
 import {
   createDiagram,
   downloadGeneratedBackend,
@@ -161,8 +162,8 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     target: '.chat-panel',
-    title: 'Asistente de IA',
-    body: 'Pregúntale al asistente sobre modelado UML, buenas prácticas o pídele ayuda para interpretar tu diagrama. Responde solo temas de ingeniería de software.',
+    title: 'Chat del equipo con el Moderador IA',
+    body: 'Este chat es público: todo tu equipo ve cada pregunta y respuesta. Con el botón del robot activo, el Moderador IA te responde por tu nombre, explica conceptos de ingeniería de software y, solo si se lo pides, aplica cambios al diagrama.',
   },
 ];
 
@@ -186,6 +187,7 @@ function AppInner() {
   const { fitView, setCenter, getNodes, getNodesBounds, deleteElements, screenToFlowPosition } = useReactFlow();
   const [diagramId, setDiagramId] = useState<string | null>(null);
   const [diagramName, setDiagramName] = useState('Mi Diagrama');
+  const [aiCanEditCanvas, setAiCanEditCanvas] = useState(true);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [editingEdgeId, setEditingEdgeId] = useState<string | null>(null);
   const [nextRelationType, setNextRelationType] = useState<RelationType>('ASSOCIATION');
@@ -203,6 +205,10 @@ function AppInner() {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [showTour, setShowTour] = useState(false);
   const [locks, setLocks] = useState<Record<string, string>>({});
+  // Granular authorship (2do Parcial), refreshed live via `diagram:authorship`.
+  const [authorship, setAuthorship] = useState<AuthorshipIndex>({});
+  // Set when the moderator's operations were applied: the next save is stamped as source 'AI'.
+  const pendingAiSaveRef = useRef(false);
   const [showDiagramsList, setShowDiagramsList] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
@@ -380,10 +386,15 @@ function AppInner() {
   const loadDiagram = useCallback(async (id: string) => {
     const diagram = await getDiagram(id);
     setDiagramName(diagram.name);
+    setAiCanEditCanvas(diagram.aiCanEditCanvas ?? true);
+    setAuthorship(authorshipIndexOf(diagram.model));
+    const hasPosition = (p?: { x: number; y: number }) =>
+      !!p && Number.isFinite(p.x) && Number.isFinite(p.y);
     const classNodes: Node<any>[] = diagram.model.classes.map((umlClass, index) => ({
       id: umlClass.id,
       type: 'umlClass',
-      position: umlClass.position ?? {
+      // Diagrams saved while positions were being stripped have `position: {}`.
+      position: hasPosition(umlClass.position) ? umlClass.position! : {
         x: 120 + (index % 4) * 260,
         y: 80 + Math.floor(index / 4) * 220,
       },
@@ -392,7 +403,7 @@ function AppInner() {
     const noteNodes: Node<any>[] = (diagram.model.notes ?? []).map((note, index) => ({
       id: note.id,
       type: 'umlNote',
-      position: note.position ?? {
+      position: hasPosition(note.position) ? note.position! : {
         x: 400 + (index % 3) * 220,
         y: 100 + Math.floor(index / 3) * 180,
       },
@@ -433,6 +444,40 @@ function AppInner() {
     window.history.replaceState({}, '', url);
     loadDiagram(id);
     setShowDiagramsList(false);
+  }
+
+  /** Archivo → Nuevo diagrama: saves the current one, leaves its room and starts an empty canvas. */
+  async function startNewDiagram() {
+    if (diagramId) {
+      try {
+        await saveDiagram(true);
+      } catch {
+        // An autosave failure must not trap the user in the current diagram.
+      }
+      getSocket().emit('leave-diagram');
+    } else if (nodes.length > 0 && !window.confirm('El diagrama actual no está guardado. ¿Descartarlo y empezar uno nuevo?')) {
+      return;
+    }
+    if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
+    myLocksRef.current.clear();
+    setDiagramId(null);
+    setDiagramName('Mi Diagrama');
+    setNodes([]);
+    setEdges([]);
+    setAuthorship({});
+    setAiCanEditCanvas(true);
+    setLocks({});
+    setCollaboratorCount(0);
+    setEditingClassId(null);
+    setEditingEdgeId(null);
+    setValidationResult(null);
+    setLastSavedAt(null);
+    setPast([]);
+    setFuture([]);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('diagram');
+    window.history.replaceState({}, '', url);
+    toast.success('Lienzo vacío: ponle un nombre y presiona Guardar para crearlo', 'Nuevo diagrama');
   }
 
   async function handleXmiSelected(e: React.ChangeEvent<HTMLInputElement>) {
@@ -481,9 +526,9 @@ function AppInner() {
         }),
       );
       setEdges(payload.edges);
-      requestAnimationFrame(() => {
-        isApplyingRemoteRef.current = false;
-      });
+      // Cleared by the broadcast effect itself (see below). It used to be reset
+      // in requestAnimationFrame, which never runs in a background tab: the
+      // flag stayed true and that tab silently stopped sending its changes.
     }
 
     function handlePresence(data: { count: number }) {
@@ -497,6 +542,7 @@ function AppInner() {
     socket.on('diagram-update', handleRemoteUpdate);
     socket.on('presence', handlePresence);
     socket.on('locks-update', handleLocksUpdate);
+    socket.on('diagram:authorship', setAuthorship);
 
     return () => {
       socket.off('connect', onConnectSocket);
@@ -504,12 +550,18 @@ function AppInner() {
       socket.off('diagram-update', handleRemoteUpdate);
       socket.off('presence', handlePresence);
       socket.off('locks-update', handleLocksUpdate);
+      socket.off('diagram:authorship', setAuthorship);
     };
   }, [diagramId, handleEditClass, setNodes, setEdges, user]);
 
   // Broadcast local changes to other collaborators (debounced).
   useEffect(() => {
-    if (!diagramId || isApplyingRemoteRef.current) return;
+    if (isApplyingRemoteRef.current) {
+      // This render comes from a remote update: don't echo it back.
+      isApplyingRemoteRef.current = false;
+      return;
+    }
+    if (!diagramId) return;
 
     if (emitTimerRef.current) clearTimeout(emitTimerRef.current);
     emitTimerRef.current = setTimeout(() => {
@@ -889,12 +941,15 @@ function AppInner() {
     };
   }
 
-  async function saveDiagram(isAuto = false): Promise<string | undefined> {
+  async function saveDiagram(
+    isAuto = false,
+    source: 'MANUAL' | 'AI' = 'MANUAL',
+  ): Promise<string | undefined> {
     if (!isAuto) setSaving(true);
     try {
       const model = buildModel();
       if (diagramId) {
-        await updateDiagram(diagramId, diagramName, model);
+        await updateDiagram(diagramId, diagramName, model, source);
         setLastSavedAt(new Date());
         if (!isAuto) toast.success(`"${diagramName}" guardado correctamente`, 'Guardado');
         return diagramId;
@@ -910,6 +965,24 @@ function AppInner() {
     } finally {
       if (!isAuto) setSaving(false);
     }
+  }
+
+  // After applying the moderator's operations, save right away stamped as 'AI'
+  // so the authorship shows "vía IA" and the rest of the room gets them.
+  useEffect(() => {
+    if (!pendingAiSaveRef.current) return;
+    pendingAiSaveRef.current = false;
+    void saveDiagram(true, 'AI');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges]);
+
+  function applyAiOperations(operations: DiagramOperation[]) {
+    applyOperations(operations);
+    pendingAiSaveRef.current = true;
+    toast.success(
+      `La IA aplicó ${operations.length} cambio${operations.length === 1 ? '' : 's'} que pediste`,
+      'Moderador IA',
+    );
   }
 
   // Auto-guardado periódico cada 30 segundos si hay un diagrama abierto y guardado
@@ -1226,6 +1299,13 @@ function AppInner() {
             icon={<FolderOpen size={15} />}
             label="Archivo"
             items={[
+              {
+                key: 'new-diagram',
+                icon: <FilePlus size={15} />,
+                label: 'Nuevo diagrama',
+                title: 'Guarda el diagrama actual y abre un lienzo vacío',
+                onClick: () => void startNewDiagram(),
+              },
               {
                 key: 'my-diagrams',
                 icon: <FolderOpen size={15} />,
@@ -1618,6 +1698,7 @@ function AppInner() {
         {editingClass && (
           <ClassInspector
             umlClass={editingClass}
+            authorship={authorship[editingClass.id]}
             onChange={updateClass}
             onClose={() => {
               releaseLock(editingClassId);
@@ -1653,7 +1734,14 @@ function AppInner() {
           />
         )}
 
-        <ChatPanel model={buildModel()} onApplyOperations={applyOperations} />
+        <ChatPanel
+          key={diagramId ?? 'new'}
+          diagramId={diagramId}
+          currentUser={user}
+          initialAiCanEdit={aiCanEditCanvas}
+          onEnsureSaved={() => saveDiagram(true)}
+          onApplyAiOperations={applyAiOperations}
+        />
       </div>
 
       <StatusBar

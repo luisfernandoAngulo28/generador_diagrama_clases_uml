@@ -1,100 +1,226 @@
-import { useState } from 'react';
-import { Mic, Send } from 'lucide-react';
-import { editDiagramWithAi } from '../api/client';
+import { useEffect, useRef, useState } from 'react';
+import { Bot, Lightbulb, Mic, PencilRuler, Send, Users } from 'lucide-react';
+import { getSocket } from '../api/socket';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import type { DiagramOperation, UmlModel } from '../types/uml';
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  text: string;
-}
+import type { AuthUser } from '../types/auth';
+import type { AiSettingsEvent, AiStatusEvent, GroupChatMessage } from '../types/chat';
+import type { DiagramOperation } from '../types/uml';
 
 interface ChatPanelProps {
-  model: UmlModel;
-  onApplyOperations: (operations: DiagramOperation[]) => void;
+  diagramId: string | null;
+  currentUser: AuthUser | null;
+  /** Room setting loaded with the diagram: may the AI modify the canvas? */
+  initialAiCanEdit: boolean;
+  /** Saves the diagram (creating it if needed) so the AI sees the latest canvas; returns its id. */
+  onEnsureSaved: () => Promise<string | undefined>;
+  /** Applies the AI's canvas operations; only called on the asker's own client. */
+  onApplyAiOperations: (operations: DiagramOperation[]) => void;
 }
 
-export function ChatPanel({ model, onApplyOperations }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+const PROVIDER_BADGE: Record<string, { label: string; className: string; title: string }> = {
+  OLLAMA_LOCAL: {
+    label: '🏠 Ollama Local',
+    className: 'chat-badge--local',
+    title: 'Respondido por el modelo local qwen2.5 (sin internet)',
+  },
+  GEMINI_CLOUD: {
+    label: '☁️ Gemini Cloud',
+    className: 'chat-badge--cloud',
+    title: 'Respondido por Google Gemini (Google AI Studio)',
+  },
+};
+
+/**
+ * Public group chat of the diagram's room (2do Parcial): every participant
+ * sees every question and every answer of the AI moderator, which always
+ * addresses the asker by name. Replaces the 1er Parcial private 1-a-1 chat.
+ */
+export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSaved, onApplyAiOperations }: ChatPanelProps) {
+  const [messages, setMessages] = useState<GroupChatMessage[]>([]);
+  const [thinking, setThinking] = useState<Record<string, string>>({});
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [askAi, setAskAi] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // "IA edita el lienzo" vs "solo sugerencias": shared by the whole room, enforced by the server.
+  const [aiCanEdit, setAiCanEdit] = useState(initialAiCanEdit);
+  const [settingsNotice, setSettingsNotice] = useState<string | null>(null);
+  // The diagram finishes loading after mount: adopt its stored setting when it arrives.
+  const [loadedSetting, setLoadedSetting] = useState(initialAiCanEdit);
+  if (loadedSetting !== initialAiCanEdit) {
+    setLoadedSetting(initialAiCanEdit);
+    setAiCanEdit(initialAiCanEdit);
+  }
+  const listRef = useRef<HTMLDivElement>(null);
+  // Latest callback without re-subscribing the socket listeners on every render.
+  const applyRef = useRef(onApplyAiOperations);
+  useEffect(() => {
+    applyRef.current = onApplyAiOperations;
+  }, [onApplyAiOperations]);
+
+  // State is per diagram: the parent remounts this panel (key={diagramId}) when it changes.
+  useEffect(() => {
+    if (!diagramId) return;
+    const socket = getSocket();
+
+    function onInitState(state: { chat?: GroupChatMessage[] }) {
+      setMessages(state.chat ?? []);
+    }
+    function onNewMessage(message: GroupChatMessage) {
+      if (message.diagramId !== diagramId) return;
+      setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+      const forMe = message.isAiResponse && message.addressedTo?.userId === currentUser?.id;
+      if (forMe && message.operations?.length) applyRef.current(message.operations);
+    }
+    function onAiStatus(status: AiStatusEvent) {
+      setThinking((prev) => {
+        const next = { ...prev };
+        if (status.isThinking) next[status.requestId] = status.promptBy;
+        else delete next[status.requestId];
+        return next;
+      });
+    }
+    function onChatError(payload: { message: string }) {
+      setError(payload.message);
+    }
+    function onAiSettings(settings: AiSettingsEvent) {
+      if (settings.diagramId !== diagramId) return;
+      setAiCanEdit(settings.canEditCanvas);
+      setSettingsNotice(
+        settings.canEditCanvas
+          ? `${settings.changedBy} permitió que la IA modifique el lienzo`
+          : `${settings.changedBy} puso a la IA en modo solo sugerencias`,
+      );
+    }
+
+    socket.on('session:init-state', onInitState);
+    socket.on('chat:new-message', onNewMessage);
+    socket.on('ai:status', onAiStatus);
+    socket.on('chat:error', onChatError);
+    socket.on('ai:settings', onAiSettings);
+    return () => {
+      socket.off('session:init-state', onInitState);
+      socket.off('chat:new-message', onNewMessage);
+      socket.off('ai:status', onAiStatus);
+      socket.off('chat:error', onChatError);
+      socket.off('ai:settings', onAiSettings);
+    };
+  }, [diagramId, currentUser?.id]);
+
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
+  }, [messages, thinking]);
 
   async function sendText(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || loading) return;
-
-    setMessages((prev) => [...prev, { role: 'user', text: trimmed }]);
-    setInput('');
-    setLoading(true);
+    if (!trimmed || sending) return;
+    setSending(true);
+    setError(null);
     try {
-      const { reply, operations } = await editDiagramWithAi(trimmed, model);
-      if (operations.length > 0) {
-        onApplyOperations(operations);
-      }
-      const suffix =
-        operations.length > 0
-          ? ` (${operations.length} cambio${operations.length === 1 ? '' : 's'} aplicado${
-              operations.length === 1 ? '' : 's'
-            } al diagrama)`
-          : '';
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', text: `${reply}${suffix}` },
-      ]);
+      // The moderator reads the diagram from the database: save first so it sees the current canvas.
+      const id = await onEnsureSaved();
+      if (!id) throw new Error('no diagram');
+      getSocket().emit('chat:send', { diagramId: id, text: trimmed, askAi });
+      setInput('');
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', text: 'Error al contactar al asistente.' },
-      ]);
+      setError('No se pudo guardar el diagrama antes de enviar el mensaje.');
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   }
 
-  async function handleSend() {
-    await sendText(input);
+  async function toggleAiCanEdit() {
+    setError(null);
+    try {
+      // A brand-new diagram has no room yet: save it first so the setting has a home.
+      const id = diagramId ?? (await onEnsureSaved());
+      if (!id) throw new Error('no diagram');
+      getSocket().emit('ai:settings', { diagramId: id, canEditCanvas: !aiCanEdit });
+    } catch {
+      setError('No se pudo cambiar la configuración de la IA.');
+    }
   }
 
-  const { isSupported: voiceSupported, isListening, start: startListening } =
-    useSpeechRecognition({
-      lang: 'es-ES',
-      onResult: (transcript) => {
-        void sendText(transcript);
-      },
-    });
+  const { isSupported: voiceSupported, isListening, start: startListening } = useSpeechRecognition({
+    lang: 'es-ES',
+    onResult: (transcript) => void sendText(transcript),
+  });
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') void handleSend();
-  }
+  const thinkingFor = Object.values(thinking);
 
   return (
     <aside className="chat-panel">
-      <div className="chat-panel__header">Asistente de Ingeniería de Software</div>
-      <div className="chat-panel__messages">
-        {messages.map((m, i) => (
-          <div key={i} className={`chat-panel__message chat-panel__message--${m.role}`}>
-            {m.text}
-          </div>
-        ))}
-        {loading && (
-          <div className="chat-panel__message chat-panel__message--assistant">
-            Pensando…
+      <div className="chat-panel__header">
+        <Users size={15} /> Chat del equipo
+        <span className="chat-panel__header-hint">público · Moderador IA</span>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={aiCanEdit}
+        className={`chat-panel__mode${aiCanEdit ? ' chat-panel__mode--edit' : ' chat-panel__mode--suggest'}`}
+        onClick={() => void toggleAiCanEdit()}
+        title={
+          aiCanEdit
+            ? 'La IA puede modificar el lienzo cuando se lo piden. Clic para pasar a «solo sugerencias» (para toda la sala).'
+            : 'La IA solo explica y sugiere; no toca el lienzo. Clic para permitir que lo modifique (para toda la sala).'
+        }
+      >
+        {aiCanEdit ? <PencilRuler size={14} /> : <Lightbulb size={14} />}
+        <span className="chat-panel__mode-label">{aiCanEdit ? 'IA edita el lienzo' : 'IA solo sugiere'}</span>
+        <span className="chat-panel__mode-switch" aria-hidden="true">
+          <span className="chat-panel__mode-knob" />
+        </span>
+      </button>
+      {settingsNotice && <div className="chat-panel__notice">{settingsNotice}</div>}
+
+      <div className="chat-panel__messages" ref={listRef}>
+        {messages.length === 0 && (
+          <div className="chat-panel__empty">
+            Todo el equipo ve este chat. Pregunta a la IA conceptos de ingeniería de software o pídele
+            cambios al diagrama: siempre responde nombrando a quien preguntó.
           </div>
         )}
+        {messages.map((m) => (
+          <ChatBubble key={m.id} message={m} isMine={!m.isAiResponse && m.sender.userId === currentUser?.id} />
+        ))}
+        {thinkingFor.map((name, i) => (
+          <div key={`${name}-${i}`} className="chat-thinking" aria-live="polite">
+            <Bot size={14} /> La IA está pensando la respuesta para <strong>{name}</strong>
+            <span className="chat-thinking__dots">
+              <span />
+              <span />
+              <span />
+            </span>
+          </div>
+        ))}
         {isListening && (
-          <div className="chat-panel__message chat-panel__message--assistant">
+          <div className="chat-thinking">
             <Mic size={14} /> Escuchando…
           </div>
         )}
       </div>
+
+      {error && <div className="chat-panel__error">{error}</div>}
+
       <div className="chat-panel__input-row">
+        <button
+          type="button"
+          className={`chat-panel__ai-toggle${askAi ? ' chat-panel__ai-toggle--on' : ''}`}
+          onClick={() => setAskAi((v) => !v)}
+          aria-pressed={askAi}
+          title={askAi ? 'El mensaje se envía a la IA (todos ven la respuesta)' : 'Mensaje solo para el equipo (sin IA)'}
+        >
+          <Bot size={15} />
+        </button>
         {voiceSupported && (
           <button
             type="button"
             className={`chat-panel__mic${isListening ? ' chat-panel__mic--active' : ''}`}
             onClick={startListening}
-            disabled={isListening || loading}
-            title="Dictar comando por voz"
+            disabled={isListening || sending}
+            title="Dictar por voz"
           >
             <Mic size={16} />
           </button>
@@ -102,14 +228,67 @@ export function ChatPanel({ model, onApplyOperations }: ChatPanelProps) {
         <input
           className="chat-panel__input"
           value={input}
-          placeholder='Ej: "crea dos clases relacionadas"'
+          maxLength={2000}
+          placeholder={askAi ? 'Pregunta a la IA… (todos lo verán)' : 'Escribe al equipo…'}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void sendText(input);
+          }}
         />
-        <button className="chat-panel__send" onClick={() => void handleSend()}>
-          <Send size={14} /> Enviar
+        <button className="chat-panel__send" onClick={() => void sendText(input)} disabled={sending}>
+          <Send size={14} />
         </button>
       </div>
     </aside>
   );
+}
+
+function ChatBubble({ message, isMine }: { message: GroupChatMessage; isMine: boolean }) {
+  const badge = message.providerUsed ? PROVIDER_BADGE[message.providerUsed] : undefined;
+  const time = new Date(message.timestamp).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
+  const name = message.isAiResponse ? 'Moderador IA' : message.sender.userName;
+
+  return (
+    <div className={`chat-msg${message.isAiResponse ? ' chat-msg--ai' : ''}${isMine ? ' chat-msg--mine' : ''}`}>
+      <div className="chat-msg__avatar" style={message.isAiResponse ? undefined : { background: colorFor(message.sender.userId) }}>
+        {message.isAiResponse ? <Bot size={14} /> : initials(message.sender.userName)}
+      </div>
+      <div className="chat-msg__body">
+        <div className="chat-msg__meta">
+          <span className="chat-msg__name">{name}</span>
+          {message.isAiResponse && message.addressedTo && (
+            <span className="chat-msg__to">→ {message.addressedTo.userName}</span>
+          )}
+          <span className="chat-msg__time">{time}</span>
+        </div>
+        <div className="chat-msg__text">{message.text}</div>
+        {(badge || message.appliedOperationsCount > 0) && (
+          <div className="chat-msg__footer">
+            {badge && (
+              <span className={`chat-badge ${badge.className}`} title={badge.title}>
+                {badge.label}
+              </span>
+            )}
+            {message.appliedOperationsCount > 0 && (
+              <span className="chat-badge chat-badge--ops">
+                ✏️ {message.appliedOperationsCount} cambio{message.appliedOperationsCount === 1 ? '' : 's'} en el lienzo
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase();
+}
+
+/** Stable color per user so each teammate is recognizable at a glance. */
+function colorFor(userId: string): string {
+  let hash = 0;
+  for (const ch of userId) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return `hsl(${Math.abs(hash) % 360} 55% 42%)`;
 }
