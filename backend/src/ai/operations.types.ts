@@ -22,6 +22,8 @@ export type DiagramOperation =
 export interface EditDiagramResult {
   reply: string;
   operations: DiagramOperation[];
+  /** Operations the server refused (unknown or duplicated classes), described for the user. */
+  droppedOperations?: string[];
   /** Filled in by HybridAiProvider: which engine actually answered. */
   providerUsed?: 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
 }

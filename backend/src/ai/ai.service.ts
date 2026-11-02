@@ -60,7 +60,7 @@ export class AiService {
   async editDiagram(
     message: string,
     model: UmlModel,
-    prompts: Pick<AiCallOptions, 'systemPrompt' | 'localSystemPrompt'> = {},
+    prompts: Pick<AiCallOptions, 'systemPrompt' | 'localSystemPrompt' | 'heavy'> = {},
   ): Promise<EditDiagramResult> {
     const result = await this.engine.editDiagram(message, model, prompts);
     return { ...validateOperations(result, model), providerUsed: result.providerUsed };

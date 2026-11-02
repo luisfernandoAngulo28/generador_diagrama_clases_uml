@@ -1,5 +1,6 @@
 import { Body, Controller, Param, Post } from '@nestjs/common';
 import { AiService } from './ai.service.js';
+import { droppedOperationsNote } from './validate-operations.js';
 import { ModeratorService } from './moderator/moderator.service.js';
 import { EditDiagramDto } from './dto/edit-diagram.dto.js';
 import { InterpretPhotoDto } from './dto/interpret-photo.dto.js';
@@ -15,8 +16,10 @@ export class AiController {
   ) {}
 
   @Post('edit')
-  edit(@Body() dto: EditDiagramDto) {
-    return this.aiService.editDiagram(dto.message, dto.model);
+  async edit(@Body() dto: EditDiagramDto) {
+    const result = await this.aiService.editDiagram(dto.message, dto.model);
+    const dropped = result.droppedOperations;
+    return dropped ? { ...result, reply: `${result.reply}\n\n${droppedOperationsNote(dropped)}` } : result;
   }
 
   @Post('interpret-photo')

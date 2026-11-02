@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isExplicitChangeRequest } from './intent.js';
+import { classifyRequest, isExplicitChangeRequest } from './intent.js';
 
 describe('isExplicitChangeRequest', () => {
   it.each([
@@ -31,5 +31,35 @@ describe('isExplicitChangeRequest', () => {
     'Sigo sin entender la herencia',
   ])('treats as a question: %s', (msg) => {
     expect(isExplicitChangeRequest(msg)).toBe(false);
+  });
+});
+
+describe('classifyRequest', () => {
+  it.each([
+    'hola crea un diagrama de clases para una cafeteria',
+    'Crea el diagrama de clases completo para un sistema de biblioteca',
+    'hazme un proyecto de ventas',
+    'Modela un sistema de hospital',
+  ])('whole project: %s', (msg) => {
+    expect(classifyRequest(msg)).toBe('PROJECT');
+  });
+
+  it.each(['Revisa nuestro diagrama: dime qué problemas de modelado ves', '¿Qué errores tiene el diagrama?', 'analiza el modelo'])(
+    'review: %s',
+    (msg) => {
+      expect(classifyRequest(msg)).toBe('REVIEW');
+    },
+  );
+
+  it.each(['Crea la clase Sistema', 'Agrega la clase Factura al diagrama', 'Ordena el diagrama', 'corrige el nombre de Pedido'])(
+    'single change, not a project: %s',
+    (msg) => {
+      expect(classifyRequest(msg)).toBe('CHANGE');
+    },
+  );
+
+  it('a plain question stays a question', () => {
+    expect(classifyRequest('¿Qué es un atributo derivado?')).toBe('QUESTION');
+    expect(classifyRequest('¿Qué hizo cada integrante del equipo en este diagrama últimamente?')).toBe('QUESTION');
   });
 });

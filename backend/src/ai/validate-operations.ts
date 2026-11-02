@@ -64,10 +64,10 @@ export function validateOperations(result: EditDiagramResult, model: UmlModel): 
     }
   }
 
-  if (dropped.length === 0) {
-    return result;
-  }
+  return dropped.length ? { ...result, operations: kept, droppedOperations: dropped } : result;
+}
 
-  const warning = `\n\n(Se descartaron ${dropped.length} operación(es) inválida(s) propuestas por el modelo: ${dropped.join('; ')}.)`;
-  return { reply: `${result.reply}${warning}`, operations: kept };
+/** For the person who asked for those changes; a plain question doesn't need to hear about them. */
+export function droppedOperationsNote(dropped: string[]): string {
+  return `(No pude aplicar ${dropped.length} cambio(s): ${dropped.join('; ')}.)`;
 }

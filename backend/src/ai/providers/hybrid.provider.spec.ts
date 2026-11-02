@@ -182,3 +182,24 @@ describe('HybridAiProvider — local-first (demo)', () => {
     expect(cloud.calls).toBe(1);
   });
 });
+
+describe('HybridAiProvider — pedidos pesados (proyecto completo)', () => {
+  it('tries the cloud first even in local-first, and never wakes the local model if it answers', async () => {
+    const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
+    const cloud = fakeProvider('GEMINI_CLOUD', ok('nube'));
+    const engine = new HybridAiProvider({ provider: local }, { provider: cloud }, OPTS);
+    const result = await engine.editDiagram('crea un sistema', MODEL, { heavy: true });
+    expect(result.providerUsed).toBe('GEMINI_CLOUD');
+    expect(local.calls).toBe(0);
+  });
+
+  it('falls back to the local model without the normal short timeout when there is no cloud', async () => {
+    const slow = () => new Promise<string>((resolve) => setTimeout(() => resolve('local'), 120));
+    const local = fakeProvider('OLLAMA_LOCAL', slow);
+    const cloud = fakeProvider('GEMINI_CLOUD', fail('sin internet'));
+    // 120 ms is longer than both normal limits of OPTS (50 and 80 ms).
+    const engine = new HybridAiProvider({ provider: local }, { provider: cloud }, OPTS);
+    const result = await engine.editDiagram('crea un sistema', MODEL, { heavy: true });
+    expect(result.providerUsed).toBe('OLLAMA_LOCAL');
+  });
+});

@@ -20,7 +20,7 @@ const CHANGE_VERBS = [
   'genera', 'generar', 'pon', 'poner', 'ponle', 'hereda', 'heredar', 'aplica', 'aplicar', 'aplícalo', 'aplícalos',
   'haz', 'hacer', 'hazlo', 'hazla', 'implementa', 'implementar', 'impleméntalo', 'impleméntala',
   'completa', 'completar', 'complétalo', 'construye', 'construir', 'arma', 'armar', 'modela', 'modelar',
-  'diseña', 'diseñar', 'dibuja', 'dibujar', 'procede', 'proceder',
+  'diseña', 'diseñar', 'dibuja', 'dibujar', 'procede', 'proceder', 'hazme', 'corrige', 'corrígelo', 'corrígela', 'arregla', 'arréglalo', 'mejora', 'mejóralo',
   'avanza', 'avanzar', 'avancemos', 'empieza', 'empecemos', 'comienza', 'comencemos',
 ];
 
@@ -38,4 +38,21 @@ const CONFIRMATION_PATTERN =
 export function isExplicitChangeRequest(message: string): boolean {
   const text = message.normalize('NFC').trim();
   return VERB_PATTERN.test(text) || CONFIRMATION_PATTERN.test(text);
+}
+
+export type RequestKind = 'QUESTION' | 'CHANGE' | 'REVIEW' | 'PROJECT';
+
+/** "crea un diagrama…", "hazme el proyecto…", "modela un sistema…" — not "crea la clase Sistema". */
+const PROJECT_PATTERN =
+  /(^|[^\p{L}])(crea|crear|créame|genera|generar|genérame|arma|armar|ármame|diseña|diseñar|diséñame|modela|modelar|haz|hacer|hazme|construye|construir)\s+(un|una|el|la|mi|nuestro|nuestra)?\s*(nuevo\s+)?(diagrama|proyecto|sistema|modelo)([^\p{L}]|$)/iu;
+
+const REVIEW_PATTERN =
+  /(^|[^\p{L}])(revisa|revisar|revísalo|revises|revisión|evalúa|evaluar|analiza|analizar|audita|auditar|qué problemas|qué errores|está bien)([^\p{L}]|$)/iu;
+
+/** What the person wants from the moderator; decides the extra context and limits of the call. */
+export function classifyRequest(message: string): RequestKind {
+  const text = message.normalize('NFC').trim();
+  if (PROJECT_PATTERN.test(text)) return 'PROJECT';
+  if (REVIEW_PATTERN.test(text)) return 'REVIEW';
+  return isExplicitChangeRequest(text) ? 'CHANGE' : 'QUESTION';
 }

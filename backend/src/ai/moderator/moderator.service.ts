@@ -11,6 +11,9 @@ import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { JwtPayload } from '../../auth/auth.service.js';
 import { AiService } from '../ai.service.js';
 import { applyCanvasPolicy } from './canvas-policy.js';
+import { classifyRequest, isExplicitChangeRequest } from './intent.js';
+import { droppedOperationsNote } from '../validate-operations.js';
+import { validateModel } from '../../diagrams/validation.util.js';
 import type { DiagramOperation } from '../operations.types.js';
 import {
   LITE_STATIC,
@@ -122,7 +125,13 @@ export class ModeratorService implements OnModuleInit {
       this.sessionsService.getLatest(diagramId),
     ]);
 
+    const requestKind = classifyRequest(text);
+    const findings =
+      requestKind === 'REVIEW' ? describeFindings(diagram.model) : [];
+
     const promptContext = {
+      requestKind,
+      validationFindings: findings,
       askerName: asker.userName,
       diagramName: diagram.name,
       model: diagram.model,
@@ -139,10 +148,11 @@ export class ModeratorService implements OnModuleInit {
     const result = await this.aiService.editDiagram(text, compactModel(diagram.model), {
       systemPrompt: buildModeratorPrompt(promptContext),
       localSystemPrompt: buildModeratorLitePrompt(promptContext),
+      heavy: requestKind === 'PROJECT',
     });
 
     // Room setting + "solo modifica el lienzo si te lo piden": enforced here, not trusted to the model.
-    const { operations, reason, rewriteReply } = applyCanvasPolicy(
+    const { operations: allowed, reason, rewriteReply } = applyCanvasPolicy(
       result.operations,
       text,
       diagram.aiCanEditCanvas,
@@ -152,8 +162,19 @@ export class ModeratorService implements OnModuleInit {
         `Se descartaron ${result.operations.length} operación(es) de ${result.providerUsed} (${reason}): "${text}"`,
       );
     }
+    // A whole project lands at random positions: always finish by ordering it.
+    const operations =
+      requestKind === 'PROJECT' && allowed.length && !allowed.some((op) => op.op === 'AUTO_LAYOUT')
+        ? [...allowed, { op: 'AUTO_LAYOUT' as const }]
+        : allowed;
     // Don't let the answer claim changes that were not applied.
-    const reply = rewriteReply ? rewriteReply(result.reply, asker.userName) : result.reply;
+    const reply = [
+      rewriteReply ? rewriteReply(result.reply, asker.userName) : result.reply,
+      ...(requestKind === 'REVIEW' ? [validatorSummary(findings)] : []),
+      ...(result.droppedOperations && isExplicitChangeRequest(text)
+        ? [droppedOperationsNote(result.droppedOperations)]
+        : []),
+    ].join('\n\n');
 
     const answer = await this.chatModel.create({
       diagramId,
@@ -168,6 +189,21 @@ export class ModeratorService implements OnModuleInit {
 
     return { answer: toChatMessage(answer.toObject()), operations };
   }
+}
+
+function describeFindings(model: UmlModel): string[] {
+  const { errors, warnings } = validateModel(model);
+  return [
+    ...errors.map((i) => `Error: ${i.message}`),
+    ...warnings.map((i) => `Advertencia: ${i.message}`),
+  ];
+}
+
+/** Written by the server, not the model: the part of a review that can't be hallucinated. */
+function validatorSummary(findings: string[]): string {
+  return findings.length
+    ? `Validador automático (${findings.length}):\n${findings.map((f) => `• ${f}`).join('\n')}`
+    : 'Validador automático: sin errores ni advertencias.';
 }
 
 function toActor(user: JwtPayload): Actor {

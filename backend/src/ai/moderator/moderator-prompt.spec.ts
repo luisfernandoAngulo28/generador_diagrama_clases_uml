@@ -109,3 +109,24 @@ describe('modo «solo sugerencias»', () => {
     expect(buildModeratorLitePrompt(context())).not.toContain('SOLO SUGERENCIAS');
   });
 });
+
+describe('tipo de pedido', () => {
+  it('gives the review the real findings of the validator, in both prompts', () => {
+    const ctx = { ...context(), requestKind: 'REVIEW' as const, validationFindings: ['Error: Pedido no tiene PK'] };
+    expect(buildModeratorPrompt(ctx)).toContain('- Error: Pedido no tiene PK');
+    expect(buildModeratorLitePrompt(ctx)).toContain('Error: Pedido no tiene PK');
+  });
+
+  it('asks for the whole system at once on a project request, in both prompts', () => {
+    const ctx = { ...context(), requestKind: 'PROJECT' as const };
+    expect(buildModeratorPrompt(ctx)).toContain('Proyecto completo solicitado');
+    expect(buildModeratorLitePrompt(ctx)).toContain('PROYECTO COMPLETO');
+  });
+
+  it('tells the local model not to answer a question with operations', () => {
+    const ctx = { ...context(), requestKind: 'QUESTION' as const };
+    expect(buildModeratorLitePrompt(ctx)).toContain('NO pide cambios');
+    expect(buildModeratorPrompt(context())).not.toContain('Proyecto completo solicitado');
+  });
+});
+

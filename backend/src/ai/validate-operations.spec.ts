@@ -14,7 +14,8 @@ describe('validateOperations', () => {
       MODEL,
     );
     expect(result.operations).toEqual([]);
-    expect(result.reply).toContain('CREATE_CLASS "Pedido" (esa clase ya existe)');
+    expect(result.reply).toBe('ok');
+    expect(result.droppedOperations).toEqual(['CREATE_CLASS "Pedido" (esa clase ya existe)']);
   });
 
   it('keeps a new class and a relation to it created in the same batch', () => {
@@ -47,7 +48,7 @@ describe('validateOperations', () => {
       MODEL,
     );
     expect(result.operations).toHaveLength(4);
-    expect(result.reply).toContain('ADD_ATTRIBUTE sobre "Pedido" (esa clase no existe)');
+    expect(result.droppedOperations).toEqual(['ADD_ATTRIBUTE sobre "Pedido" (esa clase no existe)']);
   });
 
   it('forgets a class deleted earlier in the batch', () => {

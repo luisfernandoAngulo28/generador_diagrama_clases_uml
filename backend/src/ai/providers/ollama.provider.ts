@@ -16,6 +16,8 @@ interface OllamaGenerateResponse {
   total_duration?: number;
 }
 
+const HEAVY_NUM_PREDICT = 800;
+
 const ms = (ns: number | undefined) => Math.round((ns ?? 0) / 1e6);
 
 /**
@@ -110,6 +112,7 @@ export class OllamaProvider implements AiProvider {
       model: this.textModel,
       ...this.buildTextPrompt(message, model, options),
       signal: options.signal,
+      numPredict: options.heavy ? HEAVY_NUM_PREDICT : undefined,
     });
     const jsonText = stripJsonFences(raw);
 

@@ -13,6 +13,11 @@ export interface AiCallOptions {
    * and doesn't append the model JSON: the lite prompt already describes it.
    */
   localSystemPrompt?: string;
+  /**
+   * A long answer (a whole project): the local CPU model needs far more tokens
+   * and time, so the hybrid engine tries the cloud first and waits longer locally.
+   */
+  heavy?: boolean;
   /** Lets the caller cancel a slow request (HybridAiProvider's timeout). */
   signal?: AbortSignal;
 }

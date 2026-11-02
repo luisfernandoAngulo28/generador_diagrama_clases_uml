@@ -54,6 +54,9 @@ const LABEL: Record<AiProviderId, string> = { OLLAMA_LOCAL: 'Ollama', GEMINI_CLO
  * Photo interpretation is always cloud-first: the local vision model
  * (moondream) is far weaker at reading handwriting.
  */
+/** ~800 tokens at the ~6 tok/s a CPU generates. */
+const HEAVY_LOCAL_TIMEOUT_MS = 180_000;
+
 export class HybridAiProvider {
   private readonly logger = new Logger(HybridAiProvider.name);
   private readonly downUntil = new Map<AiProviderId, number>();
@@ -70,11 +73,13 @@ export class HybridAiProvider {
     model: UmlModel,
     options: Omit<AiCallOptions, 'signal'> = {},
   ): Promise<EditDiagramResult & { providerUsed: AiProviderId }> {
-    const chain = this.textChain();
+    const chain = options.heavy ? this.visionChain() : this.textChain();
     let lastError: unknown;
 
     for (const [index, member] of chain.entries()) {
-      const timeoutMs = this.timeoutFor(member, index);
+      const timeoutMs = options.heavy && member === this.local && this.options.mode === 'hybrid'
+        ? HEAVY_LOCAL_TIMEOUT_MS
+        : this.timeoutFor(member, index);
       try {
         const result = timeoutMs
           ? await this.withTimeout(timeoutMs, (signal) =>
@@ -119,6 +124,7 @@ export class HybridAiProvider {
     return this.usable(ordered);
   }
 
+  /** Cloud first whatever the order: photos and whole projects are too much for the local model. */
   private visionChain(): HybridMember[] {
     if (this.options.mode === 'gemini') return [this.cloud];
     if (this.options.mode === 'ollama') return [this.local];
