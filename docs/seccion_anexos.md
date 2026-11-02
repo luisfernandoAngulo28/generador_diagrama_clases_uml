@@ -66,8 +66,8 @@ Evidencia del lienzo, las relaciones con multiplicidades (1, 0..\*) y la edició
 
 ### A.7 Pruebas automatizadas
 
-El backend tiene **129 pruebas unitarias en 22 archivos** (Vitest), todas
-aprobadas al 18/10/2026. Cubren:
+El backend tiene **146 pruebas unitarias en 22 archivos** (Vitest), todas
+aprobadas al 02/11/2026. Cubren:
 - el generador y cada plantilla;
 - validación y XMI;
 - autoría y bitácora;

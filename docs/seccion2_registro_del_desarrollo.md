@@ -66,6 +66,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 | **Ejecutor configurable** | `d003cf8` | 18/10 | Interruptor por sala «IA edita el lienzo» / «IA solo sugiere» (`ai:settings`, `applyCanvasPolicy`) | 8 tests nuevos; prueba local con Ollama en ambos modos |
 | **Modelo propio en Ollama** | `83e4e9e` | 18/10 | `moderador-uml`: Modelfile generado desde el código, `npm run ollama:modelo`, respaldo a qwen2.5 base | 4 tests nuevos; respuesta real en el chat con 🏠 Ollama Local |
 | **Modo IA** | `fee2261` | 02/11 | Vista propia por persona: barra compacta, chat al centro con accesos directos (revisar, crear proyecto, explicar, qué hizo el equipo) y el diagrama como vista previa en vivo de solo lectura | Prueba en navegador a 1100 px y 375 px: sin scroll horizontal, se recuerda al recargar y se sale al lienzo normal |
+| **IA multifuncional** | `4150960` | 02/11 | Revisiones con los resultados reales del validador, proyecto completo de una sola vez, y respuestas sin notas técnicas cuando nadie pidió un cambio | 17 tests nuevos; prueba real con Gemini y con Ollama, y con un segundo usuario conectado |
 
 **Tamaño del cambio del 2do Parcial:** 94 archivos, **+8.673 / −252 líneas** (`348f1aa..b014a42`).
 
@@ -75,8 +76,8 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 
 ### 2.4.1 Pruebas automatizadas
 
-- **Backend:** **129 pruebas unitarias en 22 archivos, todas aprobadas**
-  (`npx vitest run`, 18/10/2026; la Captura 3 muestra la corrida del 17/10,
+- **Backend:** **146 pruebas unitarias en 22 archivos, todas aprobadas**
+  (`npx vitest run`, 02/11/2026; la Captura 3 muestra la corrida del 17/10,
   con 117, antes del interruptor configurable). Cubren el generador y sus plantillas,
   validación, XMI, autoría y bitácora (`authorship.util.spec.ts`), saneamiento
   del modelo, motor híbrido (`hybrid.provider.spec.ts`), prompt del moderador,
@@ -162,6 +163,21 @@ arranca vacía. Alinear ambos esquemas implica rehacer la ubicación de las clav
 foráneas del generador; se dejó para después del parcial, porque el CRUD
 completo funciona.
 
+### 2.4.6 Modo IA e IA multifuncional (02/11/2026)
+
+| Pedido | Motor | Tiempo | Resultado |
+|---|---|---|---|
+| "Crea el diagrama de clases completo para un sistema de biblioteca" | Gemini | 3 s | ✅ 5 clases con PK y atributos, 4 relaciones, diagrama ordenado |
+| "…para un sistema de veterinaria", desde el Modo IA | Gemini | < 10 s | ✅ 4 clases y 3 relaciones en la vista previa; guardado con autoría "vía IA" y recibido en vivo por un segundo usuario conectado |
+| "Revisa nuestro diagrama…" | Ollama | 38 s | ✅ Observación del modelo más el resultado real del validador, escrito por el servidor |
+| "Crea el diagrama completo…", **sin internet** | Ollama | 25 s | ⚠️ Solo 2 clases |
+
+**Limitación conocida:** el modelo local (qwen2.5 de 1,5 mil millones de parámetros, en CPU) no alcanza para modelar un
+sistema completo. Por eso, en estos pedidos el motor híbrido intenta primero con la nube aunque el orden sea
+`local-first`. Sin internet responde el modelo local, con un resultado parcial.
+
+![Captura 13: Modo IA. El chat al centro con sus accesos directos y el diagrama como vista previa en vivo, de solo lectura, después de pedir un proyecto completo.](docs/documento_final/img/evidencias/modo_ia_proyecto.jpg){width=6.2in}
+
 ## 2.5 Registro de defectos encontrados y corregidos
 
 Las pruebas con dos usuarios reales encontraron defectos que las pruebas
@@ -193,6 +209,7 @@ efectivo.
 | Chat completamente público | `chat.gateway.ts` (difunde a toda la sala) | Prueba con dos usuarios |
 | Mentor teórico y práctico | Prompt del moderador + operaciones + `intent.ts` | `intent.spec.ts`, `validate-operations.spec.ts` |
 | El Modo IA activa una nueva vista y un nuevo enfoque | `AiModeBar.tsx`, `ChatPanel.tsx` (`aiMode`), estilos `.app--ai-mode` | Prueba en navegador a 1100 px y 375 px |
+| IA multifuncional: revisiones y hacer un proyecto | `intent.ts` (`classifyRequest`), `moderator-prompt.ts`, `moderator.service.ts` (`validatorSummary`) | `intent.spec.ts`, `moderator-prompt.spec.ts`; pruebas reales (2.4.6) |
 | Ejecutor **configurable** | `aiCanEditCanvas` en el diagrama + `ai:settings` + `canvas-policy.ts` | `canvas-policy.spec.ts`; prueba en ambos modos |
 | Contexto grupal e individual | `moderator.service.ts` (bitácora, sala, hilo) | Respuestas "creada por Marco" / "como te comenté antes" |
 | IA híbrida local + nube | `hybrid.provider.ts` | `hybrid.provider.spec.ts`; tres escenarios medidos |

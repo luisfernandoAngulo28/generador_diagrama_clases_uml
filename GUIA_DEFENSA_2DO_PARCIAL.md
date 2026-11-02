@@ -147,6 +147,15 @@ Además, `validateOperations()` elimina operaciones sobre clases inexistentes y
 
 📍 Muéstralo: `frontend/src/components/AiModeBar.tsx`, `ChatPanel.tsx` (`AI_SHORTCUTS`), `App.tsx` (`toggleAiMode`).
 
+**A4-quater. ¿La IA atiende "cualquier consulta": revisiones, hacer un proyecto, cambios?**
+- `classifyRequest()` clasifica cada mensaje: **pregunta, cambio, revisión o proyecto**.
+- **Revisión:** el servidor corre `validateModel()` y le pasa los resultados al modelo; además los agrega él mismo a la respuesta ("Validador automático…"), así que esa parte no puede ser inventada.
+- **Proyecto:** el prompt pide el sistema completo de una vez (de 4 a 8 clases con relaciones), y el servidor agrega `AUTO_LAYOUT` al final.
+- **Otros temas:** responde en una o dos frases y ofrece volver al proyecto.
+- ⚠️ **Limitación, díganla ustedes antes de que la encuentren:** sin internet, el modelo local solo arma 2 clases (medido). Por eso los proyectos completos intentan primero con Gemini aunque el orden sea `local-first` (`heavy` en `hybrid.provider.ts`).
+
+📍 Muéstralo: `backend/src/ai/moderator/intent.ts`, `moderator.service.ts` (`validatorSummary`). **En vivo:** Modo IA → Crear proyecto → "…para un sistema de veterinaria".
+
 **A5. ¿Cómo se aplica al lienzo un cambio pedido a la IA?**
 - La respuesta viaja con `operations` a toda la sala, pero **solo el cliente de
   quien preguntó las aplica** (si no, se aplicarían una vez por cada persona
@@ -443,7 +452,7 @@ laptop, sin AWS ni internet.
 
 | Dato | Valor |
 |---|---|
-| Pruebas unitarias | **129** (22 archivos), todas en verde |
+| Pruebas unitarias | **146** (22 archivos), todas en verde |
 | Commits | 89 hasta la Sección 1 (79 del 1er Parcial + 10 del 2do) |
 | Tamaño del 2do Parcial | 94 archivos, +8.673 / −252 líneas |
 | Ollama, prompt completo → lite | 36–79 s → 5–18 s (CPU) |
