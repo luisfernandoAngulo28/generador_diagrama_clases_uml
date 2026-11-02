@@ -138,6 +138,15 @@ Además, `validateOperations()` elimina operaciones sobre clases inexistentes y
 - tests: `canvas-policy.spec.ts`
 - **En vivo:** apaga el interruptor, pide "agrega la clase Reserva…", muestra los pasos; enciéndelo y repite: se crea.
 
+**A4-ter. ¿Qué es el "Modo IA"? ¿En qué se diferencia del chat normal?**
+- Es una **vista distinta y un enfoque distinto**: botón **Modo IA** en la barra superior.
+- **Vista:** se oculta la barra de edición y el panel de clases; el chat pasa al centro y el diagrama queda al costado como vista previa en vivo, de solo lectura.
+- **Enfoque:** no se dibuja, se conversa. Todo mensaje va a la IA y hay accesos directos: *Revisar diagrama*, *Crear proyecto*, *Explicar diagrama*, *¿Qué hizo el equipo?*
+- **Es por persona:** uno puede estar en Modo IA mientras otro dibuja en el lienzo normal, y ambos ven lo mismo en vivo porque la sala y el chat son los mismos. Se recuerda al recargar (`localStorage`).
+- **No confundir** con el interruptor «IA edita el lienzo»: ese es de **toda la sala** y define si la IA puede cambiar el diagrama; Modo IA es solo la vista de cada uno.
+
+📍 Muéstralo: `frontend/src/components/AiModeBar.tsx`, `ChatPanel.tsx` (`AI_SHORTCUTS`), `App.tsx` (`toggleAiMode`).
+
 **A5. ¿Cómo se aplica al lienzo un cambio pedido a la IA?**
 - La respuesta viaja con `operations` a toda la sala, pero **solo el cliente de
   quien preguntó las aplica** (si no, se aplicarían una vez por cada persona

@@ -65,6 +65,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 | Corrección en producción | `4daba22` | 17/10 | Renombres encadenados y confirmaciones ("sí, hazlo") | 8 tests nuevos; prueba real en producción (Capturas 6 y 12) |
 | **Ejecutor configurable** | `d003cf8` | 18/10 | Interruptor por sala «IA edita el lienzo» / «IA solo sugiere» (`ai:settings`, `applyCanvasPolicy`) | 8 tests nuevos; prueba local con Ollama en ambos modos |
 | **Modelo propio en Ollama** | `83e4e9e` | 18/10 | `moderador-uml`: Modelfile generado desde el código, `npm run ollama:modelo`, respaldo a qwen2.5 base | 4 tests nuevos; respuesta real en el chat con 🏠 Ollama Local |
+| **Modo IA** | `fee2261` | 02/11 | Vista propia por persona: barra compacta, chat al centro con accesos directos (revisar, crear proyecto, explicar, qué hizo el equipo) y el diagrama como vista previa en vivo de solo lectura | Prueba en navegador a 1100 px y 375 px: sin scroll horizontal, se recuerda al recargar y se sale al lienzo normal |
 
 **Tamaño del cambio del 2do Parcial:** 94 archivos, **+8.673 / −252 líneas** (`348f1aa..b014a42`).
 
@@ -191,6 +192,7 @@ efectivo.
 | La IA nombra a quien responde | `moderator-prompt.ts` (regla 1) + `ensureAddressed()` | `moderator-prompt.spec.ts`; respuestas reales |
 | Chat completamente público | `chat.gateway.ts` (difunde a toda la sala) | Prueba con dos usuarios |
 | Mentor teórico y práctico | Prompt del moderador + operaciones + `intent.ts` | `intent.spec.ts`, `validate-operations.spec.ts` |
+| El Modo IA activa una nueva vista y un nuevo enfoque | `AiModeBar.tsx`, `ChatPanel.tsx` (`aiMode`), estilos `.app--ai-mode` | Prueba en navegador a 1100 px y 375 px |
 | Ejecutor **configurable** | `aiCanEditCanvas` en el diagrama + `ai:settings` + `canvas-policy.ts` | `canvas-policy.spec.ts`; prueba en ambos modos |
 | Contexto grupal e individual | `moderator.service.ts` (bitácora, sala, hilo) | Respuestas "creada por Marco" / "como te comenté antes" |
 | IA híbrida local + nube | `hybrid.provider.ts` | `hybrid.provider.spec.ts`; tres escenarios medidos |
