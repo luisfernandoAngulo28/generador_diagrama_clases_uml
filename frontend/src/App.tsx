@@ -56,6 +56,7 @@ import {
   BookOpenCheck,
   GitCompare,
   Terminal,
+  Sparkles,
 } from 'lucide-react';
 import { UmlClassNode, type UmlClassNodeData } from './components/UmlClassNode';
 import { UmlNoteNode } from './components/UmlNoteNode';
@@ -65,6 +66,7 @@ import { FeaturesPanel } from './components/FeaturesPanel';
 import { RelationInspector } from './components/RelationInspector';
 import { ClassTreePanel } from './components/ClassTreePanel';
 import { ChatPanel } from './components/ChatPanel';
+import { AiModeBar } from './components/AiModeBar';
 import { ValidationPanel } from './components/ValidationPanel';
 import { DiagramsListPanel } from './components/DiagramsListPanel';
 import { HistoryPanel } from './components/HistoryPanel';
@@ -179,6 +181,25 @@ function createDefaultClass(): UmlClass {
   };
 }
 
+const AI_MODE_KEY = 'case.aiMode';
+
+// A remembered view is only a convenience: blocked storage just means starting in the canvas.
+function readAiModePreference(): boolean {
+  try {
+    return localStorage.getItem(AI_MODE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function saveAiModePreference(on: boolean) {
+  try {
+    localStorage.setItem(AI_MODE_KEY, on ? '1' : '0');
+  } catch {
+    // Not remembered next time; nothing else depends on it.
+  }
+}
+
 function AppInner() {
   const { user, logout } = useAuth();
   const toast = useToast();
@@ -218,6 +239,8 @@ function AppInner() {
   const [codePreview, setCodePreview] = useState<CodePreviewResult | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [viewMode, setViewMode] = useState<'uml' | 'der'>('uml');
+  // Modo IA is each person's own view: the rest of the room keeps working as they prefer.
+  const [aiMode, setAiMode] = useState(readAiModePreference);
   const [showSpotlight, setShowSpotlight] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMetrics, setShowMetrics] = useState(false);
@@ -428,6 +451,13 @@ function AppInner() {
     setFuture([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Refit when the layout changes and, in Modo IA, whenever the AI adds or removes classes.
+  const previewClassCount = aiMode ? nodes.length : -1;
+  useEffect(() => {
+    const timer = setTimeout(() => void fitView({ duration: 300, padding: 0.15 }), 100);
+    return () => clearTimeout(timer);
+  }, [previewClassCount, fitView]);
 
   // Load an existing diagram when opened via a shared link (?diagram=<id>).
   useEffect(() => {
@@ -717,6 +747,19 @@ function AppInner() {
     pushHistory();
     setNodes((nds) => layoutNodes(nds, edges));
     requestAnimationFrame(() => fitView({ duration: 300 }));
+  }
+
+  function toggleAiMode() {
+    const next = !aiMode;
+    if (next) {
+      // The preview is read-only: don't keep a class locked while nobody can edit it here.
+      releaseLock(editingClassId);
+      setEditingClassId(null);
+      setEditingEdgeId(null);
+      setContextMenu(null);
+    }
+    setAiMode(next);
+    saveAiModePreference(next);
   }
 
   function focusClass(nodeId: string) {
@@ -1231,7 +1274,17 @@ function AppInner() {
   }, [validationResult, nodes]);
 
   return (
-    <div className="app">
+    <div className={`app${aiMode ? ' app--ai-mode' : ''}`}>
+      {aiMode && (
+        <AiModeBar
+          diagramName={diagramName}
+          classCount={nodes.filter((n) => n.type === 'umlClass').length}
+          relationCount={edges.length}
+          collaboratorCount={collaboratorCount}
+          onExit={toggleAiMode}
+        />
+      )}
+      {/* Hidden (not removed) in Modo IA: it owns the file inputs and menu state. */}
       <header className="toolbar">
         <input
           data-tour="diagram-name"
@@ -1490,6 +1543,14 @@ function AppInner() {
         {/* Botones de acción primaria (Hero Buttons) */}
         <div className="toolbar__group">
           <button
+            className="toolbar__btn toolbar__btn--ai"
+            title="Trabajar conversando con la IA y el equipo: el chat pasa al centro y el diagrama queda como vista previa en vivo"
+            aria-pressed={aiMode}
+            onClick={toggleAiMode}
+          >
+            <Sparkles size={15} /> Modo IA
+          </button>
+          <button
             className="toolbar__btn toolbar__btn--accent"
             title="Simular y ejecutar endpoints REST en vivo en el navegador (Mock API Runner)"
             onClick={() => {
@@ -1586,7 +1647,7 @@ function AppInner() {
       )}
 
       <div className="app__body">
-        <ClassTreePanel nodes={nodes} onSelect={focusClass} />
+        {!aiMode && <ClassTreePanel nodes={nodes} onSelect={focusClass} />}
         <div className="canvas-wrapper">
           <ReactFlow
             nodes={nodes.map((n) => {
@@ -1622,6 +1683,7 @@ function AppInner() {
             onConnect={onConnect}
             onNodeDragStart={() => pushHistory()}
             onEdgeClick={(_, edge) => {
+              if (aiMode) return;
               pushHistory();
               setEditingEdgeId(edge.id);
             }}
@@ -1631,8 +1693,12 @@ function AppInner() {
                 prev.length === ids.length && prev.every((id, i) => id === ids[i]) ? prev : ids,
               );
             }}
-            onPaneContextMenu={handlePaneContextMenu}
-            onNodeContextMenu={handleNodeContextMenu}
+            onPaneContextMenu={aiMode ? undefined : handlePaneContextMenu}
+            onNodeContextMenu={aiMode ? undefined : handleNodeContextMenu}
+            nodesDraggable={!aiMode}
+            nodesConnectable={!aiMode}
+            elementsSelectable={!aiMode}
+            deleteKeyCode={aiMode ? null : undefined}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             snapToGrid={snapToGrid}
@@ -1642,14 +1708,22 @@ function AppInner() {
             <UmlMarkerDefs />
             <Background gap={20} />
             <Controls />
-            <MiniMap
-              style={{ backgroundColor: '#1e1e1e' }}
-              maskColor="rgba(0, 0, 0, 0.6)"
-              nodeColor="#4a5568"
-            />
+            {!aiMode && (
+              <MiniMap
+                style={{ backgroundColor: '#1e1e1e' }}
+                maskColor="rgba(0, 0, 0, 0.6)"
+                nodeColor="#4a5568"
+              />
+            )}
           </ReactFlow>
 
-          {nodes.length === 0 && (
+          {aiMode && (
+            <div className="ai-preview__label">
+              {nodes.length === 0 ? 'El diagrama aparecerá aquí' : 'Diagrama en vivo · solo lectura'}
+            </div>
+          )}
+
+          {nodes.length === 0 && !aiMode && (
             <CanvasEmptyState
               onAddClass={addClass}
               onOpenTemplates={() => setShowTemplates(true)}
@@ -1681,7 +1755,7 @@ function AppInner() {
             />
           )}
 
-          <UmlLegend />
+          {!aiMode && <UmlLegend />}
 
           {selectedNodeIds.length > 1 && (
             <div className="multi-select-bar">
@@ -1739,22 +1813,25 @@ function AppInner() {
           diagramId={diagramId}
           currentUser={user}
           initialAiCanEdit={aiCanEditCanvas}
+          aiMode={aiMode}
           onEnsureSaved={() => saveDiagram(true)}
           onApplyAiOperations={applyAiOperations}
         />
       </div>
 
-      <StatusBar
-        model={buildModel()}
-        connected={connected}
-        activeUsersCount={collaboratorCount}
-        lastSavedAt={lastSavedAt}
-        viewMode={viewMode}
-        onOpenMetrics={() => setShowMetrics(true)}
-        onOpenRunnerApi={() => setShowMockApi(true)}
-        onOpenCommandPalette={() => setShowCommandPalette(true)}
-        onOpenShortcuts={() => setShowShortcuts(true)}
-      />
+      {!aiMode && (
+        <StatusBar
+          model={buildModel()}
+          connected={connected}
+          activeUsersCount={collaboratorCount}
+          lastSavedAt={lastSavedAt}
+          viewMode={viewMode}
+          onOpenMetrics={() => setShowMetrics(true)}
+          onOpenRunnerApi={() => setShowMockApi(true)}
+          onOpenCommandPalette={() => setShowCommandPalette(true)}
+          onOpenShortcuts={() => setShowShortcuts(true)}
+        />
+      )}
 
       {showTour && <Tour steps={TOUR_STEPS} onFinish={finishTour} />}
       {showDiagramsList && (

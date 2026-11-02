@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bot, Lightbulb, Mic, PencilRuler, Send, Users } from 'lucide-react';
+import { BookOpen, Bot, ClipboardCheck, FolderPlus, History, Lightbulb, Mic, PencilRuler, Send, Sparkles, Users } from 'lucide-react';
 import { getSocket } from '../api/socket';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { AuthUser } from '../types/auth';
@@ -11,11 +11,49 @@ interface ChatPanelProps {
   currentUser: AuthUser | null;
   /** Room setting loaded with the diagram: may the AI modify the canvas? */
   initialAiCanEdit: boolean;
+  /** Modo IA: every message goes to the AI and the panel offers its shortcuts. */
+  aiMode: boolean;
   /** Saves the diagram (creating it if needed) so the AI sees the latest canvas; returns its id. */
   onEnsureSaved: () => Promise<string | undefined>;
   /** Applies the AI's canvas operations; only called on the asker's own client. */
   onApplyAiOperations: (operations: DiagramOperation[]) => void;
 }
+
+/**
+ * Shortcuts of Modo IA. `send: false` only fills the input, because the request
+ * still needs the user's part. The read-only prompts avoid change verbs on purpose:
+ * the server's intent guard must not treat them as a request to edit the canvas.
+ */
+const AI_SHORTCUTS = [
+  {
+    key: 'review',
+    icon: ClipboardCheck,
+    label: 'Revisar diagrama',
+    prompt: 'Revisa nuestro diagrama: dime qué problemas de modelado ves y cómo resolverlos, sin tocar el lienzo todavía.',
+    send: true,
+  },
+  {
+    key: 'project',
+    icon: FolderPlus,
+    label: 'Crear proyecto',
+    prompt: 'Crea el diagrama de clases completo para un sistema de ',
+    send: false,
+  },
+  {
+    key: 'explain',
+    icon: BookOpen,
+    label: 'Explicar diagrama',
+    prompt: 'Explícame este diagrama como a alguien nuevo en el equipo: qué representa cada clase y por qué se relacionan así.',
+    send: true,
+  },
+  {
+    key: 'team',
+    icon: History,
+    label: '¿Qué hizo el equipo?',
+    prompt: '¿Qué hizo cada integrante del equipo en este diagrama últimamente?',
+    send: true,
+  },
+];
 
 const PROVIDER_BADGE: Record<string, { label: string; className: string; title: string }> = {
   OLLAMA_LOCAL: {
@@ -35,7 +73,7 @@ const PROVIDER_BADGE: Record<string, { label: string; className: string; title: 
  * sees every question and every answer of the AI moderator, which always
  * addresses the asker by name. Replaces the 1er Parcial private 1-a-1 chat.
  */
-export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSaved, onApplyAiOperations }: ChatPanelProps) {
+export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, aiMode, onEnsureSaved, onApplyAiOperations }: ChatPanelProps) {
   const [messages, setMessages] = useState<GroupChatMessage[]>([]);
   const [thinking, setThinking] = useState<Record<string, string>>({});
   const [input, setInput] = useState('');
@@ -52,6 +90,8 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSa
     setAiCanEdit(initialAiCanEdit);
   }
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const sendsToAi = askAi || aiMode;
   // Latest callback without re-subscribing the socket listeners on every render.
   const applyRef = useRef(onApplyAiOperations);
   useEffect(() => {
@@ -120,7 +160,7 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSa
       // The moderator reads the diagram from the database: save first so it sees the current canvas.
       const id = await onEnsureSaved();
       if (!id) throw new Error('no diagram');
-      getSocket().emit('chat:send', { diagramId: id, text: trimmed, askAi });
+      getSocket().emit('chat:send', { diagramId: id, text: trimmed, askAi: sendsToAi });
       setInput('');
     } catch {
       setError('No se pudo guardar el diagrama antes de enviar el mensaje.');
@@ -139,6 +179,15 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSa
     } catch {
       setError('No se pudo cambiar la configuración de la IA.');
     }
+  }
+
+  function runShortcut(shortcut: (typeof AI_SHORTCUTS)[number]) {
+    if (shortcut.send) {
+      void sendText(shortcut.prompt);
+      return;
+    }
+    setInput(shortcut.prompt);
+    inputRef.current?.focus();
   }
 
   const { isSupported: voiceSupported, isListening, start: startListening } = useSpeechRecognition({
@@ -177,10 +226,21 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSa
 
       <div className="chat-panel__messages" ref={listRef}>
         {messages.length === 0 && (
-          <div className="chat-panel__empty">
-            Todo el equipo ve este chat. Pregunta a la IA conceptos de ingeniería de software o pídele
-            cambios al diagrama: siempre responde nombrando a quien preguntó.
-          </div>
+          aiMode ? (
+            <div className="ai-mode-hero">
+              <Sparkles size={22} />
+              <h2>¿En qué trabajamos?</h2>
+              <p>
+                Pídele a la IA que cree un proyecto, revise el diagrama, haga cambios o explique un concepto. Todo el
+                equipo ve la conversación y el diagrama se actualiza solo.
+              </p>
+            </div>
+          ) : (
+            <div className="chat-panel__empty">
+              Todo el equipo ve este chat. Pregunta a la IA conceptos de ingeniería de software o pídele
+              cambios al diagrama: siempre responde nombrando a quien preguntó.
+            </div>
+          )
         )}
         {messages.map((m) => (
           <ChatBubble key={m.id} message={m} isMine={!m.isAiResponse && m.sender.userId === currentUser?.id} />
@@ -204,16 +264,34 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSa
 
       {error && <div className="chat-panel__error">{error}</div>}
 
+      {aiMode && (
+        <div className="ai-shortcuts">
+          {AI_SHORTCUTS.map((shortcut) => (
+            <button
+              key={shortcut.key}
+              type="button"
+              className="ai-shortcuts__btn"
+              disabled={sending}
+              onClick={() => runShortcut(shortcut)}
+            >
+              <shortcut.icon size={14} /> {shortcut.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="chat-panel__input-row">
-        <button
-          type="button"
-          className={`chat-panel__ai-toggle${askAi ? ' chat-panel__ai-toggle--on' : ''}`}
-          onClick={() => setAskAi((v) => !v)}
-          aria-pressed={askAi}
-          title={askAi ? 'El mensaje se envía a la IA (todos ven la respuesta)' : 'Mensaje solo para el equipo (sin IA)'}
-        >
-          <Bot size={15} />
-        </button>
+        {!aiMode && (
+          <button
+            type="button"
+            className={`chat-panel__ai-toggle${askAi ? ' chat-panel__ai-toggle--on' : ''}`}
+            onClick={() => setAskAi((v) => !v)}
+            aria-pressed={askAi}
+            title={askAi ? 'El mensaje se envía a la IA (todos ven la respuesta)' : 'Mensaje solo para el equipo (sin IA)'}
+          >
+            <Bot size={15} />
+          </button>
+        )}
         {voiceSupported && (
           <button
             type="button"
@@ -226,10 +304,11 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, onEnsureSa
           </button>
         )}
         <input
+          ref={inputRef}
           className="chat-panel__input"
           value={input}
           maxLength={2000}
-          placeholder={askAi ? 'Pregunta a la IA… (todos lo verán)' : 'Escribe al equipo…'}
+          placeholder={sendsToAi ? 'Pregunta a la IA… (todos lo verán)' : 'Escribe al equipo…'}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') void sendText(input);
