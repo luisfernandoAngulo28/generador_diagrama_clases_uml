@@ -35,17 +35,7 @@ finally {
     $word.Quit()
 }
 
-# Exportar en la misma sesión justo después de Save() dejaba a Word trabado
-# (05/11/2026). Con una sesión nueva y el archivo en solo lectura tarda ~45 s.
-$word = New-Object -ComObject Word.Application
-$word.Visible = $true
-$word.DisplayAlerts = 0
-try {
-    $doc = $word.Documents.Open($docx, $false, $true, $false)
-    $doc.ExportAsFixedFormat($pdf, 17)  # wdExportFormatPDF
-    "PDF: $pdf ($($doc.ComputeStatistics(2)) páginas)"
-    $doc.Close(0)
-}
-finally {
-    $word.Quit()
-}
+# El PDF se exporta en otro proceso: en este, después de guardar, Word se
+# trababa o se cerraba sin generarlo (05/11/2026). Aparte tarda ~45 s.
+[System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null
+powershell -ExecutionPolicy Bypass -File (Join-Path $dir 'exportar_pdf.ps1') -Nombre $Nombre

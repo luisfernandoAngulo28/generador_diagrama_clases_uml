@@ -251,6 +251,15 @@ efectivo.
 
 - **Desarrollo:** Git y GitHub, Node.js 24, NestJS 12, React + Vite, Flutter 3.38,
   Docker Desktop, MongoDB 7, PostgreSQL 16, Ollama 0.40.
+- **Modelado (herramienta CASE):** los diagramas UML del Ciclo 2 (casos de uso,
+  comunicación, clases de análisis, paquetes, clases de diseño, secuencia,
+  estados, actividad, componentes y despliegue) están hechos en **Enterprise
+  Architect 13.5**, en el proyecto `docs/diagrams/ea/ciclo2.eap`. Primero se
+  escribió un borrador textual de cada diagrama a partir del código
+  (`docs/diagrams/2do_parcial/`); el script `docs/diagrams/ea/ea_builder.py` lo
+  construyó en Enterprise Architect por automatización (su API COM). Las
+  imágenes del documento se exportaron desde Enterprise Architect, donde cada
+  diagrama se puede abrir, revisar y editar.
 - **Asistente de programación:** el equipo trabajó con **Claude Code**
   (Anthropic) como asistente de programación. Por transparencia, los commits en
   que participó llevan la línea `Co-Authored-By: Claude` (82 de 89 commits). El

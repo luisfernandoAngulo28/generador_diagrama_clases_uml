@@ -304,7 +304,7 @@ Entre los casos de uso se establecen estas relaciones:
 
 El actor secundario Moderador IA participa en CU15 y CU16.
 
-![](docs/diagrams/2do_parcial/pud/uc_general.png){width="4.6in"}
+![](docs/diagrams/ea/img/uc_general.png){width="4.6in"}
 
 *Figura --- Diagrama General de Casos de Uso, Ciclos 1 y 2 (UML 2.5.1)*
 
@@ -312,7 +312,7 @@ El actor secundario Moderador IA participa en CU15 y CU16.
 
 En el segundo ciclo se agregan los paquetes **chat grupal** (frontend) y **live** (visor de la app móvil). También se amplían los paquetes **diagrams** (autoría, bitácora y sesiones) y **ai** (motor híbrido, moderador y gateway del chat). Las dependencias siguen siendo unidireccionales: **ai** depende de **diagrams** para leer el modelo y la bitácora, y ambos dependen de **auth** para identificar al usuario.
 
-![](docs/diagrams/2do_parcial/pud/paquetes.png){width="5.4in"}
+![](docs/diagrams/ea/img/paquetes.png){width="5.4in"}
 
 *Figura --- Diagrama de Paquetes del Sistema, Ciclo 2*
 
@@ -320,49 +320,49 @@ En el segundo ciclo se agregan los paquetes **chat grupal** (frontend) y **live*
 
 ***CU13 --- Iniciar Sesión***
 
-![](docs/diagrams/2do_parcial/pud/com_cu13.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu13.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU13*
 
 ***CU14 --- Enviar Mensaje al Chat Grupal***
 
-![](docs/diagrams/2do_parcial/pud/com_cu14.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu14.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU14*
 
 ***CU15 --- Consultar al Moderador IA***
 
-![](docs/diagrams/2do_parcial/pud/com_cu15.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu15.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU15*
 
 ***CU16 --- Solicitar Cambio del Diagrama a la IA***
 
-![](docs/diagrams/2do_parcial/pud/com_cu16.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu16.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU16*
 
 ***CU17 --- Consultar Autoría y Bitácora***
 
-![](docs/diagrams/2do_parcial/pud/com_cu17.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu17.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU17*
 
 ***CU18 --- Reanudar Sesión de Trabajo***
 
-![](docs/diagrams/2do_parcial/pud/com_cu18.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu18.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU18*
 
 ***CU19 --- Visualizar Diagrama en Vivo (Móvil)***
 
-![](docs/diagrams/2do_parcial/pud/com_cu19.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu19.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU19*
 
 ***CU20 --- Recibir Notificaciones en el Móvil***
 
-![](docs/diagrams/2do_parcial/pud/com_cu20.png){width="4.3in"}
+![](docs/diagrams/ea/img/com_cu20.png){width="4.3in"}
 
 *Figura --- Diagrama de Comunicación CU20*
 
@@ -389,7 +389,7 @@ En el segundo ciclo se agregan los paquetes **chat grupal** (frontend) y **live*
 - Las colecciones de MongoDB: `Diagram` con su `AuthorStamp` embebido, `ActivityLog`, `DiagramSession` y `GroupChatMessage`.
 - `User` en PostgreSQL.
 
-![](docs/diagrams/2do_parcial/pud/clases_analisis.png){width="5.3in"}
+![](docs/diagrams/ea/img/clases_analisis.png){width="5.3in"}
 
 *Figura --- Clases de Análisis, Ciclo 2 (Boundary-Control-Entity)*
 
@@ -401,7 +401,7 @@ En el segundo ciclo, el paquete **ai** deja de ser independiente: depende de **d
 
 **Despliegue --- Segundo Ciclo.** Se agrega un cuarto contenedor, **MongoDB 7** con el volumen `mongo_data`, junto a PostgreSQL 16, el backend NestJS y el frontend (nginx con TLS de Let's Encrypt). nginx enruta además `/sessions`. El backend consulta Gemini en la nube y, como respaldo, un Ollama local (`docker-compose.local.yml` para la defensa sin internet). El celular se conecta por HTTPS/WSS al mismo dominio.
 
-![](docs/diagrams/2do_parcial/01_despliegue.png){width="6.2in"}
+![](docs/diagrams/ea/img/01_despliegue.png){width="6.2in"}
 
 *Figura --- Diagrama de Despliegue, Ciclo 2 (UML 2.5.1)*
 
@@ -409,7 +409,7 @@ En el segundo ciclo, el paquete **ai** deja de ser independiente: depende de **d
 
 **Diseño lógico --- Segundo Ciclo.** El diagrama de componentes muestra las interfaces provistas por el backend (REST y eventos Socket.io de la sala) y quién las requiere: el frontend web (lienzo, chat e inspector) y la app móvil (visor).
 
-![rot](docs/diagrams/2do_parcial/02_componentes.png){width="6.3in"}
+![rot](docs/diagrams/ea/img/02_componentes.png){width="6.3in"}
 
 *Figura --- Diagrama de Componentes, Ciclo 2*
 
@@ -426,13 +426,13 @@ En el segundo ciclo, el paquete **ai** deja de ser independiente: depende de **d
 
 Las referencias entre colecciones son por identificador, sin claves foráneas, para que la bitácora y el chat sobrevivan aunque se elimine el diagrama.
 
-![](docs/diagrams/2do_parcial/03_clases_persistencia.png){width="6.3in"}
+![](docs/diagrams/ea/img/03_clases_persistencia.png){width="6.3in"}
 
 *Figura --- Diagrama de Clases de Persistencia, Ciclo 2*
 
 **Diseño de clases del motor de IA.** Se aplica el patrón **Strategy**: `AiProvider` con dos implementaciones (`GeminiProvider` y `OllamaProvider`), compuestas por `HybridAiProvider`, que agrega el orden configurable, los timeouts y el *circuit breaker*.
 
-![rot](docs/diagrams/2do_parcial/04_clases_motor_ia.png){width="6.3in"}
+![rot](docs/diagrams/ea/img/04_clases_motor_ia.png){width="6.3in"}
 
 *Figura --- Diagrama de Clases del Motor de IA híbrido y el Moderador*
 
@@ -440,49 +440,49 @@ Las referencias entre colecciones son por identificador, sin claves foráneas, p
 
 ***CU13 --- Iniciar Sesión***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu13.png){width="5.6in"}
+![](docs/diagrams/ea/img/seq_cu13.png){width="5.6in"}
 
 *Figura --- Diagrama de Secuencia CU13*
 
 ***CU14 --- Enviar Mensaje al Chat Grupal***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu14.png){width="6.3in"}
+![](docs/diagrams/ea/img/seq_cu14.png){width="6.3in"}
 
 *Figura --- Diagrama de Secuencia CU14*
 
 ***CU15 --- Consultar al Moderador IA***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu15.png){width="6.3in"}
+![](docs/diagrams/ea/img/seq_cu15.png){width="6.3in"}
 
 *Figura --- Diagrama de Secuencia CU15 (la versión detallada, con el respaldo Gemini ↔ Ollama, está en la sección 4.4)*
 
 ***CU16 --- Solicitar Cambio del Diagrama a la IA***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu16.png){width="6.3in"}
+![](docs/diagrams/ea/img/seq_cu16.png){width="6.3in"}
 
 *Figura --- Diagrama de Secuencia CU16*
 
 ***CU17 --- Consultar Autoría y Bitácora***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu17.png){width="6.3in"}
+![](docs/diagrams/ea/img/seq_cu17.png){width="6.3in"}
 
 *Figura --- Diagrama de Secuencia CU17*
 
 ***CU18 --- Reanudar Sesión de Trabajo***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu18.png){width="6.0in"}
+![](docs/diagrams/ea/img/seq_cu18.png){width="6.0in"}
 
 *Figura --- Diagrama de Secuencia CU18*
 
 ***CU19 --- Visualizar Diagrama en Vivo (Móvil)***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu19.png){width="6.3in"}
+![](docs/diagrams/ea/img/seq_cu19.png){width="6.3in"}
 
 *Figura --- Diagrama de Secuencia CU19*
 
 ***CU20 --- Recibir Notificaciones en el Móvil***
 
-![](docs/diagrams/2do_parcial/pud/seq_cu20.png){width="6.0in"}
+![](docs/diagrams/ea/img/seq_cu20.png){width="6.0in"}
 
 *Figura --- Diagrama de Secuencia CU20*
 
@@ -494,19 +494,19 @@ Estos diagramas detallan los tres mecanismos centrales del ciclo 2:
 - **El guardado con autoría granular.**
 - **El estado de la sesión continua y la decisión del motor híbrido.**
 
-![](docs/diagrams/2do_parcial/05_secuencia_chat_ia.png){width="6.3in"}
+![](docs/diagrams/ea/img/05_secuencia_chat_ia.png){width="6.3in"}
 
 *Figura --- Secuencia detallada: pregunta pública al Moderador IA (alt / opt / par)*
 
-![rot](docs/diagrams/2do_parcial/06_secuencia_guardado_autoria.png){width="6.3in"}
+![rot](docs/diagrams/ea/img/06_secuencia_guardado_autoria.png){width="6.3in"}
 
 *Figura --- Secuencia detallada: guardado con autoría granular y bitácora*
 
-![](docs/diagrams/2do_parcial/07_estados_sesion.png){width="5.0in"}
+![](docs/diagrams/ea/img/07_estados_sesion.png){width="5.0in"}
 
 *Figura --- Máquina de estados de la sesión continua (ACTIVE ⇄ PAUSED)*
 
-![](docs/diagrams/2do_parcial/08_actividad_motor_hibrido.png){width="4.4in"}
+![](docs/diagrams/ea/img/08_actividad_motor_hibrido.png){width="4.4in"}
 
 *Figura --- Diagrama de actividad del motor de IA híbrido*
 
