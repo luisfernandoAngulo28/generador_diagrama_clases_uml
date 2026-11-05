@@ -67,7 +67,7 @@ Architect 13.5 (Import Package from XMI). EA reconoce las 4 clases con sus atrib
   - dictado por voz;
   - **asistente de IA local funcionando en modo avión**.
 
-*(Figura A.9: aplicación móvil en funcionamiento.)*
+![Figura A.9: asistente de IA local de la aplicación móvil en un teléfono Android real, sin conexión: rechaza un saludo fuera de tema y responde qué es una clase.](docs/documento_final/img/evidencias/movil_ia_offline.png){width=3in}
 
 ### A.7 Pruebas automatizadas
 

@@ -28,11 +28,23 @@ try {
     $null = $section.Footers.Item(1).PageNumbers.Add(1, $false)  # centrado, sin número en la carátula
     foreach ($toc in $doc.TablesOfContents) { $toc.Update() }
     $doc.Save()
-    $doc.ExportAsFixedFormat($pdf, 17)  # wdExportFormatPDF
-    $pages = $doc.ComputeStatistics(2)
     $doc.Close(0)
-    "Guardado: $docx ($pages páginas)"
-    "PDF: $pdf"
+    "Guardado: $docx"
+}
+finally {
+    $word.Quit()
+}
+
+# Exportar en la misma sesión justo después de Save() dejaba a Word trabado
+# (05/11/2026). Con una sesión nueva y el archivo en solo lectura tarda ~45 s.
+$word = New-Object -ComObject Word.Application
+$word.Visible = $true
+$word.DisplayAlerts = 0
+try {
+    $doc = $word.Documents.Open($docx, $false, $true, $false)
+    $doc.ExportAsFixedFormat($pdf, 17)  # wdExportFormatPDF
+    "PDF: $pdf ($($doc.ComputeStatistics(2)) páginas)"
+    $doc.Close(0)
 }
 finally {
     $word.Quit()
