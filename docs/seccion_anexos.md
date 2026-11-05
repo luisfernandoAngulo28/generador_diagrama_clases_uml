@@ -51,7 +51,12 @@ Evidencia del lienzo, las relaciones con multiplicidades (1, 0..\*) y la edició
 
 ### A.5 Interoperabilidad con Enterprise Architect (XMI)
 
-*(Figura A.8: modelo exportado e importado en formato XMI dentro de Enterprise Architect.)*
+El diagrama de veterinaria que el Moderador IA creó en el Modo IA se exportó desde el sistema
+(Archivo → Exportar XMI, `docs/diagrams/ea/veterinaria_modo_ia.xmi`) y se importó en Enterprise
+Architect 13.5 (Import Package from XMI). EA reconoce las 4 clases con sus atributos tipados y las
+3 relaciones con su multiplicidad. El proyecto de EA queda en `docs/diagrams/ea/veterinaria_modo_ia.eap`.
+
+![Figura A.8: modelo exportado en XMI desde el sistema e importado en Enterprise Architect 13.5: las clases Propietario, Mascota, Veterinario y Cita con sus atributos y las relaciones uno a muchos.](docs/documento_final/img/evidencias/ea_import_xmi.png){width=3.6in}
 
 ### A.6 Cliente móvil y IA local verificados en dispositivo físico
 

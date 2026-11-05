@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
+  <uml:Model xmi:type="uml:Model" xmi:id="model_1" name="Prueba Proyecto IA">
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_id_Long" name="Long"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_id_String" name="String"/>
+    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_id_LocalDateTime" name="LocalDateTime"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="id_d97b12e7-bc8c-4cfc-bb3d-b89d61e04e07" name="Propietario">
+      <ownedAttribute xmi:id="id_d97b12e7-bc8c-4cfc-bb3d-b89d61e04e07_id" name="id" visibility="private" type="type_id_Long"/>
+      <ownedAttribute xmi:id="id_d97b12e7-bc8c-4cfc-bb3d-b89d61e04e07_nombre" name="nombre" visibility="private" type="type_id_String"/>
+      <ownedAttribute xmi:id="id_d97b12e7-bc8c-4cfc-bb3d-b89d61e04e07_telefono" name="telefono" visibility="private" type="type_id_String"/>
+
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="id_df7b65f1-e2fe-4a1c-bbdc-65fd1e9aa7ab" name="Mascota">
+      <ownedAttribute xmi:id="id_df7b65f1-e2fe-4a1c-bbdc-65fd1e9aa7ab_id" name="id" visibility="private" type="type_id_Long"/>
+      <ownedAttribute xmi:id="id_df7b65f1-e2fe-4a1c-bbdc-65fd1e9aa7ab_nombre" name="nombre" visibility="private" type="type_id_String"/>
+      <ownedAttribute xmi:id="id_df7b65f1-e2fe-4a1c-bbdc-65fd1e9aa7ab_especie" name="especie" visibility="private" type="type_id_String"/>
+
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="id_68351430-b207-453c-b179-c9772bb2656e" name="Veterinario">
+      <ownedAttribute xmi:id="id_68351430-b207-453c-b179-c9772bb2656e_id" name="id" visibility="private" type="type_id_Long"/>
+      <ownedAttribute xmi:id="id_68351430-b207-453c-b179-c9772bb2656e_nombre" name="nombre" visibility="private" type="type_id_String"/>
+      <ownedAttribute xmi:id="id_68351430-b207-453c-b179-c9772bb2656e_especialidad" name="especialidad" visibility="private" type="type_id_String"/>
+
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="id_499afaed-146b-49a1-81bc-595e5089eba1" name="Cita">
+      <ownedAttribute xmi:id="id_499afaed-146b-49a1-81bc-595e5089eba1_id" name="id" visibility="private" type="type_id_Long"/>
+      <ownedAttribute xmi:id="id_499afaed-146b-49a1-81bc-595e5089eba1_fechaHora" name="fechaHora" visibility="private" type="type_id_LocalDateTime"/>
+      <ownedAttribute xmi:id="id_499afaed-146b-49a1-81bc-595e5089eba1_motivo" name="motivo" visibility="private" type="type_id_String"/>
+
+    </packagedElement>
+    <packagedElement xmi:type="uml:Association" xmi:id="id_fdb50424-ff92-49a7-936e-76f2e3772e1d" name="one_to_many">
+      <memberEnd xmi:idref="id_fdb50424-ff92-49a7-936e-76f2e3772e1d_src"/>
+      <memberEnd xmi:idref="id_fdb50424-ff92-49a7-936e-76f2e3772e1d_tgt"/>
+      <ownedEnd xmi:id="id_fdb50424-ff92-49a7-936e-76f2e3772e1d_src" type="id_d97b12e7-bc8c-4cfc-bb3d-b89d61e04e07">
+        <lowerValue xmi:type="uml:LiteralInteger" value="1"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="1"/>
+      </ownedEnd>
+      <ownedEnd xmi:id="id_fdb50424-ff92-49a7-936e-76f2e3772e1d_tgt" type="id_df7b65f1-e2fe-4a1c-bbdc-65fd1e9aa7ab">
+        <lowerValue xmi:type="uml:LiteralInteger" value="0"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="*"/>
+      </ownedEnd>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Association" xmi:id="id_0e0ad758-3df8-4f50-8619-c127eb148452" name="one_to_many">
+      <memberEnd xmi:idref="id_0e0ad758-3df8-4f50-8619-c127eb148452_src"/>
+      <memberEnd xmi:idref="id_0e0ad758-3df8-4f50-8619-c127eb148452_tgt"/>
+      <ownedEnd xmi:id="id_0e0ad758-3df8-4f50-8619-c127eb148452_src" type="id_df7b65f1-e2fe-4a1c-bbdc-65fd1e9aa7ab">
+        <lowerValue xmi:type="uml:LiteralInteger" value="1"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="1"/>
+      </ownedEnd>
+      <ownedEnd xmi:id="id_0e0ad758-3df8-4f50-8619-c127eb148452_tgt" type="id_499afaed-146b-49a1-81bc-595e5089eba1">
+        <lowerValue xmi:type="uml:LiteralInteger" value="0"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="*"/>
+      </ownedEnd>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Association" xmi:id="id_7ba5eaba-806d-4060-94bb-32a1f1ba66e3" name="one_to_many">
+      <memberEnd xmi:idref="id_7ba5eaba-806d-4060-94bb-32a1f1ba66e3_src"/>
+      <memberEnd xmi:idref="id_7ba5eaba-806d-4060-94bb-32a1f1ba66e3_tgt"/>
+      <ownedEnd xmi:id="id_7ba5eaba-806d-4060-94bb-32a1f1ba66e3_src" type="id_68351430-b207-453c-b179-c9772bb2656e">
+        <lowerValue xmi:type="uml:LiteralInteger" value="1"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="1"/>
+      </ownedEnd>
+      <ownedEnd xmi:id="id_7ba5eaba-806d-4060-94bb-32a1f1ba66e3_tgt" type="id_499afaed-146b-49a1-81bc-595e5089eba1">
+        <lowerValue xmi:type="uml:LiteralInteger" value="0"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="*"/>
+      </ownedEnd>
+    </packagedElement>
+
+  </uml:Model>
+</xmi:XMI>
