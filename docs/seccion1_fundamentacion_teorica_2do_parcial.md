@@ -80,6 +80,21 @@ lógica pura (diferencias, métricas, exportaciones) vive en módulos sin UI.
 
 ## 1.3 Arquitectura del software (los 4 tipos)
 
+El propósito de la arquitectura es que el software **viva el mayor tiempo posible**: que se pueda cambiar, escalar y mantener sin rehacerlo. Como "el software" es demasiado amplio, la arquitectura se diseña desde **cuatro perspectivas**, y cada una puede usar un estilo distinto: backend, frontend, datos y despliegue.
+
+Estilos conocidos para el backend:
+
+| Estilo | Idea central |
+|---|---|
+| **En capas** | Presentación → negocio → datos; cada capa solo usa la de abajo |
+| **MVC** | Separa el modelo, la vista y el controlador que los coordina |
+| **Hexagonal (puertos y adaptadores)** | El dominio en el centro; la base de datos, la web o la IA se conectan por puertos (interfaces) con adaptadores intercambiables |
+| **Clean Architecture / cebolla** | Capas concéntricas; las dependencias apuntan siempre hacia el dominio |
+| **DDD** | El diseño sigue al dominio del negocio, dividido en contextos delimitados |
+| **Microservicios** | Cada capacidad del negocio es un servicio independiente con su propia base de datos |
+
+Nuestro backend combina **capas** dentro de cada módulo con una idea de **puertos y adaptadores** en el motor de IA: `AiProvider` es el puerto, y `GeminiProvider` y `OllamaProvider` son adaptadores intercambiables.
+
 ### 1.3.1 Arquitectura de backend — monolito modular por responsabilidades
 
 El backend de la herramienta CASE es un **monolito modular en NestJS**
@@ -140,6 +155,16 @@ Decisiones clave:
 - **Migración sin pérdida:** un script idempotente copió los datos del 1er
   Parcial conservando los mismos identificadores (UUID).
 
+**Otros modelos de datos que se evaluaron:**
+
+| Modelo | Para qué sirve | ¿Lo usamos? |
+|---|---|---|
+| Relacional (PostgreSQL) | Datos con estructura fija, restricciones y transacciones | Sí: usuarios y adjuntos, y la base que genera el backend Spring Boot |
+| NoSQL documental (MongoDB) | Árboles de datos que se leen y guardan enteros | Sí: diagramas, sesiones, bitácora y chat |
+| NoSQL clave-valor (DynamoDB, Redis) | Lecturas muy rápidas por clave | No |
+| Orientado a objetos | Guardar objetos tal cual, sin mapeo | No |
+| **Vectorial** | Cada registro tiene un vector (*embedding*) generado por un modelo de IA; se buscan los vectores más cercanos para aproximar la **intención** de una consulta (búsqueda semántica, RAG) | No por ahora; sería útil para que la IA busque en chats y diagramas antiguos por significado y no por palabras exactas |
+
 **Evidencia:** `backend/src/diagrams/schemas/`, `backend/src/diagrams/authorship.util.ts`,
 `backend/src/scripts/migrate-pg-to-mongo.ts`.
 
@@ -171,6 +196,22 @@ Usuario (web / móvil Flutter)
 
 **Evidencia:** `docker-compose.prod.yml`, `docker-compose.local.yml`,
 `frontend/nginx.conf`, `deploy/deploy-local-build.ps1`.
+
+### 1.3.5 Monolito o microservicios: por qué elegimos un monolito modular
+
+| | Monolito | Microservicios |
+|---|---|---|
+| A favor | Fácil de desplegar y probar; transacciones y reportes simples (una sola base de datos) | Cada servicio escala por separado y usa los recursos que necesita; se despliegan de forma independiente |
+| En contra | Escala como un todo; una actualización baja todo el sistema | Mucho más complejo de coordinar (ver abajo) |
+
+Lo que se complica con microservicios, y cómo se resuelve:
+
+- **Transacciones y *rollback*:** si un flujo pasa por tres servicios y el tercero falla, no hay un *rollback* único. Se usa el **patrón Saga**: cada paso tiene una acción de compensación que deshace lo hecho.
+- **Reportes y *joins*:** cada servicio tiene su base de datos y no se puede hacer *join* entre ellas. Se replica la información a una base de **solo lectura** para consultas (CQRS) o a un ***data warehouse***.
+- **Comunicación de cambios:** si inventario modifica un producto, ventas debe enterarse. Se publican **eventos** en un *broker* de mensajes y cada servicio interesado actualiza su réplica.
+- **Frontend:** puede haber un solo frontend o **microfrontends**; todos llegan a los servicios a través de un **API Gateway**.
+
+**Nuestra decisión:** el proyecto no tiene todavía una carga que justifique microservicios. Por eso es un **monolito modular**: módulos independientes (`auth`, `diagrams`, `ai`, `generator`…) que se comunican por interfaces y podrían separarse en servicios si algún día hiciera falta. El motor de IA sería el primer candidato, porque es el que más recursos consume.
 
 ---
 
@@ -236,6 +277,14 @@ en la nube. Lo configuramos así:
   que no responden a un pedido explícito. **La IA nunca toca el diagrama sin
   control.**
 
+**Proceso para trabajar con una IA local (el que seguimos):**
+
+1. **Elegir el modelo según el hardware:** el tamaño (cantidad de parámetros) y la cuantización deciden cuánta memoria y velocidad necesita. Con una laptop sin GPU elegimos un modelo de 1.500 millones de parámetros.
+2. **Instalar un *runtime*** (Ollama) y descargar el modelo (`ollama pull`).
+3. **Personalizarlo:** de menor a mayor esfuerzo, con un *System Prompt* y ejemplos, con un **Modelfile** que guarda ese rol y los parámetros como un modelo propio, con **RAG** (darle documentos o datos en cada consulta), o con ***fine-tuning*** (por ejemplo LoRA), que sí cambia los pesos. Nosotros llegamos hasta el Modelfile y le damos el contexto del diagrama en cada consulta.
+4. **Integrarlo** por su API HTTP (`/api/generate`) con un contrato fijo de respuesta en JSON.
+5. **Medir y ajustar:** tiempo de respuesta, calidad y límites conocidos (sin internet arma solo 2 clases de un proyecto completo).
+
 **Motor híbrido (local + nube):** ambos proveedores comparten el mismo
 contrato. Por defecto responde Gemini, y **Ollama toma el relevo
 automáticamente si no hay internet**; con `AI_HYBRID_ORDER=local-first` se
@@ -278,6 +327,18 @@ implementación.
   la IA moderadora señala problemas de modelado, y la bitácora con autoría
   permite rastrear quién introdujo cada elemento.
 
+**SDD al desarrollar con IA (cómo construimos el proyecto):** usamos un asistente de IA integrado al entorno de desarrollo, pero no a puro *prompt*. Antes de pedir código escribimos la especificación, y esa especificación es la **fuente de verdad** (*source of truth*) que la IA lee en cada tarea:
+
+| Paso | Artefacto del proyecto |
+|---|---|
+| Especificación: qué se pide y con qué reglas | `Contexto_Examen_Requisitos.md`, `CONTEXTO_CLAUDE_2DO_PARCIAL.md` y los modelos UML de la Parte 2 |
+| Plan técnico | `PLAN_EVOLUCION_2DO_PARCIAL.md`, `PLAN_SEMANA1_MONGODB.md` (la migración se diseñó antes de escribir código) |
+| Tareas | Cronograma de 4 semanas y checklist del plan |
+| Implementación | Commits pequeños, uno por tarea (Conventional Commits) |
+| Verificación | Pruebas automatizadas y la trazabilidad requisito → código → prueba (capítulo 7 de la Parte 2) |
+
+Así se reduce el ida y vuelta con la IA y el tiempo de revisar lo que genera: si el código no coincide con la especificación, se corrige el código, no la especificación.
+
 **Dónde se ve en el código:** `backend/src/diagrams/validation.util.ts`,
 `backend/src/generator/`.
 
@@ -304,6 +365,8 @@ implementación.
   - los vínculos entre clases se modelan como **relaciones** y no como atributos
     sueltos (por eso se avisa de las claves foráneas escritas a mano y de los
     atributos desnormalizados).
+
+- **Coherencia entre diagramas:** los modelos no son independientes. Cada objeto de un diagrama de secuencia es instancia de una clase del diagrama de clases. Si el objeto `b` envía el mensaje `m()` al objeto `a`, entonces `m()` es una **operación de la clase de `a`** (la que recibe), porque es un servicio que `a` ofrece y `b` utiliza. En el código, `m()` es un método de esa clase. Ejemplo del proyecto: `ChatGateway` envía `answer()` a `ModeratorService`, así que `answer()` está implementada en `ModeratorService`.
 
 **Dónde se ve en el código:** `backend/src/diagrams/uml.types.ts`,
 `frontend/src/components/UmlLegend.tsx`, `backend/src/diagrams/xmi.util.ts`.

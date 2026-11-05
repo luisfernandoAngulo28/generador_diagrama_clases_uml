@@ -246,35 +246,40 @@ Adicionalmente, la herramienta web permite exportar la colección Postman direct
 
 # 7. El Proceso de Desarrollo de Software (PUDS)
 
-El Proceso Unificado de Desarrollo de Software (PUDS) es un marco estructurado que organiza las actividades necesarias para construir un sistema, desde la captura de requisitos hasta la entrega y el mantenimiento del producto final. Su propósito es garantizar que el software cumpla los objetivos establecidos dentro de un tiempo y alcance definidos, reduciendo riesgos y ordenando la coordinación del equipo de trabajo.
+El Proceso Unificado de Desarrollo de Software (PUDS) es el proceso propuesto por Jacobson, Booch y Rumbaugh (1999), los mismos autores de UML. Define quién hace qué, cuándo y cómo para llevar los requisitos de un usuario hasta un sistema de software, y usa UML como lenguaje para todos sus modelos.
 
-## 7.1. Fases del PUDS
+## 7.1. Características del Proceso Unificado
 
-- **Análisis de requisitos:** identificación y documentación de las necesidades del usuario y del negocio.
+- **Dirigido por casos de uso:** los casos de uso capturan los requisitos y guían todo lo demás. El análisis, el diseño, la implementación y las pruebas se planifican y se verifican caso de uso por caso de uso.
 
-- **Diseño del sistema:** definición de la arquitectura, los componentes y su integración.
+- **Centrado en la arquitectura:** desde temprano se define la arquitectura (las partes más importantes del sistema y cómo se relacionan), y el resto se construye sobre ella.
 
-- **Implementación:** traducción del diseño en código funcional.
+- **Iterativo e incremental:** el trabajo se divide en iteraciones; cada iteración recorre los flujos de trabajo y produce un incremento ejecutable del sistema.
 
-- **Pruebas:** validación de que el sistema cumple los requisitos definidos.
+## 7.2. Ciclo de vida: ciclos, fases y flujos de trabajo
 
-- **Despliegue:** puesta en marcha del sistema en un entorno accesible para los usuarios finales.
+La vida de un sistema se organiza en **ciclos**. Cada ciclo termina con una versión del producto entregada al usuario. Dentro de cada ciclo hay **cuatro fases**, y cada fase termina en un hito que decide si se puede pasar a la siguiente:
 
-- **Mantenimiento:** correcciones, adaptaciones y mejoras continuas una vez el sistema está en uso.
+| Fase | Propósito | Hito al terminar |
+|---|---|---|
+| **Inicio** | Delimitar el alcance, identificar los casos de uso principales y los riesgos críticos, y decidir si el proyecto es viable | Objetivos del ciclo de vida |
+| **Elaboración** | Capturar la mayoría de los requisitos, definir y probar la arquitectura base, y planificar la construcción | Arquitectura del ciclo de vida |
+| **Construcción** | Construir el sistema completo sobre la arquitectura, iteración por iteración | Capacidad operativa inicial (versión beta) |
+| **Transición** | Llevar el producto a los usuarios: despliegue, corrección de defectos y capacitación | Lanzamiento del producto |
 
-## 7.2. Metodologías dentro del PUDS
+En cada fase se recorren, con distinta intensidad, los **cinco flujos de trabajo fundamentales**:
 
-El PUDS es un marco de fases, no una metodología única: puede recorrerse con distintos enfoques de trabajo, entre ellos:
+| Flujo de trabajo | Pregunta que responde | Modelo que produce |
+|---|---|---|
+| **Requisitos** | ¿Qué debe hacer el sistema? | Modelo de casos de uso |
+| **Análisis** | ¿Cómo se estructuran los requisitos, sin pensar aún en la tecnología? | Modelo de análisis (clases de interfaz, control y entidad; diagramas de comunicación) |
+| **Diseño** | ¿Cómo se construye con la tecnología elegida? | Modelo de diseño y de despliegue (clases de diseño, secuencia, subsistemas) |
+| **Implementación** | ¿Qué componentes y código lo realizan? | Modelo de implementación (componentes, código) |
+| **Prueba** | ¿El sistema hace lo que dicen los requisitos? | Modelo de pruebas (casos y procedimientos de prueba) |
 
-- **Modelo en cascada:** las fases se ejecutan de forma secuencial y estructurada, una después de la otra.
+La intensidad cambia según la fase: en Inicio predominan los requisitos; en Elaboración, el análisis y el diseño de la arquitectura; en Construcción, la implementación y las pruebas; y en Transición, las pruebas y el despliegue.
 
-- **Metodologías ágiles (Kanban, XP):** promueven iteraciones cortas, entregas incrementales verificables y adaptación continua a cambios de requisitos.
-
-- **Modelo incremental y evolutivo:** el software se construye en etapas sucesivas, cada una añadiendo funcionalidad sobre la anterior.
-
-- **Proceso Unificado (UP):** desarrollo guiado por casos de uso, con énfasis en la gestión temprana de riesgos.
-
-La Parte 2 de este documento desarrolla en detalle cómo se recorrieron las fases de análisis, diseño e implementación para este proyecto, siguiendo el marco de fases del PUDS de manera incremental a lo largo de varios ciclos de trabajo, en lugar de ejecutarlas una sola vez de forma estrictamente lineal.
+La Parte 2 aplica este ciclo de vida al proyecto: el **Ciclo 1** corresponde al 1er Parcial y el **Ciclo 2** al 2do Parcial. Cada uno recorre las cuatro fases, y el capítulo 7 de la Parte 2 resume en una tabla qué flujos se trabajaron en cada fase de cada ciclo.
 
 **PARTE 2 --- Proceso de Desarrollo de Software (PUDS)**
 

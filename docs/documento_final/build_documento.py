@@ -102,7 +102,7 @@ Peña Rivero Elizabeth — Registro: 215053745
 
 **Docente:** Ing. Rolando Martínez Canedo
 
-**Fecha de entrega:** miércoles 11 de noviembre de 2026
+**Fecha de entrega:** martes 10 de noviembre de 2026
 :::
 
 | ![]({qr_repo}){{width=1.45in}} | ![]({qr_prod}){{width=1.45in}} |

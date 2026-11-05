@@ -81,7 +81,7 @@ Peña Rivero Elizabeth — Registro: 215053745
 
 **Semestre:** 2026-2
 
-**Fecha de entrega:** miércoles 11 de noviembre de 2026
+**Fecha de entrega:** martes 10 de noviembre de 2026
 :::
 
 | ![]({qr_repo}){{width=1.3in}} | ![]({qr_prod}){{width=1.3in}} |

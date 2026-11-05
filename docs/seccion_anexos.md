@@ -155,7 +155,7 @@ correspondiente (`docs/estandar_de_codificacion.md`). Incluye:
 | Docente | Ing. Rolando Martínez |
 | Grupo | **43** |
 | Integrantes | **Elizabeth Rivero Peña** (registro ⟨…⟩) · **Luis Fernando Angulo Heredia** (registro ⟨…⟩) |
-| Fecha de entrega | Miércoles 11 de noviembre de 2026, 08:00 |
+| Fecha de entrega | Martes 10 de noviembre de 2026: documento hasta las 08:00, defensa a las 16:00 |
 | Repositorio (QR 1) | `https://github.com/luisfernandoAngulo28/generador_diagrama_clases_uml` |
 | Aplicación en producción (QR 2) | `https://diagramasw1pracial100.duckdns.org` |
 | Aplicación móvil | `ExamenSW1.apk` (incluye el Visor UML en vivo) |

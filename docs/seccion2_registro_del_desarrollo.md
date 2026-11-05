@@ -7,7 +7,33 @@
 
 ---
 
-## 2.1 Control de versiones y forma de trabajo
+## 2.1 Ciclos del Proceso Unificado y forma de trabajo
+
+### 2.1.1 Ciclos, fases y flujos de trabajo
+
+El proyecto siguió el ciclo de vida del Proceso Unificado (capítulo 7 de la Parte 1) en **dos ciclos**. El Ciclo 1 corresponde al 1er Parcial y entregó la herramienta CASE base. El Ciclo 2 corresponde al 2do Parcial y entregó la IA multifuncional, NoSQL y el visor móvil. Cada ciclo recorrió las cuatro fases, y en cada fase se trabajaron los cinco flujos con distinta intensidad. Las fechas son las de los commits.
+
+**Ciclo 1 — 1er Parcial (30/08/2026 al 23/09/2026)**
+
+| Fase | Fechas | Flujos con más trabajo | Resultado (hito) | Dónde está en el documento |
+|---|---|---|---|---|
+| **Inicio** | 30/08 | Requisitos | Perfil, alcance, actores y casos de uso CU1–CU12 priorizados | Perfil; Captura de requisitos |
+| **Elaboración** | 30/08 – 06/09 | Requisitos, Análisis, Diseño | Casos de uso detallados, diagramas de comunicación, clases de análisis, arquitectura y datos lógicos | Análisis; Diseño |
+| **Construcción** | 30/08 – 06/09 | Implementación, Prueba | Lienzo UML, generador Spring Boot, chat IA, colaboración en tiempo real y pruebas unitarias | Implementación; Pruebas |
+| **Transición** | 06/09 – 23/09 | Prueba, despliegue | Despliegue en AWS con HTTPS, plan B local, IA offline verificada en un teléfono real | Pruebas; Anexo A |
+
+**Ciclo 2 — 2do Parcial (17/10/2026 al 10/11/2026)**
+
+| Fase | Fechas | Flujos con más trabajo | Resultado (hito) | Dónde está en el documento |
+|---|---|---|---|---|
+| **Inicio** | 17/10 | Requisitos | Plan del 2do Parcial, nuevos actores, casos de uso CU13–CU20 y modelo de casos de uso por ciclo | Perfil (2do Parcial); Captura de requisitos |
+| **Elaboración** | 17/10 | Análisis, Diseño | Diagramas de comunicación CU13–CU20, clases de análisis, arquitectura de despliegue, componentes, persistencia políglota y motor de IA híbrido | Análisis; Diseño detallado del Segundo Ciclo |
+| **Construcción** | 17/10 – 02/11 | Implementación, Prueba | MongoDB con autoría, motor híbrido, chat grupal, visor Flutter, ejecutor configurable, modelo propio de Ollama, Modo IA e IA multifuncional | Implementación — Segundo Ciclo; 7.3 |
+| **Transición** | 02/11 – 10/11 | Prueba, despliegue | Prueba de regresión del 1er Parcial, despliegue en AWS, documento final y defensa | 7.4; Anexo A |
+
+En el Ciclo 2 las fases de Inicio y Elaboración fueron cortas porque la arquitectura del Ciclo 1 ya estaba probada: el nuevo ciclo la extendió (MongoDB, motor híbrido, visor) en lugar de rehacerla.
+
+### 2.1.2 Control de versiones y forma de trabajo
 
 - **Repositorio:** `github.com/luisfernandoAngulo28/generador_diagrama_clases_uml`
   (Git + GitHub), con historial completo desde el inicio del proyecto.
@@ -45,7 +71,7 @@
 ## 2.3 Registro del 2do Parcial: plan vs. ejecución real
 
 El cronograma planificado distribuía el trabajo en cuatro semanas (17/10 al
-11/11). En la práctica, las cuatro etapas se implementaron y verificaron
+10/11). En la práctica, las cuatro etapas se implementaron y verificaron
 el **17/10/2026**, como muestran las fechas de los commits. El tiempo restante
 hasta la entrega queda para la documentación, el despliegue y el simulacro.
 
