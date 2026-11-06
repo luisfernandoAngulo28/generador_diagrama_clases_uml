@@ -56,21 +56,24 @@ function buildSampleJson(
   }
 
   if (!isUpdate) {
-    const outgoingManyToOnes = model.relations.filter(
-      (r) =>
-        (r.type === 'MANY_TO_ONE' ||
-          r.type === 'ASSOCIATION' ||
-          r.type === 'AGGREGATION' ||
-          r.type === 'COMPOSITION' ||
-          r.type === 'ONE_TO_ONE') &&
-        r.sourceClassId === cls.id,
-    );
-
-    for (const rel of outgoingManyToOnes) {
-      const targetCls = model.classes.find((c) => c.id === rel.targetClassId);
-      if (targetCls) {
-        const fieldName = rel.targetRole ?? decapitalize(targetCls.name);
-        obj[fieldName] = { id: 1 };
+    // The single-valued reference the entity holds (same rules as the backend generator):
+    // the source points at the target in MANY_TO_ONE / ASSOCIATION / ONE_TO_ONE; in
+    // ONE_TO_MANY / AGGREGATION / COMPOSITION the target (the part) points at the source.
+    for (const rel of model.relations) {
+      const source = model.classes.find((c) => c.id === rel.sourceClassId);
+      const target = model.classes.find((c) => c.id === rel.targetClassId);
+      if (!source || !target) continue;
+      if (
+        (rel.type === 'MANY_TO_ONE' || rel.type === 'ASSOCIATION' || rel.type === 'ONE_TO_ONE') &&
+        source.id === cls.id
+      ) {
+        obj[rel.targetRole ?? decapitalize(target.name)] = { id: 1 };
+      }
+      if (
+        (rel.type === 'ONE_TO_MANY' || rel.type === 'AGGREGATION' || rel.type === 'COMPOSITION') &&
+        target.id === cls.id
+      ) {
+        obj[rel.sourceRole ?? decapitalize(source.name)] = { id: 1 };
       }
     }
   }

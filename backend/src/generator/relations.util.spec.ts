@@ -114,7 +114,7 @@ describe('resolveRelationFields — MANY_TO_MANY', () => {
   });
 });
 
-describe('resolveRelationFields — ASSOCIATION / AGGREGATION (unidireccionales)', () => {
+describe('resolveRelationFields — ASSOCIATION (unidireccional) y AGGREGATION', () => {
   it('ASSOCIATION genera @ManyToOne en el origen y ningún campo en el destino', () => {
     const a = cls('c1', 'Factura');
     const b = cls('c2', 'Vendedor');
@@ -129,15 +129,32 @@ describe('resolveRelationFields — ASSOCIATION / AGGREGATION (unidireccionales)
     expect(resolveRelationFields(b, model)).toHaveLength(0);
   });
 
-  it('AGGREGATION se comporta igual que ASSOCIATION (unidireccional)', () => {
-    const a = cls('c1', 'Equipo');
-    const b = cls('c2', 'Jugador');
+  it('AGGREGATION: el todo (origen, con el rombo) lista sus partes y la parte guarda la FK, sin cascade', () => {
+    const equipo = cls('c1', 'Equipo');
+    const jugador = cls('c2', 'Jugador');
     const model: UmlModel = {
-      classes: [a, b],
+      classes: [equipo, jugador],
       relations: [{ id: 'r1', type: 'AGGREGATION', sourceClassId: 'c1', targetClassId: 'c2' }],
     };
-    expect(resolveRelationFields(a, model)).toHaveLength(1);
-    expect(resolveRelationFields(b, model)).toHaveLength(0);
+    const [whole] = resolveRelationFields(equipo, model);
+    expect(whole.javaType).toBe('List<Jugador>');
+    expect(whole.annotations[0]).toBe('@OneToMany(mappedBy = "equipo")');
+    const [part] = resolveRelationFields(jugador, model);
+    expect(part.javaType).toBe('Equipo');
+    expect(part.annotations).toContain('@JoinColumn(name = "equipo_id")');
+    // the part survives its whole: deleting the team leaves the player without a team
+    expect(part.annotations).toContain('@OnDelete(action = OnDeleteAction.SET_NULL)');
+  });
+
+  it('MANY_TO_ONE: el lado "uno" lista los muchos sin cascade (asociación, no composición)', () => {
+    const pedido = cls('c1', 'Pedido');
+    const cliente = cls('c2', 'Cliente');
+    const model: UmlModel = {
+      classes: [pedido, cliente],
+      relations: [{ id: 'r1', type: 'MANY_TO_ONE', sourceClassId: 'c1', targetClassId: 'c2' }],
+    };
+    const [list] = resolveRelationFields(cliente, model);
+    expect(list.annotations[0]).toBe('@OneToMany(mappedBy = "cliente")');
   });
 });
 

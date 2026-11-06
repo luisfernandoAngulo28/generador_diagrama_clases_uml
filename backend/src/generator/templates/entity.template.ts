@@ -109,7 +109,19 @@ export function renderEntity(
     ? `${classKeyword} ${cls.name} extends ${superclass.name} {`
     : `${classKeyword} ${cls.name} {`;
 
-  const tableAnnotation = superclass ? '' : `@Table(name = "${toSnakeCase(cls.name)}s")\n`;
+  // Inheritance follows OMT's "one table per class": the root of a hierarchy
+  // declares JOINED, and every class (root or subclass) gets its own table,
+  // joined to its parent's by the shared primary key.
+  const isHierarchyRoot =
+    !superclass &&
+    model.relations.some((r) => r.type === 'INHERITANCE' && r.targetClassId === cls.id);
+  if (isHierarchyRoot) {
+    imports.add('jakarta.persistence.Inheritance');
+    imports.add('jakarta.persistence.InheritanceType');
+  }
+  const tableAnnotation =
+    (isHierarchyRoot ? '@Inheritance(strategy = InheritanceType.JOINED)\n' : '') +
+    `@Table(name = "${entityTableName(cls.name)}")\n`;
 
   return `package ${packageName}.entity;
 
@@ -130,4 +142,9 @@ ${idGetterSetter}${gettersSetters}
 
 function toSnakeCase(value: string): string {
   return value.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+}
+
+/** Table of an entity class; data.sql uses the same name. */
+export function entityTableName(className: string): string {
+  return `${toSnakeCase(className)}s`;
 }

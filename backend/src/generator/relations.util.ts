@@ -18,6 +18,30 @@ function toSnakeColumn(name: string): string {
     .toLowerCase()}_id`;
 }
 
+/** The "one" side of a 1..* relation. `composite` adds the lifecycle of a UML composition. */
+function oneToManyField(
+  fieldName: string,
+  elementType: string,
+  mappedBy: string,
+  composite: boolean,
+): RelationField {
+  return {
+    fieldName,
+    javaType: `List<${elementType}>`,
+    annotations: [
+      composite
+        ? `@OneToMany(mappedBy = "${mappedBy}", cascade = CascadeType.ALL, orphanRemoval = true)`
+        : `@OneToMany(mappedBy = "${mappedBy}")`,
+    ],
+    imports: [
+      'java.util.List',
+      'jakarta.persistence.OneToMany',
+      ...(composite ? ['jakarta.persistence.CascadeType'] : []),
+    ],
+    pairFieldName: mappedBy,
+  };
+}
+
 function findClass(model: UmlModel, id: string): UmlClass {
   const found = model.classes.find((c) => c.id === id);
   if (!found) throw new Error(`Referenced class ${id} not found in model`);
@@ -54,26 +78,16 @@ function fieldsForOwner(
 
   switch (rel.type) {
     case 'ONE_TO_MANY':
+    case 'AGGREGATION':
     case 'COMPOSITION': {
-      // Source owns the collection; target holds the FK back to source.
+      // Source owns the collection (for aggregation/composition the source is
+      // the whole: the diamond is drawn at the source end); target holds the
+      // FK back to source. Only composition ties the parts' lifecycle to the
+      // whole (UML): deleting the whole deletes its parts.
       const fieldName =
         rel.targetRole ?? decapitalize(pluralize(target.name));
       const mappedBy = rel.sourceRole ?? decapitalize(source.name);
-      return [
-        {
-          fieldName,
-          javaType: `List<${target.name}>`,
-          annotations: [
-            `@OneToMany(mappedBy = "${mappedBy}", cascade = CascadeType.ALL, orphanRemoval = true)`,
-          ],
-          imports: [
-            'java.util.List',
-            'jakarta.persistence.OneToMany',
-            'jakarta.persistence.CascadeType',
-          ],
-          pairFieldName: mappedBy,
-        },
-      ];
+      return [oneToManyField(fieldName, target.name, mappedBy, rel.type === 'COMPOSITION')];
     }
     case 'MANY_TO_ONE': {
       const fieldName = rel.targetRole ?? decapitalize(target.name);
@@ -96,8 +110,7 @@ function fieldsForOwner(
         },
       ];
     }
-    case 'ASSOCIATION':
-    case 'AGGREGATION': {
+    case 'ASSOCIATION': {
       const fieldName = rel.targetRole ?? decapitalize(target.name);
       return [
         {
@@ -179,10 +192,14 @@ function fieldsForInverse(
 
   switch (rel.type) {
     case 'ONE_TO_MANY':
+    case 'AGGREGATION':
     case 'COMPOSITION': {
       const fieldName = rel.sourceRole ?? decapitalize(source.name);
       const pairFieldName =
         rel.targetRole ?? decapitalize(pluralize(target.name));
+      // Aggregation: the part survives its whole, so the database clears the
+      // reference (ON DELETE SET NULL) instead of blocking the delete.
+      const shared = rel.type === 'AGGREGATION';
       return [
         {
           fieldName,
@@ -190,34 +207,25 @@ function fieldsForInverse(
           annotations: [
             '@ManyToOne(fetch = FetchType.LAZY)',
             `@JoinColumn(name = "${toSnakeColumn(fieldName)}")`,
+            ...(shared ? ['@OnDelete(action = OnDeleteAction.SET_NULL)'] : []),
           ],
           imports: [
             'jakarta.persistence.ManyToOne',
             'jakarta.persistence.FetchType',
             'jakarta.persistence.JoinColumn',
+            ...(shared
+              ? ['org.hibernate.annotations.OnDelete', 'org.hibernate.annotations.OnDeleteAction']
+              : []),
           ],
           pairFieldName,
         },
       ];
     }
     case 'MANY_TO_ONE': {
+      // A plain association: the "one" side lists the many, without cascade.
       const fieldName = rel.sourceRole ?? decapitalize(pluralize(source.name));
       const mappedBy = rel.targetRole ?? decapitalize(target.name);
-      return [
-        {
-          fieldName,
-          javaType: `List<${source.name}>`,
-          annotations: [
-            `@OneToMany(mappedBy = "${mappedBy}", cascade = CascadeType.ALL, orphanRemoval = true)`,
-          ],
-          imports: [
-            'java.util.List',
-            'jakarta.persistence.OneToMany',
-            'jakarta.persistence.CascadeType',
-          ],
-          pairFieldName: mappedBy,
-        },
-      ];
+      return [oneToManyField(fieldName, source.name, mappedBy, false)];
     }
     case 'ONE_TO_ONE': {
       const fieldName = rel.sourceRole ?? decapitalize(source.name);
@@ -248,7 +256,6 @@ function fieldsForInverse(
       ];
     }
     case 'ASSOCIATION':
-    case 'AGGREGATION':
       // Unidirectional: no inverse field generated on the target side.
       return [];
     case 'INHERITANCE':

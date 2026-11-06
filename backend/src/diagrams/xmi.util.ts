@@ -27,7 +27,9 @@ function targetMultiplicity(type: RelationType): EndMultiplicity {
     case 'ONE_TO_ONE':
       return { lower: '1', upper: '1' };
     case 'ONE_TO_MANY':
+    case 'AGGREGATION':
     case 'COMPOSITION':
+      // aggregation/composition: the source is the whole (diamond end), the target the parts
       return { lower: '0', upper: '*' };
     case 'MANY_TO_ONE':
       return { lower: '1', upper: '1' };
@@ -46,8 +48,10 @@ function sourceMultiplicity(type: RelationType): EndMultiplicity {
     case 'ONE_TO_MANY':
     case 'COMPOSITION':
       return { lower: '1', upper: '1' };
-    case 'MANY_TO_ONE':
     case 'AGGREGATION':
+      // a shared part may exist without its whole
+      return { lower: '0', upper: '1' };
+    case 'MANY_TO_ONE':
     case 'ASSOCIATION':
       return { lower: '0', upper: '*' };
     case 'MANY_TO_MANY':

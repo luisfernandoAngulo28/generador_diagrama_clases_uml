@@ -1,7 +1,8 @@
 import type { UmlClass, UmlModel } from '../types/uml';
 
+/** Same table name as the generated entity's @Table. */
 function toTableName(className: string): string {
-  return className.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+  return `${className.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()}s`;
 }
 
 function toColumnName(attrName: string): string {
@@ -41,181 +42,184 @@ function toSqlType(attrName: string, umlType: string): string {
   return 'VARCHAR(100)';
 }
 
-function sortEntitiesTopologically(entities: UmlClass[], model: UmlModel): UmlClass[] {
-  const entityIds = new Set(entities.map((e) => e.id));
-  const dependencies = new Map<string, Set<string>>();
-  for (const e of entities) {
-    dependencies.set(e.id, new Set<string>());
-  }
+interface ForeignKey {
+  column: string;
+  target: UmlClass;
+  unique: boolean;
+  /** UML composition: the part disappears with its whole. */
+  cascade: boolean;
+  /** UML aggregation: the part survives its whole (the reference is cleared). */
+  setNull?: boolean;
+}
 
+function findSuperclass(cls: UmlClass, model: UmlModel): UmlClass | undefined {
+  const rel = model.relations.find((r) => r.type === 'INHERITANCE' && r.sourceClassId === cls.id);
+  return rel ? model.classes.find((c) => c.id === rel.targetClassId) : undefined;
+}
+
+/**
+ * Which table holds the foreign key of each relation — the same rules the
+ * backend generator uses for the JPA entities (OMT):
+ *   - MANY_TO_ONE / ASSOCIATION / ONE_TO_ONE: the source points at the target.
+ *   - ONE_TO_MANY / AGGREGATION / COMPOSITION: the source is the "one" side
+ *     (the whole, for the diamond relations), so the target holds the FK.
+ */
+function foreignKeysOf(cls: UmlClass, model: UmlModel): ForeignKey[] {
+  const out: ForeignKey[] = [];
   for (const rel of model.relations) {
+    const source = model.classes.find((c) => c.id === rel.sourceClassId);
+    const target = model.classes.find((c) => c.id === rel.targetClassId);
+    if (!source || !target) continue;
     if (
-      rel.type === 'MANY_TO_ONE' ||
-      rel.type === 'ASSOCIATION' ||
-      rel.type === 'AGGREGATION' ||
-      rel.type === 'COMPOSITION' ||
-      rel.type === 'ONE_TO_ONE'
+      (rel.type === 'MANY_TO_ONE' || rel.type === 'ASSOCIATION' || rel.type === 'ONE_TO_ONE') &&
+      source.id === cls.id
     ) {
-      if (entityIds.has(rel.sourceClassId) && entityIds.has(rel.targetClassId)) {
-        if (rel.sourceClassId !== rel.targetClassId) {
-          dependencies.get(rel.sourceClassId)?.add(rel.targetClassId);
-        }
-      }
+      out.push({
+        column: toFkColumn(rel.targetRole ?? decapitalize(target.name)),
+        target,
+        unique: rel.type === 'ONE_TO_ONE',
+        cascade: false,
+      });
+    }
+    if (
+      (rel.type === 'ONE_TO_MANY' || rel.type === 'AGGREGATION' || rel.type === 'COMPOSITION') &&
+      target.id === cls.id
+    ) {
+      out.push({
+        column: toFkColumn(rel.sourceRole ?? decapitalize(source.name)),
+        target: source,
+        unique: false,
+        cascade: rel.type === 'COMPOSITION',
+        setNull: rel.type === 'AGGREGATION',
+      });
     }
   }
+  return out;
+}
 
+function sortEntitiesTopologically(entities: UmlClass[], model: UmlModel): UmlClass[] {
   const sorted: UmlClass[] = [];
-  const visited = new Set<string>();
-
-  function visit(classId: string, stack = new Set<string>()) {
-    if (visited.has(classId) || stack.has(classId)) return;
-    stack.add(classId);
-
-    const deps = dependencies.get(classId) ?? new Set();
-    for (const depId of deps) {
-      visit(depId, stack);
+  const visiting = new Set<string>();
+  const visit = (cls: UmlClass) => {
+    if (sorted.includes(cls) || visiting.has(cls.id)) return;
+    visiting.add(cls.id);
+    const parent = findSuperclass(cls, model);
+    if (parent) visit(parent);
+    for (const fk of foreignKeysOf(cls, model)) {
+      if (fk.target.id !== cls.id) visit(fk.target);
     }
-
-    visited.add(classId);
-    const cls = entities.find((e) => e.id === classId);
-    if (cls) sorted.push(cls);
-  }
-
-  for (const e of entities) {
-    visit(e.id);
-  }
-
+    visiting.delete(cls.id);
+    sorted.push(cls);
+  };
+  entities.forEach(visit);
   return sorted;
 }
 
-export function exportSqlSchema(model: UmlModel, projectName: string): void {
+/**
+ * Reference DDL of the database that the generated Spring Boot backend
+ * creates through Hibernate (the backend does NOT run this script: the ORM
+ * creates the tables from the entities). Same table names (@Table), same
+ * foreign-key columns (@JoinColumn), JOINED inheritance and N:M join tables.
+ */
+export function buildSqlSchema(model: UmlModel, projectName: string): string | null {
   const entities = model.classes.filter(
     (c) => !c.stereotype || (c.stereotype !== 'enum' && c.stereotype !== 'interface'),
   );
-
-  if (entities.length === 0) {
-    alert('No hay entidades en el diagrama para exportar.');
-    return;
-  }
+  if (entities.length === 0) return null;
 
   const sortedEntities = sortEntitiesTopologically(entities, model);
+  const manyToManys = model.relations.filter((r) => r.type === 'MANY_TO_MANY');
+  const joinTableName = (source: UmlClass, target: UmlClass) =>
+    `${toColumnName(source.name)}_${toColumnName(target.name)}s`;
 
   const lines: string[] = [
     '--',
-    `-- ESQUEMA DE BASE DE DATOS DDL (PostgreSQL / Relacional ANSI)`,
+    '-- ESQUEMA DE BASE DE DATOS (PostgreSQL), DE REFERENCIA',
     `-- Proyecto: ${projectName}`,
-    `-- Generado automáticamente desde Diagrama de Clases UML`,
+    '-- Es el mismo esquema que Hibernate crea a partir de las entidades JPA del',
+    '-- backend generado (el backend no ejecuta este script: lo crea el ORM).',
+    '-- Mapeo OMT: una tabla por clase, FK del lado "muchos" (o de la parte),',
+    '-- tabla intermedia para N:M y herencia JOINED (la subclase comparte el id).',
     '--',
     '',
+    '-- 1. Eliminación previa (orden inverso)',
   ];
-
-  lines.push('-- 1. Eliminación en cascada previa de tablas si existen');
+  for (const rel of manyToManys) {
+    const s = model.classes.find((c) => c.id === rel.sourceClassId);
+    const t = model.classes.find((c) => c.id === rel.targetClassId);
+    if (s && t) lines.push(`DROP TABLE IF EXISTS ${joinTableName(s, t)} CASCADE;`);
+  }
   for (let i = sortedEntities.length - 1; i >= 0; i--) {
     lines.push(`DROP TABLE IF EXISTS ${toTableName(sortedEntities[i].name)} CASCADE;`);
   }
-
-  const manyToManys = model.relations.filter((r) => r.type === 'MANY_TO_MANY');
-  for (const rel of manyToManys) {
-    const source = model.classes.find((c) => c.id === rel.sourceClassId);
-    const target = model.classes.find((c) => c.id === rel.targetClassId);
-    if (source && target) {
-      const sourceCol = toTableName(source.name);
-      const targetCol = toTableName(target.name);
-      const joinTable = `${sourceCol}_${targetCol}s`;
-      lines.push(`DROP TABLE IF EXISTS ${joinTable} CASCADE;`);
-    }
-  }
   lines.push('');
 
-  lines.push('-- 2. Creación de tablas de entidades');
+  lines.push('-- 2. Tablas de las entidades');
   for (const cls of sortedEntities) {
     const tableName = toTableName(cls.name);
-    const idAttr = cls.attributes.find((a) => a.isPrimaryKey);
-    const scalarAttrs = cls.attributes.filter((a) => !a.isPrimaryKey);
-
-    const fkRelations = model.relations.filter(
-      (r) =>
-        (r.type === 'MANY_TO_ONE' ||
-          r.type === 'ASSOCIATION' ||
-          r.type === 'AGGREGATION' ||
-          r.type === 'COMPOSITION' ||
-          r.type === 'ONE_TO_ONE') &&
-        r.sourceClassId === cls.id,
-    );
-
-    lines.push(`-- Entidad: ${cls.name}`);
-    lines.push(`CREATE TABLE ${tableName} (`);
-
+    const parent = findSuperclass(cls, model);
     const columnDefs: string[] = [];
+    const constraints: string[] = [];
 
-    if (idAttr) {
-      columnDefs.push(`    id BIGSERIAL PRIMARY KEY`);
+    if (parent) {
+      // JOINED: the subclass row shares the id of its parent row.
+      columnDefs.push('    id BIGINT PRIMARY KEY');
+      constraints.push(
+        `    CONSTRAINT fk_${tableName}_id FOREIGN KEY (id) REFERENCES ${toTableName(parent.name)}(id) ON DELETE CASCADE`,
+      );
     } else {
-      columnDefs.push(`    id BIGSERIAL PRIMARY KEY`);
+      columnDefs.push('    id BIGSERIAL PRIMARY KEY');
+    }
+    for (const a of cls.attributes.filter((x) => !x.isPrimaryKey)) {
+      columnDefs.push(`    ${toColumnName(a.name)} ${toSqlType(a.name, a.type)}`);
+    }
+    for (const fk of foreignKeysOf(cls, model)) {
+      columnDefs.push(`    ${fk.column} BIGINT${fk.unique ? ' UNIQUE' : ''}`);
+      constraints.push(
+        `    CONSTRAINT fk_${tableName}_${fk.column} FOREIGN KEY (${fk.column}) REFERENCES ${toTableName(fk.target.name)}(id)` +
+          (fk.cascade ? ' ON DELETE CASCADE' : fk.setNull ? ' ON DELETE SET NULL' : ''),
+      );
     }
 
-    for (const a of scalarAttrs) {
-      const colName = toColumnName(a.name);
-      const sqlType = toSqlType(a.name, a.type);
-      columnDefs.push(`    ${colName} ${sqlType}`);
-    }
-
-    for (const rel of fkRelations) {
-      const targetCls = model.classes.find((c) => c.id === rel.targetClassId);
-      if (targetCls) {
-        const role = rel.targetRole ?? decapitalize(targetCls.name);
-        const fkCol = toFkColumn(role);
-        const isUnique = rel.type === 'ONE_TO_ONE' ? ' UNIQUE' : '';
-        columnDefs.push(`    ${fkCol} BIGINT${isUnique}`);
-      }
-    }
-
-    for (const rel of fkRelations) {
-      const targetCls = model.classes.find((c) => c.id === rel.targetClassId);
-      if (targetCls) {
-        const role = rel.targetRole ?? decapitalize(targetCls.name);
-        const fkCol = toFkColumn(role);
-        const targetTable = toTableName(targetCls.name);
-        columnDefs.push(
-          `    CONSTRAINT fk_${tableName}_${fkCol} FOREIGN KEY (${fkCol}) REFERENCES ${targetTable}(id) ON DELETE CASCADE`,
-        );
-      }
-    }
-
-    lines.push(columnDefs.join(',\n'));
-    lines.push(`);`);
+    lines.push(`-- Entidad: ${cls.name}${parent ? ` (subclase de ${parent.name})` : ''}`);
+    lines.push(`CREATE TABLE ${tableName} (`);
+    lines.push([...columnDefs, ...constraints].join(',\n'));
+    lines.push(');');
     lines.push('');
   }
 
   if (manyToManys.length > 0) {
-    lines.push('-- 3. Tablas intermedias para relaciones Muchos a Muchos (N : M)');
+    lines.push('-- 3. Tablas intermedias de las relaciones muchos a muchos (N:M)');
     for (const rel of manyToManys) {
       const source = model.classes.find((c) => c.id === rel.sourceClassId);
       const target = model.classes.find((c) => c.id === rel.targetClassId);
-      if (source && target) {
-        const sourceTable = toTableName(source.name);
-        const targetTable = toTableName(target.name);
-        const joinTable = `${sourceTable}_${targetTable}s`;
-        const sourceFk = `${sourceTable}_id`;
-        const targetFk = `${targetTable}_id`;
-
-        lines.push(`CREATE TABLE ${joinTable} (`);
-        lines.push(`    ${sourceFk} BIGINT NOT NULL,`);
-        lines.push(`    ${targetFk} BIGINT NOT NULL,`);
-        lines.push(`    PRIMARY KEY (${sourceFk}, ${targetFk}),`);
-        lines.push(
-          `    CONSTRAINT fk_${joinTable}_${sourceFk} FOREIGN KEY (${sourceFk}) REFERENCES ${sourceTable}(id) ON DELETE CASCADE,`,
-        );
-        lines.push(
-          `    CONSTRAINT fk_${joinTable}_${targetFk} FOREIGN KEY (${targetFk}) REFERENCES ${targetTable}(id) ON DELETE CASCADE`,
-        );
-        lines.push(`);`);
-        lines.push('');
-      }
+      if (!source || !target) continue;
+      const joinTable = joinTableName(source, target);
+      const sourceFk = toFkColumn(source.name);
+      const targetFk = toFkColumn(target.name);
+      lines.push(`CREATE TABLE ${joinTable} (`);
+      lines.push(`    ${sourceFk} BIGINT NOT NULL,`);
+      lines.push(`    ${targetFk} BIGINT NOT NULL,`);
+      lines.push(`    PRIMARY KEY (${sourceFk}, ${targetFk}),`);
+      lines.push(
+        `    CONSTRAINT fk_${joinTable}_${sourceFk} FOREIGN KEY (${sourceFk}) REFERENCES ${toTableName(source.name)}(id) ON DELETE CASCADE,`,
+      );
+      lines.push(
+        `    CONSTRAINT fk_${joinTable}_${targetFk} FOREIGN KEY (${targetFk}) REFERENCES ${toTableName(target.name)}(id) ON DELETE CASCADE`,
+      );
+      lines.push(');');
+      lines.push('');
     }
   }
+  return lines.join('\n');
+}
 
-  const sqlStr = lines.join('\n');
+export function exportSqlSchema(model: UmlModel, projectName: string): void {
+  const sqlStr = buildSqlSchema(model, projectName);
+  if (sqlStr === null) {
+    alert('No hay entidades en el diagrama para exportar.');
+    return;
+  }
   const blob = new Blob([sqlStr], { type: 'text/sql' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

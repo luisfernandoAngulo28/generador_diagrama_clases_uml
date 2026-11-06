@@ -1,16 +1,11 @@
-import type { UmlClass, UmlModel, UmlRelation } from '../../diagrams/uml.types.js';
-import { decapitalize, toJavaType } from '../java-type.util.js';
+import type { UmlClass, UmlModel } from '../../diagrams/uml.types.js';
+import { toJavaType } from '../java-type.util.js';
+import { findSuperclass, resolveRelationFields } from '../relations.util.js';
+import { entityTableName } from './entity.template.js';
 
-function toTableName(className: string): string {
-  return className.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-}
-
+/** Hibernate's default naming in Spring Boot: camelCase -> snake_case. */
 function toColumnName(attrName: string): string {
   return attrName.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-}
-
-function toFkColumn(fieldName: string): string {
-  return `${fieldName.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()}_id`;
 }
 
 const PERSON_NAMES = ['Carlos Mendoza', 'María González', 'Alejandro Pérez'];
@@ -49,14 +44,15 @@ function getSampleValue(
   attrName: string,
   type: string,
   rowIndex: number,
-  enumNames: Set<string>,
+  enumLiterals: Map<string, string[]>,
 ): string {
   const name = attrName.toLowerCase();
   const clsName = cls.name.toLowerCase();
 
-  // Si es un Enum definido en el modelo
-  if (enumNames.has(type)) {
-    return `'${type}_OPCION_${rowIndex + 1}'`;
+  // Enum del modelo: uno de sus literales reales (con @Enumerated(STRING) se guarda el nombre)
+  const literals = enumLiterals.get(type);
+  if (literals) {
+    return literals.length ? `'${literals[rowIndex % literals.length]}'` : 'NULL';
   }
 
   // Nombres personales
@@ -102,7 +98,8 @@ function getSampleValue(
     return `'${ADDRESSES[rowIndex % ADDRESSES.length]}'`;
   }
 
-  if (name.includes('ci') || name.includes('dni') || name.includes('documento')) {
+  // "ci" only as a whole word: "precio" or "preferencias" are not ID numbers
+  if (/(^|_)(ci|dni)(_|$)|^nro_?ci$|documento/.test(toColumnName(attrName))) {
     return `'${CI_NUMBERS[rowIndex % CI_NUMBERS.length]}'`;
   }
 
@@ -165,150 +162,169 @@ function getSampleValue(
   return `'${cls.name} ${attrName} ${rowIndex + 1}'`;
 }
 
-/**
- * Ordena las entidades de forma que las que son padre (sin FK o con menos dependencias)
- * se inserten antes que las hijas (evita violación de Foreign Key al ejecutar data.sql).
- */
-function sortEntitiesTopologically(entities: UmlClass[], model: UmlModel): UmlClass[] {
-  const entityIds = new Set(entities.map((e) => e.id));
+interface FkColumn {
+  column: string;
+  targetName: string;
+}
 
-  // Mapa de id -> conjunto de entidades de las cuales depende (hacia las cuales tiene ManyToOne o OneToOne)
-  const dependencies = new Map<string, Set<string>>();
-  for (const e of entities) {
-    dependencies.set(e.id, new Set<string>());
-  }
+interface JoinTableRows {
+  table: string;
+  ownerColumn: string;
+  inverseColumn: string;
+  ownerName: string;
+  inverseName: string;
+}
 
-  for (const rel of model.relations) {
-    if (
-      rel.type === 'MANY_TO_ONE' ||
-      rel.type === 'ASSOCIATION' ||
-      rel.type === 'AGGREGATION' ||
-      rel.type === 'COMPOSITION' ||
-      rel.type === 'ONE_TO_ONE'
-    ) {
-      if (entityIds.has(rel.sourceClassId) && entityIds.has(rel.targetClassId)) {
-        if (rel.sourceClassId !== rel.targetClassId) {
-          dependencies.get(rel.sourceClassId)?.add(rel.targetClassId);
-        }
-      }
-    }
-  }
+/** Foreign-key columns of the class's own table, read from the same JPA fields the entity declares. */
+function foreignKeysOf(cls: UmlClass, model: UmlModel): FkColumn[] {
+  return resolveRelationFields(cls, model).flatMap((field) => {
+    if (field.annotations.some((a) => a.startsWith('@JoinTable'))) return [];
+    const join = field.annotations.map((a) => /^@JoinColumn\(name = "([^"]+)"\)/.exec(a)).find(Boolean);
+    return join ? [{ column: join[1], targetName: field.javaType }] : [];
+  });
+}
 
-  const sorted: UmlClass[] = [];
-  const visited = new Set<string>();
-
-  function visit(classId: string, stack = new Set<string>()) {
-    if (visited.has(classId) || stack.has(classId)) return;
-    stack.add(classId);
-
-    const deps = dependencies.get(classId) ?? new Set();
-    for (const depId of deps) {
-      visit(depId, stack);
-    }
-
-    visited.add(classId);
-    const cls = entities.find((e) => e.id === classId);
-    if (cls) sorted.push(cls);
-  }
-
-  for (const e of entities) {
-    visit(e.id);
-  }
-
-  return sorted;
+/** Join tables owned by the class (@ManyToMany with @JoinTable). */
+function joinTablesOf(cls: UmlClass, model: UmlModel): JoinTableRows[] {
+  return resolveRelationFields(cls, model).flatMap((field) => {
+    const text = field.annotations.join(' ');
+    const m = /@JoinTable\(name = "([^"]+)",\s*joinColumns = @JoinColumn\(name = "([^"]+)"\),\s*inverseJoinColumns = @JoinColumn\(name = "([^"]+)"\)\)/.exec(text);
+    const inverse = /^List<(\w+)>$/.exec(field.javaType);
+    return m && inverse
+      ? [{ table: m[1], ownerColumn: m[2], inverseColumn: m[3], ownerName: cls.name, inverseName: inverse[1] }]
+      : [];
+  });
 }
 
 /**
- * Genera el archivo data.sql con datos de prueba realistas para Spring Boot.
- * Incluye ON CONFLICT (id) DO NOTHING para re-ejecuciones seguras y sincronización de secuencias en PostgreSQL.
+ * Genera data.sql con datos de prueba sobre las MISMAS tablas que crea el ORM
+ * (Hibernate, a partir de las entidades): mismos nombres de tabla, mismas
+ * columnas de clave foránea y la herencia JOINED (una fila en la tabla de cada
+ * clase de la jerarquía, con el mismo id). Spring lo ejecuta después de que
+ * Hibernate crea el esquema (defer-datasource-initialization).
+ * Es re-ejecutable: ON CONFLICT (id) DO NOTHING y NOT EXISTS en las tablas intermedias.
  */
 export function renderDataSql(model: UmlModel): string {
-  const enumNames = new Set(
-    model.classes.filter((c) => c.stereotype === 'enum').map((c) => c.name),
+  const enumLiterals = new Map(
+    model.classes
+      .filter((c) => c.stereotype === 'enum')
+      .map((c) => [c.name, c.attributes.map((a) => a.name)] as [string, string[]]),
   );
-
   const entities = model.classes.filter(
     (c) => !c.stereotype || (c.stereotype !== 'enum' && c.stereotype !== 'interface'),
   );
-
   if (entities.length === 0) {
     return '-- No hay entidades definidas para generar datos de prueba.\n';
   }
 
-  const sortedEntities = sortEntitiesTopologically(entities, model);
+  const byName = new Map(entities.map((c) => [c.name, c]));
+  const chainOf = (cls: UmlClass): UmlClass[] => {
+    const chain = [cls];
+    for (let s = findSuperclass(cls, model); s && !chain.includes(s); s = findSuperclass(s, model)) {
+      chain.unshift(s);
+    }
+    return chain;
+  };
+  const concrete = entities.filter((c) => c.stereotype !== 'abstract');
 
-  const sqlLines: string[] = [
+  // ids: a hierarchy shares one id sequence (JOINED), so each concrete class gets its own range.
+  const nextId = new Map<string, number>();
+  const ids = new Map<string, number[]>();
+  for (const cls of concrete) {
+    const root = chainOf(cls)[0].name;
+    const start = nextId.get(root) ?? 1;
+    ids.set(cls.name, [start, start + 1, start + 2]);
+    nextId.set(root, start + 3);
+  }
+  // A reference to a class may point at it or at any of its subclasses.
+  const pool = (name: string, inserted: Set<string>): number[] =>
+    concrete
+      .filter((c) => inserted.has(c.name) && chainOf(c).some((k) => k.name === name))
+      .flatMap((c) => ids.get(c.name) ?? []);
+
+  // Order: a class goes after the classes its rows reference (cycles fall back to NULL).
+  const order: UmlClass[] = [];
+  const visiting = new Set<string>();
+  const visit = (cls: UmlClass) => {
+    if (order.includes(cls) || visiting.has(cls.name)) return;
+    visiting.add(cls.name);
+    for (const k of chainOf(cls)) {
+      for (const fk of foreignKeysOf(k, model)) {
+        for (const dep of concrete.filter((c) => chainOf(c).some((x) => x.name === fk.targetName))) {
+          if (dep !== cls) visit(dep);
+        }
+      }
+    }
+    visiting.delete(cls.name);
+    order.push(cls);
+  };
+  concrete.forEach(visit);
+
+  const lines: string[] = [
     '--',
     '-- DATOS DE PRUEBA INICIALES (SEED DATA)',
-    '-- Generado automáticamente para pruebas y presentación de examen',
-    '-- Arquitectura Spring Boot 4 Capas',
+    '-- Las tablas las crea Hibernate a partir de las entidades (spring.jpa.hibernate.ddl-auto);',
+    '-- este archivo solo inserta filas de ejemplo en esas mismas tablas.',
     '--',
     '',
   ];
-
-  for (const cls of sortedEntities) {
-    const tableName = toTableName(cls.name);
-    const idAttr = cls.attributes.find((a) => a.isPrimaryKey);
-    const scalarAttrs = cls.attributes.filter((a) => !a.isPrimaryKey);
-
-    // Relaciones de salida que representan Foreign Keys en esta tabla
-    const fkRelations = model.relations.filter(
-      (r) =>
-        (r.type === 'MANY_TO_ONE' ||
-          r.type === 'ASSOCIATION' ||
-          r.type === 'AGGREGATION' ||
-          r.type === 'COMPOSITION' ||
-          r.type === 'ONE_TO_ONE') &&
-        r.sourceClassId === cls.id,
+  const inserted = new Set<string>();
+  for (const cls of order) {
+    const chain = chainOf(cls);
+    lines.push('-- =========================================================================');
+    lines.push(
+      `-- ${cls.name}` +
+        (chain.length > 1 ? ` (herencia JOINED: ${chain.map((k) => entityTableName(k.name)).join(' + ')})` : ''),
     );
-
-    const columns: string[] = [];
-    if (idAttr) columns.push('id');
-    for (const a of scalarAttrs) columns.push(toColumnName(a.name));
-    for (const rel of fkRelations) {
-      const targetCls = model.classes.find((c) => c.id === rel.targetClassId);
-      if (targetCls) {
-        const role = rel.targetRole ?? decapitalize(targetCls.name);
-        columns.push(toFkColumn(role));
-      }
-    }
-
-    if (columns.length === 0) continue;
-
-    sqlLines.push(`-- =========================================================================`);
-    sqlLines.push(`-- Datos para la tabla: ${tableName} (${cls.name})`);
-    sqlLines.push(`-- =========================================================================`);
-
-    // 3 registros de prueba por tabla
-    for (let i = 0; i < 3; i++) {
-      const rowId = i + 1;
-      const values: string[] = [];
-
-      if (idAttr) values.push(`${rowId}`);
-
-      for (const a of scalarAttrs) {
-        values.push(getSampleValue(cls, a.name, a.type, i, enumNames));
-      }
-
-      for (const rel of fkRelations) {
-        const targetCls = model.classes.find((c) => c.id === rel.targetClassId);
-        if (targetCls) {
-          // Asigna a un ID existente (1, 2 o 3)
-          values.push(`${(i % 3) + 1}`);
+    lines.push('-- =========================================================================');
+    ids.get(cls.name)!.forEach((rowId, i) => {
+      for (const k of chain) {
+        const columns = ['id'];
+        const values = [`${rowId}`];
+        for (const a of k.attributes.filter((x) => !x.isPrimaryKey)) {
+          columns.push(toColumnName(a.name));
+          values.push(getSampleValue(cls, a.name, a.type, i, enumLiterals));
         }
+        for (const fk of foreignKeysOf(k, model)) {
+          // A self-reference points at an earlier row of the same class.
+          const candidates = fk.targetName === cls.name ? ids.get(cls.name)!.slice(0, i) : pool(fk.targetName, inserted);
+          columns.push(fk.column);
+          values.push(candidates.length ? `${candidates[i % candidates.length]}` : 'NULL');
+        }
+        lines.push(
+          `INSERT INTO ${entityTableName(k.name)} (${columns.join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT (id) DO NOTHING;`,
+        );
       }
-
-      sqlLines.push(
-        `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT (id) DO NOTHING;`,
-      );
-    }
-
-    // Sincronizar la secuencia del ID en PostgreSQL para evitar errores de clave duplicada en posteriores POST
-    sqlLines.push(
-      `SELECT setval(pg_get_serial_sequence('${tableName}', 'id'), COALESCE((SELECT MAX(id) FROM ${tableName}), 1), true);`,
-    );
-    sqlLines.push('');
+    });
+    inserted.add(cls.name);
+    lines.push('');
   }
 
-  return sqlLines.join('\n');
+  // Many-to-many rows go last, when both sides exist.
+  for (const cls of entities) {
+    for (const jt of joinTablesOf(cls, model)) {
+      const owners = pool(jt.ownerName, inserted);
+      const inverses = pool(jt.inverseName, inserted);
+      if (!owners.length || !inverses.length) continue;
+      lines.push(`-- Tabla intermedia ${jt.table} (${jt.ownerName} *..* ${jt.inverseName})`);
+      for (let i = 0; i < Math.min(3, owners.length); i++) {
+        const o = owners[i];
+        const v = inverses[i % inverses.length];
+        lines.push(
+          `INSERT INTO ${jt.table} (${jt.ownerColumn}, ${jt.inverseColumn}) SELECT ${o}, ${v} ` +
+            `WHERE NOT EXISTS (SELECT 1 FROM ${jt.table} WHERE ${jt.ownerColumn} = ${o} AND ${jt.inverseColumn} = ${v});`,
+        );
+      }
+      lines.push('');
+    }
+  }
+
+  // The id sequence lives in each hierarchy's root table.
+  for (const root of new Set(concrete.map((c) => chainOf(c)[0].name))) {
+    const table = entityTableName(byName.get(root)!.name);
+    lines.push(
+      `SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE((SELECT MAX(id) FROM ${table}), 1), true);`,
+    );
+  }
+  return lines.join('\n') + '\n';
 }

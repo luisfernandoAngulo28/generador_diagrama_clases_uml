@@ -1,5 +1,6 @@
 import type { UmlClass, UmlModel } from '../../diagrams/uml.types.js';
 import { decapitalize, pluralize, toJavaType } from '../java-type.util.js';
+import { resolveRelationFields } from '../relations.util.js';
 
 function buildSampleJson(
   cls: UmlClass,
@@ -62,22 +63,12 @@ function buildSampleJson(
 
   // Si no es update, incluir referencias ManyToOne si existen
   if (!isUpdate) {
-    const outgoingManyToOnes = model.relations.filter(
-      (r) =>
-        (r.type === 'MANY_TO_ONE' ||
-          r.type === 'ASSOCIATION' ||
-          r.type === 'AGGREGATION' ||
-          r.type === 'COMPOSITION' ||
-          r.type === 'ONE_TO_ONE') &&
-        r.sourceClassId === cls.id,
-    );
-
-    for (const rel of outgoingManyToOnes) {
-      const targetCls = model.classes.find((c) => c.id === rel.targetClassId);
-      if (targetCls) {
-        const fieldName = rel.targetRole ?? decapitalize(targetCls.name);
-        obj[fieldName] = { id: 1 };
-      }
+    // The same single-valued references the entity declares (the side holding the FK).
+    for (const field of resolveRelationFields(cls, model)) {
+      const ownsFk =
+        !field.javaType.startsWith('List<') &&
+        field.annotations.some((a) => a.startsWith('@JoinColumn('));
+      if (ownsFk) obj[field.fieldName] = { id: 1 };
     }
   }
 
