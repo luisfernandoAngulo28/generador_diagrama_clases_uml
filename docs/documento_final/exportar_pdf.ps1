@@ -4,6 +4,16 @@
 param([string]$Nombre = 'Examen_Parcial_2_Grupo43_SW1')
 $ErrorActionPreference = 'Stop'
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
+# With another Word still closing (the save step), the export hangs: wait for it
+# and clear leftover lock files ("~$...") before opening.
+$t0 = Get-Date
+while ((Get-Process WINWORD -ErrorAction SilentlyContinue) -and ((Get-Date) - $t0).TotalSeconds -lt 60) {
+    Start-Sleep -Seconds 2
+}
+if (Get-Process WINWORD -ErrorAction SilentlyContinue) {
+    throw 'Hay un Word abierto: ciérrelo (o termine WINWORD en el Administrador de tareas) y reintente.'
+}
+Get-ChildItem -LiteralPath $dir -Filter '~$*' -Force | Remove-Item -Force
 $docx = Join-Path $dir ($Nombre + '.docx')
 $pdf  = Join-Path $dir ($Nombre + '.pdf')
 $word = New-Object -ComObject Word.Application

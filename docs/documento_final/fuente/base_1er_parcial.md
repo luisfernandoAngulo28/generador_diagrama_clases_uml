@@ -238,7 +238,7 @@ Además del código Java de las cuatro capas, el proyecto generado incluye archi
 
 - **postman_collection.json:** colección Postman v2.1 con todos los endpoints CRUD de cada clase, lista para importar en Postman y probar el backend sin configuración manual.
 
-- **src/main/resources/schema.sql:** script DDL con la definición de todas las tablas y sus claves foráneas, compatible con PostgreSQL, H2 y MySQL (sintaxis ANSI).
+- **src/main/resources/schema.sql** *(Ciclo 1)*: script DDL con la definición de las tablas. En el Ciclo 2 se eliminó del proyecto generado: el esquema lo crea el ORM (Hibernate) a partir de las entidades, y `data.sql` solo inserta datos de prueba en esas tablas.
 
 - **src/main/resources/data.sql:** datos de prueba realistas, ordenados para respetar las claves foráneas (las entidades padre se insertan antes que las hijas), de modo que el sistema arranque con información de ejemplo.
 
@@ -335,7 +335,7 @@ Gestiona la creación, edición, persistencia y carga compartida de diagramas UM
 
 ### Módulo Generador
 
-Transforma el modelo UML en un proyecto Spring Boot completo (Entity, Repository, Service, Controller) y en un archivo XMI. El proyecto generado incluye además una colección Postman, los scripts SQL de esquema (schema.sql) y de datos de prueba (data.sql), y la documentación Swagger de la API.
+Transforma el modelo UML en un proyecto Spring Boot completo (Entity, Repository, Service, Controller) y en un archivo XMI. El proyecto generado incluye además una colección Postman, el script de datos de prueba (data.sql; desde el Ciclo 2 el esquema lo crea el ORM), y la documentación Swagger de la API.
 
 ### Módulo de Colaboración
 

@@ -34,7 +34,8 @@ repositorio (el diagrama) las dos mitades del ciclo:
   modelo, interoperabilidad XMI con Enterprise Architect y documentación generada.
 - **Lower CASE:** generación automática de un backend **Spring Boot 3.3.4**
   completo (entidades JPA, repositorios, servicios, controladores REST,
-  Swagger, `schema.sql`, `data.sql`, colección Postman y Docker).
+  Swagger, `data.sql` con datos de prueba, colección Postman y Docker). Las
+  tablas no salen de un script: las crea el ORM (Hibernate) a partir de las entidades.
 - **Asistencia inteligente (2do Parcial):** un moderador de IA grupal que
   responde dudas teóricas y modifica el diagrama compartido a pedido.
 
@@ -57,7 +58,7 @@ Nuestro generador aplica el reuso de tres formas:
 
 1. **Plantillas como componentes de generación.** Cada capa del backend
    generado sale de una plantilla independiente y probada: `entity`,
-   `repository`, `service`, `controller`, `enum`, `interface`, `schema-sql`,
+   `repository`, `service`, `controller`, `enum`, `interface`,
    `data-sql`, `postman`, `openapi-config`, `jackson-config` y `project-files`.
    Agregar una capa nueva es agregar un componente sin tocar los demás.
 2. **Reuso de componentes del ecosistema Spring.** El código generado no

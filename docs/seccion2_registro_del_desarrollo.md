@@ -182,12 +182,11 @@ con la versión que incluye el Moderador IA:
 | Dictado por voz | Luis dictó "Agrega la clase factura con número y total" en el chat del equipo, en producción | ✅ La IA respondió por su nombre y creó `Factura` (Figura A.7b) |
 | Foto de pizarra | *Archivo → Foto de pizarra (IA)* con un diagrama dibujado a mano, en producción | ✅ Reconoció 5 clases con sus atributos y relaciones (Figura A.7a) |
 
-**Limitación conocida (heredada del 1er Parcial):** el proyecto generado trae
-`data.sql` con datos de ejemplo, pero esos datos se cargan en las tablas de
-`schema.sql` (`cliente`) y no en las que mapea JPA (`clientes`), por eso la API
-arranca vacía. Alinear ambos esquemas implica rehacer la ubicación de las claves
-foráneas del generador; se dejó para después del parcial, porque el CRUD
-completo funciona.
+**Limitación heredada del 1er Parcial, corregida el 05/11/2026:** los datos de
+`data.sql` se cargaban en las tablas de un `schema.sql` propio (`cliente`) y no
+en las que mapea JPA (`clientes`), así que la API arrancaba vacía. Ahora la base
+la crea solo el ORM y `data.sql` usa las mismas tablas y claves foráneas que las
+entidades (defecto 13; prueba completa en 2.4.7).
 
 ### 2.4.6 Modo IA e IA multifuncional (02/11/2026)
 
@@ -203,6 +202,28 @@ sistema completo. Por eso, en estos pedidos el motor híbrido intenta primero co
 `local-first`. Sin internet responde el modelo local, con un resultado parcial.
 
 ![Captura 13: Modo IA. El chat al centro con sus accesos directos y el diagrama como vista previa en vivo, de solo lectura, después de pedir un proyecto completo.](docs/documento_final/img/evidencias/modo_ia_proyecto.jpg){width=6.2in}
+
+### 2.4.7 Prueba del backend generado contra las reglas de OMT (05/11/2026)
+
+Se generó un backend con todos los casos de mapeo y se levantó con PostgreSQL
+(`backend/scripts-prueba/generar-prueba-omt.mjs`, `docker compose up`). El
+modelo de prueba tiene herencia con una clase abstracta (Persona → Cliente,
+Empleado), una relación N:M (Producto–Categoría), una composición
+(Pedido ◆— LíneaPedido), una agregación (Tienda ◇— Empleado), una 1:1
+(PerfilCliente–Cliente) y un enum (EstadoPedido).
+
+| Regla (OMT y UML) | Resultado en la base que crea Hibernate |
+|---|---|
+| Una tabla por clase | 10 tablas, sin duplicados |
+| Herencia JOINED | `empleados.id` es clave foránea de `personas.id`; los ids siguen una secuencia compartida |
+| N:M con tabla intermedia | `producto_categorias (producto_id, categoria_id)` con 3 filas |
+| FK del lado "muchos" o de la parte | `linea_pedidos.pedido_id` y `empleados.tienda_id` |
+| Composición: la parte muere con el todo | `DELETE /api/pedidos/1` → 204, y sus líneas se borran |
+| Agregación: la parte sobrevive | `DELETE /api/tiendas/1` → 204, y el empleado queda sin tienda |
+| Datos de prueba visibles en la API | `GET /api/clientes` devuelve los clientes con sus pedidos y el enum `PENDIENTE` |
+
+La primera corrida encontró los defectos 13 a 16 de la tabla siguiente; esta
+tabla muestra el resultado después de corregirlos.
 
 ## 2.5 Registro de defectos encontrados y corregidos
 
@@ -224,6 +245,10 @@ efectivo.
 | 10 | En modo «solo sugerencias», el modelo local respondía "agregué la clase…" sin haberla agregado | El modelo pequeño ignora la instrucción del prompt | El servidor reescribe la respuesta con los pasos a seguir, generados desde las operaciones | `d003cf8` |
 | 11 | Con el *Runner* de Postman, 6 de 30 requests daban 404 sobre una base vacía | La colección generada hacía `GET /{id}` antes del `POST` | Cada carpeta ahora es POST → GET → GET/{id} → PUT → DELETE (30/30) | `9faa2f3` |
 | 12 | Al cambiar de diagrama, el navegador seguía recibiendo los cambios del diagrama anterior | El servidor nunca sacaba al socket de la sala vieja | Al unirse a otra sala (o con `leave-diagram`) se sale de la anterior, liberando locks y presencia; nuevo *Archivo → Nuevo diagrama* | `1a2fce3` |
+| 13 | El backend generado devolvía listas vacías aunque tenía datos de prueba, y la base tenía cada tabla dos veces (`persona` y `personas`) | El proyecto ejecutaba un `schema.sql` propio, con otros nombres de tabla, además de las tablas que crea Hibernate; el `data.sql` llenaba las del script | La base la crea solo el ORM (Hibernate, desde las entidades); `data.sql` se genera con las mismas tablas y claves foráneas que las entidades | `e4b9fbd` |
+| 14 | Una agregación Tienda ◇— Empleado generaba "una tienda tiene un empleado" | La agregación se trataba como una asociación simple, con la FK en el todo | El todo lista sus partes y la parte guarda la FK con `ON DELETE SET NULL` (la parte sobrevive a su todo) | `e4b9fbd` |
+| 15 | Borrar un cliente borraba también sus pedidos | Toda relación 1..* llevaba `cascade = ALL` y `orphanRemoval` | Solo la **composición** borra sus partes; las asociaciones conservan la integridad referencial | `e4b9fbd` |
+| 16 | La herencia no tenía estrategia explícita y los datos de prueba de enums y precios eran inválidos | Sin `@Inheritance` (Hibernate usaba una sola tabla); los enums recibían `EstadoPedido_OPCION_1`; "pre**ci**o" se tomaba por un número de carnet (CI) | `@Inheritance(JOINED)`: una tabla por clase, como en OMT; literales reales del enum; la detección de CI solo con la palabra completa | `e4b9fbd` |
 
 ---
 

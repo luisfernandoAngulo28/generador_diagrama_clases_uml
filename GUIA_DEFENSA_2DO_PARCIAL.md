@@ -436,7 +436,21 @@ microservicios. Nuestro motor de IA es hexagonal en pequeño: `AiProvider` es el
 - **Spring Boot en 4 capas:** **Modelo** (entidad JPA, fiel al diagrama, con sus
   relaciones), **Repositorio**, **Servicio** y **Controlador**.
 - **La base se genera con el ORM** (JPA/Hibernate) a partir de la capa Modelo, no
-  con un script.
+  con un script. El proyecto generado no trae `schema.sql`: `ddl-auto=update` crea
+  las tablas y `data.sql` solo inserta los datos de ejemplo.
+- **Qué hace nuestro generador con cada relación** (probado levantando un proyecto
+  real; sección 2.4.7 del registro):
+  - **Herencia:** `@Inheritance(JOINED)`, una tabla por clase, unidas por el id.
+  - **Composición** (◆, el todo en el origen): el todo tiene la lista con
+    `cascade = ALL` y `orphanRemoval`; borrar el pedido borra sus líneas.
+  - **Agregación** (◇): la parte guarda la FK con `ON DELETE SET NULL`; borrar la
+    tienda deja al empleado sin tienda, pero el empleado sigue existiendo.
+  - **Asociación 1..\***: la FK va del lado "muchos" y no hay cascada.
+  - **N:M:** `@JoinTable` con tabla intermedia.
+- ⚠️ **Si preguntan "¿por qué JOINED y no SINGLE_TABLE?":** JOINED es la regla de
+  OMT de una tabla por clase y no deja columnas nulas de otras subclases.
+  SINGLE_TABLE es más rápida (sin *joins*) pero mezcla todas las subclases en una
+  sola tabla.
 
 ### 🔴 F. V&V (lo pregunta el Paso 3, pero reaparece en la defensa)
 

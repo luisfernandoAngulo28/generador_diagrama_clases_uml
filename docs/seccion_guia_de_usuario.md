@@ -140,7 +140,8 @@ completo y ejecutable.
 2. El proyecto sigue la arquitectura en cuatro capas (Entity, Repository,
    Service, Controller) sobre Java 17 y Spring Boot 3.3.4, e incluye `Dockerfile`
    y `docker-compose.yml` con PostgreSQL 16, además de una colección Postman y
-   los scripts `schema.sql` y `data.sql`.
+   el script `data.sql` con datos de prueba. Las tablas las crea Hibernate al
+   arrancar, a partir de las entidades.
 3. En una terminal, dentro de la carpeta del proyecto, ejecutar:
    `docker compose up -d`. El contenedor compila el código, levanta PostgreSQL,
    crea las tablas según el diagrama y expone los endpoints.
