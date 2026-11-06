@@ -8,6 +8,7 @@ import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
 import { applyAuthorship, diffModel, type ModelChange } from './authorship.util.js';
 import { sanitizeModel } from './model-sanitize.util.js';
+import { VersionsService } from './versions.service.js';
 import type { AuthorSource, AuthorStamp, UmlModel } from './uml.types.js';
 import type { JwtPayload } from '../auth/auth.service.js';
 
@@ -45,6 +46,7 @@ export class DiagramsService {
     private readonly diagramModel: Model<DiagramDocument>,
     @InjectModel(ActivityLogDocument.name)
     private readonly activityModel: Model<ActivityLogDocument>,
+    private readonly versionsService: VersionsService,
   ) {}
 
   async create(
@@ -71,7 +73,17 @@ export class DiagramsService {
         details: { source },
         summary: source === 'XMI_IMPORT' ? `Importó el diagrama desde XMI` : 'Creó el diagrama',
       };
-      await this.logChanges(saved._id, author, [created, ...diffModel(undefined, model)]);
+      const changes = diffModel(undefined, model);
+      await this.logChanges(saved._id, author, [created, ...changes]);
+      await this.versionsService.record({
+        diagramId: saved._id,
+        name: saved.name,
+        model,
+        author: toActor(author),
+        source,
+        changesCount: changes.length,
+        summary: created.summary,
+      });
     }
     return toDiagram(saved.toObject());
   }
@@ -94,6 +106,8 @@ export class DiagramsService {
     dto: UpdateDiagramDto,
     author?: JwtPayload,
     source: AuthorSource = 'MANUAL',
+    /** Number of the version being restored (see restoreVersion). */
+    restoredFrom?: number,
   ): Promise<Diagram> {
     const current = await this.findOne(id);
     const changes: ModelChange[] = [];
@@ -139,7 +153,42 @@ export class DiagramsService {
             })),
       );
     }
+    if (author && (changes.length || restoredFrom !== undefined) && saved.model) {
+      const last = changes[changes.length - 1];
+      await this.versionsService.record({
+        diagramId: id,
+        name: saved.name,
+        model: saved.model,
+        author: toActor(author),
+        source,
+        changesCount: changes.length,
+        summary:
+          restoredFrom !== undefined
+            ? `Restauró la versión ${restoredFrom}`
+            : `${last.summary}${source === 'AI' ? ' (vía IA)' : ''}`,
+        restoredFrom,
+      });
+    }
     return toDiagram(saved);
+  }
+
+  /**
+   * Brings back the model of an earlier version. It is a save like any other:
+   * authorship is recomputed against the current model, the changes go to the
+   * bitácora, and the result is a NEW version (history is never rewritten).
+   */
+  async restoreVersion(id: string, versionId: string, user: JwtPayload): Promise<Diagram> {
+    const version = await this.versionsService.findOne(id, versionId);
+    const diagram = await this.update(id, { model: version.model }, user, 'MANUAL', version.number);
+    await this.logChanges(id, user, [
+      {
+        action: 'DIAGRAM_RESTORED',
+        target: { entityType: 'DIAGRAM', entityId: id, entityName: diagram.name },
+        details: { version: version.number },
+        summary: `Restauró la versión ${version.number} del diagrama`,
+      },
+    ]);
+    return diagram;
   }
 
   /**

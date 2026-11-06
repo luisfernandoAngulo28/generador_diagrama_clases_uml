@@ -12,6 +12,7 @@ import {
 import type { Response } from 'express';
 import { DiagramsService } from './diagrams.service.js';
 import { DiagramsGateway } from './diagrams.gateway.js';
+import { VersionsService } from './versions.service.js';
 import { CreateDiagramDto } from './dto/create-diagram.dto.js';
 import { UpdateDiagramDto } from './dto/update-diagram.dto.js';
 import { ImportXmiDto } from './dto/import-xmi.dto.js';
@@ -27,7 +28,26 @@ export class DiagramsController {
   constructor(
     private readonly diagramsService: DiagramsService,
     private readonly diagramsGateway: DiagramsGateway,
+    private readonly versionsService: VersionsService,
   ) {}
+
+  /** Version history: one snapshot per save with real changes (latest first). */
+  @Get(':id/versions')
+  listVersions(@Param('id') id: string) {
+    return this.versionsService.list(id);
+  }
+
+  /** Brings back an earlier version; the result is a new version and goes to the bitácora. */
+  @Post(':id/versions/:versionId/restore')
+  async restoreVersion(
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const diagram = await this.diagramsService.restoreVersion(id, versionId, user);
+    this.diagramsGateway.emitAuthorship(id, diagram.model);
+    return diagram;
+  }
 
   @Post()
   create(@Body() dto: CreateDiagramDto, @CurrentUser() user: JwtPayload) {

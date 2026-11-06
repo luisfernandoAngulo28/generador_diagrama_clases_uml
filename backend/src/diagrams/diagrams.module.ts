@@ -1,3 +1,5 @@
+import { DiagramVersionDocument, DiagramVersionSchema } from './schemas/diagram-version.schema.js';
+import { VersionsService } from './versions.service.js';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from '../auth/auth.module.js';
@@ -25,10 +27,11 @@ import {
       { name: ActivityLogDocument.name, schema: ActivityLogSchema },
       { name: DiagramSessionDocument.name, schema: DiagramSessionSchema },
       { name: GroupChatMessageDocument.name, schema: GroupChatMessageSchema },
+      { name: DiagramVersionDocument.name, schema: DiagramVersionSchema },
     ]),
   ],
   controllers: [DiagramsController, SessionsController],
-  providers: [DiagramsService, SessionsService, DiagramsGateway],
+  providers: [DiagramsService, SessionsService, VersionsService, DiagramsGateway],
   exports: [MongooseModule, DiagramsService, SessionsService],
 })
 export class DiagramsModule {}

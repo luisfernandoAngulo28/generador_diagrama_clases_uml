@@ -18,6 +18,7 @@ export type ActivityAction =
   | 'RELATION_DELETED'
   | 'AI_REVIEW_PERFORMED'
   | 'AI_SETTINGS_CHANGED'
+  | 'DIAGRAM_RESTORED'
   /** Entry migrated from the 1er Parcial PostgreSQL history (free-text summary only). */
   | 'LEGACY_HISTORY';
 

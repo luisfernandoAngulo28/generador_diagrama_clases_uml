@@ -44,3 +44,6 @@ docs_docwork*/
 # deployment secrets (SSH keys, etc.) — never commit
 .deploy/
 *.pem
+
+# Usuario de prueba solo para la pila local
+backend/scripts-prueba/usuario-prueba-local.md

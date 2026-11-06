@@ -40,6 +40,7 @@ import {
   Trash2,
   User as UserIcon,
   LogOut,
+  GitBranch,
   History,
   Paperclip,
   CheckCircle2,
@@ -70,6 +71,7 @@ import { AiModeBar } from './components/AiModeBar';
 import { ValidationPanel } from './components/ValidationPanel';
 import { DiagramsListPanel } from './components/DiagramsListPanel';
 import { HistoryPanel } from './components/HistoryPanel';
+import { VersionsPanel } from './components/VersionsPanel';
 import { AttachmentsPanel } from './components/AttachmentsPanel';
 import { TemplatesPanel } from './components/TemplatesPanel';
 import { CodePreviewModal } from './components/CodePreviewModal';
@@ -232,6 +234,7 @@ function AppInner() {
   const pendingAiSaveRef = useRef(false);
   const [showDiagramsList, setShowDiagramsList] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(false);
@@ -1429,6 +1432,13 @@ function AppInner() {
                 onClick: () => setShowHistory(true),
               },
               {
+                key: 'versions',
+                icon: <GitBranch size={15} />,
+                label: 'Historial de versiones',
+                disabled: !diagramId,
+                onClick: () => setShowVersions(true),
+              },
+              {
                 key: 'attachments',
                 icon: <Paperclip size={15} />,
                 label: 'Documentos adjuntos',
@@ -1842,6 +1852,17 @@ function AppInner() {
       )}
       {showTemplates && (
         <TemplatesPanel onApply={applyTemplate} onClose={() => setShowTemplates(false)} />
+      )}
+      {showVersions && diagramId && (
+        <VersionsPanel
+          diagramId={diagramId}
+          onBeforeRestore={() => saveDiagram(true)}
+          onRestored={async (n) => {
+            await loadDiagram(diagramId);
+            toast.success(`Se restauró la versión ${n}; el estado anterior quedó como otra versión`, 'Versiones');
+          }}
+          onClose={() => setShowVersions(false)}
+        />
       )}
       {showHistory && diagramId && (
         <HistoryPanel diagramId={diagramId} onClose={() => setShowHistory(false)} />

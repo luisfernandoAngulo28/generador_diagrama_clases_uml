@@ -2,6 +2,7 @@ import axios from 'axios';
 import type { Diagram, EditDiagramResult, UmlModel, ValidationResult } from '../types/uml';
 import type { AuthResult, UpdateProfileDto } from '../types/auth';
 import type { DiagramHistoryEntry } from '../types/history';
+import type { DiagramVersion } from '../types/version';
 import type { Attachment } from '../types/attachment';
 
 export const AUTH_TOKEN_KEY = 'case-tool.auth-token';
@@ -66,6 +67,17 @@ export async function getDiagram(id: string): Promise<Diagram> {
 
 export async function getDiagramHistory(id: string): Promise<DiagramHistoryEntry[]> {
   const { data } = await api.get<DiagramHistoryEntry[]>(`/diagrams/${id}/history`);
+  return data;
+}
+
+export async function listDiagramVersions(id: string): Promise<DiagramVersion[]> {
+  const { data } = await api.get<DiagramVersion[]>(`/diagrams/${id}/versions`);
+  return data;
+}
+
+/** Restores an earlier version; the server records it as a new version. */
+export async function restoreDiagramVersion(id: string, versionId: string): Promise<Diagram> {
+  const { data } = await api.post<Diagram>(`/diagrams/${id}/versions/${versionId}/restore`);
   return data;
 }
 
