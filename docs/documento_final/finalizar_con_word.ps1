@@ -35,7 +35,6 @@ finally {
     $word.Quit()
 }
 
-# El PDF se exporta en otro proceso: en este, después de guardar, Word se
-# trababa o se cerraba sin generarlo (05/11/2026). Aparte tarda ~45 s.
-[System.Runtime.InteropServices.Marshal]::ReleaseComObject($word) | Out-Null
-powershell -ExecutionPolicy Bypass -File (Join-Path $dir 'exportar_pdf.ps1') -Nombre $Nombre
+# El PDF se exporta en un paso aparte: con este Word todavía cerrándose, la
+# exportación se trababa o terminaba sin PDF (05/11/2026). Aparte tarda ~45 s.
+'Siguiente paso: powershell -ExecutionPolicy Bypass -File docs/documento_final/exportar_pdf.ps1'

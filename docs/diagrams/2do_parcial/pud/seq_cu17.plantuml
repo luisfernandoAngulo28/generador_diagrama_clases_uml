@@ -1,22 +1,26 @@
 @startuml seq_cu17
 !include _seq.iuml
-title CU17 — Consultar Autoría y Bitácora\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+title CU17 — Consultar Autoría y Bitácora\n<size:11>Diagrama de Secuencia · UML 2.5.1 · cada mensaje es una operación de la clase que lo recibe</size>
 actor Integrante as A
+boundary ":App" as APP
 boundary ":ClassInspector" as I
 boundary ":HistoryPanel" as H
+participant ":ApiClient" as API
 control ":DiagramsController" as C
 control ":DiagramsService" as S
-database "MongoDB" as DB
-control ":DiagramsGateway" as G
-G -> I : diagram:authorship (después de cada guardado)
-A -> I : abre una clase (doble clic)
-I --> A : "Creada por Marco · Última edición: Luis · vía IA"\n+ autor de cada atributo
-A -> H : abre "Historial"
-H -> C : GET /diagrams/:id/history
+participant ":Model<ActivityLog>" as LOG
+A -> APP : handleEditClass(classId) [doble clic en una clase]
+APP -> I : ClassInspector(props: clase, autoría)
+I --> A : "Creada por Marco · Última edición: Luis · vía IA"
+A -> H : HistoryPanel(diagramId) [abre "Historial"]
+H -> API : getDiagramHistory(diagramId)
+API -> C : getHistory(id) [GET /diagrams/:id/history]
 C -> S : getHistory(id)
-S -> DB : activity_logs.find({diagramId})\n.sort(timestamp desc).limit(50)
-DB --> S : entradas
+S -> LOG : find({diagramId}).sort(timestamp desc).limit(50)
+LOG --> S : entradas
 S --> C : [{userName, action, summary, createdAt}]
-C --> H : 200
+C --> API : 200
+API --> H : entradas
 H --> A : "Luis: Creó la clase Producto (vía IA)" …
+note over APP : la autoría llega en vivo después de cada guardado:\nDiagramsGateway emite diagram:authorship y App la guarda (setAuthorship)
 @enduml

@@ -1,27 +1,33 @@
 @startuml seq_cu13
 !include _seq.iuml
-title CU13 — Iniciar Sesión\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+title CU13 — Iniciar Sesión\n<size:11>Diagrama de Secuencia · UML 2.5.1 · cada mensaje es una operación de la clase que lo recibe</size>
 actor Integrante as A
 boundary ":LoginPage" as B
-participant ":AuthContext" as CTX
+participant ":AuthProvider" as CTX
+participant ":ApiClient" as API
 control ":AuthController" as C
 control ":AuthService" as S
-database "PostgreSQL\n(users)" as DB
-A -> B : correo y contraseña
+control ":UsersService" as U
+A -> B : handleSubmit(e) [correo y contraseña]
 B -> CTX : login(email, password)
-CTX -> C : POST /auth/login
+CTX -> API : loginUser(email, password)
+API -> C : login(dto) [POST /auth/login]
 C -> S : login(dto)
-S -> DB : buscar usuario por email
-DB --> S : usuario (passwordHash)
+S -> U : findByEmail(email)
+U --> S : usuario (passwordHash)
 alt credenciales válidas
-  S -> S : bcrypt.compare()\njwt.sign({sub, email, name})
+  S -> S : toAuthResult(user)
   S --> C : {token, user}
-  C --> CTX : 201 {token, user}
-  CTX -> CTX : localStorage(token, user)
+  C --> API : 201 {token, user}
+  API --> CTX : AuthResult
+  CTX -> CTX : persistSession(token, user)
   CTX --> B : sesión iniciada
-  B --> A : abre la herramienta; el socket\nenviará el JWT en el handshake
+  B --> A : abre la herramienta
 else credenciales inválidas
   S --> C : UnauthorizedException
-  C --> B : 401 "Credenciales inválidas"
+  C --> API : 401
+  API --> CTX : error
+  CTX --> B : "Correo o contraseña incorrectos."
 end
+note over S : login() verifica la contraseña con bcrypt.compare();\ntoAuthResult() firma el JWT {sub, email, name}
 @enduml

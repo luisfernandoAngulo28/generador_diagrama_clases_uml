@@ -1,0 +1,143 @@
+@startuml 09_clases_sala
+' Generado por docs/diagrams/ea/generar_clases_sala.py a partir de los diagramas de secuencia.
+!include _estilo.iuml
+hide empty members
+title Diagrama de Clases de Diseño — Sala colaborativa (web, servidor y móvil)\n<size:11>UML 2.5.1 · cada operación es un mensaje recibido en los diagramas de secuencia · las clases del motor de IA se detallan en el diagrama del motor</size>
+package "Frontend web (React)" {
+  class LoginPage <<component>> {
+    + handleSubmit(e)
+  }
+  class AuthProvider <<component>> {
+    + login(email, password)
+    + persistSession(token, user)
+  }
+  class ApiClient <<utility>> {
+    + getDiagramHistory(diagramId)
+    + loginUser(email, password)
+    + updateDiagram(id, name, model, source)
+  }
+  class App <<component>> {
+    + applyAiOperations(operations)
+    + handleEditClass(classId)
+    + loadDiagram(id)
+    + saveDiagram(isAuto, source)
+  }
+  class ChatPanel <<component>> {
+    + onApplyAiOperations(operations)
+    + onEnsureSaved()
+    + onInitState(state)
+    + onNewMessage(message)
+    + sendText(text)
+  }
+  class ClassInspector <<component>> {
+    + ClassInspector(props: clase, autoría)
+  }
+  class HistoryPanel <<component>> {
+    + HistoryPanel(diagramId)
+  }
+}
+package "Backend (NestJS)" {
+  class JwtAuthGuard <<guard>> {
+    + canActivate(context)
+  }
+  class AuthController <<controller>> {
+    + login(dto)
+  }
+  class AuthService {
+    + login(dto)
+    + toAuthResult(user)
+    + verifyToken(token)
+  }
+  class UsersService {
+    + findByEmail(email)
+  }
+  class DiagramsController <<controller>> {
+    + findOne(id)
+    + getHistory(id)
+    + update(id, dto, user)
+  }
+  class DiagramsService {
+    + findOne(diagramId)
+    + getHistory(id)
+    + logChanges(diagramId, author, changes)
+    + update(id, dto, user, source)
+  }
+  class SessionsService {
+    + getInitState(diagramId)
+    + getLatest(diagramId)
+    + join(diagramId, user)
+  }
+  class DiagramsGateway <<gateway>> {
+    + emitAuthorship(id, model)
+    + handleJoin(client, payload)
+  }
+  class ChatGateway <<gateway>> {
+    + handleSend(client, payload)
+  }
+  class ModeratorService
+  class AiService
+  class HybridAiProvider
+  class GeminiProvider
+  class OllamaProvider
+  class Intent <<utility>>
+  class CanvasPolicy <<utility>> {
+    + applyCanvasPolicy(operations, text, canEditCanvas)
+  }
+  class AuthorshipUtil <<utility>> {
+    + applyAuthorship(anterior, nuevo, stampobj)
+    + diffModel(anterior, nuevo)
+  }
+}
+package "App móvil (Flutter)" {
+  class _LiveDiagramPage <<widget>> {
+    + initState()
+  }
+  class CaseApi {
+    + getDiagram(id)
+  }
+  class LiveRoom {
+    - _highlight(changed)
+    - _notifyDiagramChange(editor, names)
+    - _onChatMessage(data)
+    - _onDiagramUpdate(data)
+    + connect()
+  }
+  class LiveNotifications {
+    + show(title, body)
+  }
+}
+AiService ..> HybridAiProvider : <<use>>
+ApiClient ..> AuthController : <<use>>
+ApiClient ..> DiagramsController : <<use>>
+ApiClient ..> JwtAuthGuard : <<use>>
+App ..> ApiClient : <<use>>
+App ..> ClassInspector : <<use>>
+App ..> DiagramsGateway : <<use>>
+AuthController ..> AuthService : <<use>>
+AuthProvider ..> ApiClient : <<use>>
+AuthService ..> UsersService : <<use>>
+CaseApi ..> DiagramsController : <<use>>
+ChatGateway ..> ModeratorService : <<use>>
+ChatPanel ..> App : <<use>>
+ChatPanel ..> ChatGateway : <<use>>
+DiagramsController ..> DiagramsGateway : <<use>>
+DiagramsController ..> DiagramsService : <<use>>
+DiagramsGateway ..> ChatPanel : <<use>>
+DiagramsGateway ..> SessionsService : <<use>>
+DiagramsService ..> AuthorshipUtil : <<use>>
+HistoryPanel ..> ApiClient : <<use>>
+HybridAiProvider ..> GeminiProvider : <<use>>
+HybridAiProvider ..> OllamaProvider : <<use>>
+JwtAuthGuard ..> AuthService : <<use>>
+JwtAuthGuard ..> DiagramsController : <<use>>
+LiveRoom ..> DiagramsGateway : <<use>>
+LiveRoom ..> LiveNotifications : <<use>>
+LoginPage ..> AuthProvider : <<use>>
+ModeratorService ..> AiService : <<use>>
+ModeratorService ..> CanvasPolicy : <<use>>
+ModeratorService ..> DiagramsService : <<use>>
+ModeratorService ..> Intent : <<use>>
+ModeratorService ..> SessionsService : <<use>>
+_LiveDiagramPage ..> CaseApi : <<use>>
+_LiveDiagramPage ..> LiveRoom : <<use>>
+@enduml

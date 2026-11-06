@@ -342,7 +342,7 @@ Es **I-CASE (integrada)**:
 
 **E3. ¿Qué versión de UML? ¿Quién la define?**
 - **UML 2.5.1**, del **OMG** (omg.org).
-- Los 8 modelos del 2do Parcial están en notación UML 2.5.1.
+- Los 28 diagramas del Ciclo 2 están en notación UML 2.5.1, hechos en Enterprise Architect.
 - El intercambio es en XMI 2.1, también del OMG.
 - Las reglas de modelado vienen de **OMT** (Rumbaugh, 1991).
 
@@ -358,12 +358,85 @@ Es **I-CASE (integrada)**:
 Que cambiar sea barato:
 - **módulos independientes**: agregar un proveedor de IA es implementar
   `AiProvider`;
-- **106 tests** que frenan regresiones;
+- **146 tests** que frenan regresiones;
 - estándares verificados por herramientas: TypeScript estricto, oxlint y
   Prettier;
 - configuración por variables de entorno.
 
 **Prueba concreta:** el 2do Parcial agregó todo esto **sin romper** el 1er Parcial.
+
+**E6. Proceso Unificado: ¿ciclos, fases y flujos? ¿Cómo lo aplicaron?** (el ingeniero dijo que lo pregunta)
+- **Características:** dirigido por casos de uso, centrado en la arquitectura,
+  iterativo e incremental.
+- **Ciclo:** termina con una versión del producto. Tuvimos **2 ciclos**: Ciclo 1
+  (1er Parcial, 30/08–23/09) y Ciclo 2 (2do Parcial, 17/10–10/11).
+- **4 fases por ciclo, cada una con su hito:**
+  - **Inicio:** alcance, casos de uso y riesgos. Hito: objetivos del ciclo de vida.
+  - **Elaboración:** requisitos y arquitectura base probada. Hito: arquitectura del ciclo de vida.
+  - **Construcción:** el sistema completo. Hito: capacidad operativa inicial (beta).
+  - **Transición:** despliegue y corrección de defectos. Hito: lanzamiento del producto.
+- **5 flujos de trabajo:** requisitos (modelo de casos de uso), análisis (clases de
+  análisis y comunicación), diseño (clases de diseño, secuencia, despliegue),
+  implementación (componentes y código) y prueba.
+- 📍 Muéstralo: la tabla de ciclos × fases al inicio del capítulo 7 de la Parte 2.
+- ⚠️ **No confundir:** "análisis, diseño, implementación" son **flujos**, no fases.
+
+**E7. ¿Monolito o microservicios? ¿Qué se complica con microservicios?**
+- Elegimos **monolito modular**: no hay carga que lo justifique, pero los módulos
+  (`auth`, `diagrams`, `ai`, `generator`) están listos para separarse. El primero
+  sería `ai`, que es el que más recursos consume.
+- **Microservicios a favor:** cada servicio escala por separado y usa los recursos
+  que necesita.
+- **Lo que se complica y cómo se resuelve:**
+  - **Transacción entre varios servicios y *rollback*:** patrón **Saga**, con
+    acciones de compensación.
+  - **Reportes y *joins* entre bases distintas:** réplica de solo lectura,
+    **CQRS** o *data warehouse*.
+  - **Avisar cambios** (por ejemplo, inventario → ventas): **eventos** en un *broker*.
+  - **Frontend:** **microfrontends** unidos por un **API Gateway**.
+
+**E8. Estilos de arquitectura de backend.**
+En capas, MVC, **hexagonal** (puertos y adaptadores), **Clean** / cebolla, DDD y
+microservicios. Nuestro motor de IA es hexagonal en pequeño: `AiProvider` es el
+**puerto**, y `GeminiProvider` y `OllamaProvider` son **adaptadores** intercambiables.
+
+**E9. ¿Qué es una base de datos vectorial?**
+- Cada registro guarda un **vector** (*embedding*) que genera un modelo de IA.
+- Se buscan los vectores **más cercanos** para aproximar la **intención** de una
+  consulta: búsqueda semántica o RAG.
+- **No la usamos.** Serviría para que la IA busque en chats y diagramas antiguos
+  por significado y no por palabras exactas.
+
+**E10. SDD al desarrollar con IA: ¿qué le entregan a la IA? Muéstrelo.**
+- No trabajamos a puro *prompt*. La **especificación es la fuente de verdad**
+  (*source of truth*) que la IA lee en cada tarea.
+- Flujo: especificación → plan → tareas → implementación → verificación.
+- 📍 En el entorno de desarrollo: `Contexto_Examen_Requisitos.md` y
+  `CONTEXTO_CLAUDE_2DO_PARCIAL.md` (especificación),
+  `PLAN_EVOLUCION_2DO_PARCIAL.md` y `PLAN_SEMANA1_MONGODB.md` (plan), commits
+  pequeños por tarea, y tests más la trazabilidad (verificación).
+- **Para qué sirve:** menos ida y vuelta con la IA y menos tiempo revisando lo que genera.
+
+**E11. IA local: ¿cómo se trabaja, cómo se entrena, cómo se personaliza?**
+1. Elegir el modelo según el hardware (parámetros y cuantización): 1.500 millones
+   de parámetros en una laptop sin GPU.
+2. Runtime **Ollama** y `ollama pull`.
+3. Personalizar, de menos a más esfuerzo: *System Prompt* → **Modelfile** (nuestro
+   `moderador-uml`) → **RAG** → ***fine-tuning*** (LoRA, cambia los pesos).
+   **Nosotros llegamos hasta el Modelfile.**
+4. Integrarlo por su API HTTP con un contrato JSON fijo.
+5. Medir: sin internet, el modelo local solo arma 2 clases de un proyecto completo.
+
+**E12. Del diagrama de clases a la base de datos y a Spring Boot.**
+- **Modelo OO → relacional** con las reglas de **OMT** (Rumbaugh):
+  - cada clase es una tabla y la clave primaria identifica al objeto;
+  - en 1..*, la clave foránea va en el lado "muchos";
+  - un *..* necesita una tabla intermedia;
+  - la herencia se resuelve con una tabla por jerarquía, por subclase o por clase concreta.
+- **Spring Boot en 4 capas:** **Modelo** (entidad JPA, fiel al diagrama, con sus
+  relaciones), **Repositorio**, **Servicio** y **Controlador**.
+- **La base se genera con el ORM** (JPA/Hibernate) a partir de la capa Modelo, no
+  con un script.
 
 ### 🔴 F. V&V (lo pregunta el Paso 3, pero reaparece en la defensa)
 
@@ -382,6 +455,27 @@ que refleja. Ejemplo en vivo:
 > Si preguntan por **CLOSED**, respuesta honesta: está definido en el esquema
 > y las consultas lo excluyen, pero **aún no hay transición implementada**.
 > Así lo dice el propio diagrama 07: el modelo refleja el código tal como está.
+
+**F3. "Un mensaje de A hacia B en la secuencia, ¿dónde está en el código?"** (lo adelantó en la pizarra)
+- Es una **operación de la clase que RECIBE** el mensaje (B), no de quien lo envía.
+  B ofrece ese servicio y A lo usa (dependencia A → B).
+- **Ejemplo:** en CU15, `ChatGateway` envía `answer()` a `ModeratorService`, y
+  `answer()` está en `backend/src/ai/moderator/moderator.service.ts`.
+- **Prueba automática en vivo:** `python docs/diagrams/ea/verificar_secuencias.py`
+  da **86 de 86** mensajes que son operaciones de la clase receptora (otros 28 son
+  de librerías: Mongoose `Model`, Socket.io `Server` y notificaciones de Flutter).
+- Cada objeto de una secuencia es de una clase que aparece en el **diagrama de
+  clases de diseño de la sala** (09), generado a partir de las secuencias.
+
+**F4. "¿Los diagramas los hizo la IA?"**
+- Están hechos en **Enterprise Architect 13.5**, en `docs/diagrams/ea/ciclo2.eap`.
+  Ábranlo y muestren cualquier diagrama.
+- **Cómo se hicieron:** un borrador textual escrito a partir del código
+  (`docs/diagrams/2do_parcial/`), que el script `ea_builder.py` construyó en EA por
+  su API COM. Después se revisaron contra el código y se corrigieron (por ejemplo,
+  los mensajes de secuencia se reescribieron con las operaciones reales).
+- Es el flujo que el ingeniero dijo que **sí vale**: borrador → herramienta CASE →
+  revisión propia.
 
 ---
 
@@ -443,8 +537,9 @@ laptop, sin AWS ni internet.
 - **"¿Por qué no microservicios?"** → Un monolito modular basta para un equipo de
   2 en una instancia de 1 GB. Los módulos ya separan responsabilidades: si
   creciera, se podrían extraer.
-- **"¿Está en producción?"** → ⟨Decir el estado real ese día; desplegar antes
-  del 11/11 con Mongo y la migración.⟩
+- **"¿Está en producción?"** → ⟨Decir el estado real ese día. Hay que desplegar
+  antes del **martes 10/11**: el PDF se sube hasta las 08:00 y la defensa es a las
+  16:00. Desde las 16:00 no se toca nada hasta recibir la nota.⟩
 
 ---
 
@@ -462,7 +557,9 @@ laptop, sin AWS ni internet.
 | Timeouts de Ollama | 20 s (va primero) · 60 s (respaldo) |
 | Contexto de la IA | 25 entradas de bitácora · 8 de la sala · 8 del hilo individual |
 | Migración | 8 diagramas + 55 entradas de historial, IDs conservados |
-| Modelos UML del 2do Parcial | 8 diagramas, UML 2.5.1 |
+| Modelos UML del Ciclo 2 | 28 diagramas en Enterprise Architect 13.5, UML 2.5.1 |
+| Verificación secuencia ↔ código | 86 de 86 mensajes son operaciones de la clase receptora (+28 de librerías) |
+| Proceso Unificado | 2 ciclos × 4 fases (Inicio, Elaboración, Construcción, Transición) × 5 flujos |
 
 ---
 
@@ -472,7 +569,8 @@ laptop, sin AWS ni internet.
 |---|---|
 | B (MongoDB, autoría, bitácora, sesiones) | C (motor híbrido, Ollama, prompts) |
 | D3–D4 (visor Flutter) | A (moderador, chat, reglas del docente) |
-| E (teoría: CASE, SDD, UML, arquitecturas) | D1–D2, D5 (tiempo real y bugs) |
+| E1–E6 (CASE, SDD, UML, arquitecturas, Proceso Unificado) | E7–E12 (microservicios, estilos, BD vectorial, SDD con IA, IA local, OMT) |
+| | D1–D2, D5 (tiempo real y bugs) |
 | F (V&V con los diagramas) | La demo y los cambios en vivo (sección 5) |
 
 **Ensayo:** cada una le hace a la otra 10 preguntas al azar de la sección 3. La

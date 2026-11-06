@@ -436,6 +436,14 @@ Las referencias entre colecciones son por identificador, sin claves foráneas, p
 
 *Figura --- Diagrama de Clases del Motor de IA híbrido y el Moderador*
 
+**Diseño de clases de la sala colaborativa.** Reúne las clases de la web, del servidor y del visor móvil que aparecen como objetos en los diagramas de secuencia. Cada operación es un mensaje que esa clase recibe en alguna secuencia, y cada dependencia «use» une a quien envía con quien recibe. El diagrama se genera a partir de las secuencias (`docs/diagrams/ea/generar_clases_sala.py`), así que los dos modelos no pueden contradecirse.
+
+![](docs/diagrams/ea/img/09_clases_sala.png){width="6.5in"}
+
+*Figura --- Diagrama de Clases de Diseño de la sala colaborativa (web, servidor y móvil)*
+
+**Verificación modelo-código.** El script `docs/diagrams/ea/verificar_secuencias.py` recorre los 10 diagramas de secuencia del ciclo y busca en el código cada mensaje que llega a un objeto. Resultado: **86 de 86 mensajes son operaciones de la clase que los recibe**. Otros 28 son operaciones de librerías: `Model` de Mongoose, `Server` de Socket.io y el plugin de notificaciones de Flutter. Ejemplo: en CU15, `ChatGateway` envía `answer()` a `ModeratorService`, y `answer()` está implementada en `ModeratorService`, no en `ChatGateway`.
+
 @@ secuencias
 
 ***CU13 --- Iniciar Sesión***

@@ -1,34 +1,39 @@
 @startuml seq_cu15
 !include _seq.iuml
-title CU15 — Consultar al Moderador IA\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+title CU15 — Consultar al Moderador IA\n<size:11>Diagrama de Secuencia · UML 2.5.1 · cada mensaje es una operación de la clase que lo recibe</size>
 actor Integrante as A
 boundary ":ChatPanel" as B
 control ":ChatGateway" as G
 control ":ModeratorService" as M
-database "MongoDB" as DB
+control ":DiagramsService" as D
+participant ":Model<ActivityLog>" as LOG
+participant ":Model<GroupChatMessage>" as CHAT
+control ":AiService" as AI
 control ":HybridAiProvider" as H
-participant "Gemini / Ollama" as LLM
-collections "Sala" as R
-A -> B : "¿Qué es una composición?"
-B -> G : chat:send {askAi: true}
-G -> M : storeUserMessage()
-G -> R : chat:new-message (pregunta)
-G -> R : ai:status {isThinking: true, promptBy}
-G -> M : answer(user, question)
+participant ":Server (Socket.io)" as SV
+A -> B : sendText(text) [botón IA activo]
+B -> G : handleSend(client, payload) [chat:send, askAi = true]
+G -> M : storeUserMessage(diagramId, user, text)
+M --> G : question
+G -> SV : emit('chat:new-message', question)
+G -> SV : emit('ai:status', {isThinking: true, promptBy})
+G -> M : answer(diagramId, user, question)
 par contexto dual
-  M -> DB : diagrama + autoría
+  M -> D : findOne(diagramId)
 else
-  M -> DB : bitácora (contexto grupal)
+  M -> LOG : find({diagramId}) [bitácora: contexto grupal]
 else
-  M -> DB : hilo del usuario (contexto individual)
+  M -> CHAT : find({diagramId, sender o addressedTo}) [hilo: contexto individual]
 end
-M -> H : editDiagram(prompt completo / lite)
-H -> LLM : generar (Gemini primero; Ollama si no hay internet)
-LLM --> H : {reply, operations}
-H --> M : resultado + providerUsed
-M -> M : ensureAddressed(reply, nombre)
-M -> DB : insert respuesta {addressedTo, providerUsed}
-M --> G : answer
-G -> R : chat:new-message ("Luis, …" + badge del proveedor)
-G -> R : ai:status {isThinking: false}
+M -> AI : editDiagram(text, model, prompts)
+AI -> H : editDiagram(message, model, options)
+H --> AI : {reply, operations, providerUsed}
+AI --> M : EditDiagramResult
+M -> CHAT : create({sender: IA, addressedTo, providerUsed})
+M --> G : answer, operations
+G -> SV : emit('chat:new-message', answer)
+G -> SV : emit('ai:status', {isThinking: false})
+SV -> B : onNewMessage(message)
+B --> A : "Luis, …" + badge del proveedor
+note over H : Gemini primero; Ollama si no hay internet\n(detalle en el diagrama de secuencia de la sección 4.4)
 @enduml

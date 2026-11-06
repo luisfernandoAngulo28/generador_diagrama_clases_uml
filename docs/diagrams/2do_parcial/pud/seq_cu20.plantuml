@@ -1,20 +1,21 @@
 @startuml seq_cu20
 !include _seq.iuml
-title CU20 — Recibir Notificaciones en el Móvil\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
-control ":ChatGateway\n/ DiagramsGateway" as G
+title CU20 — Recibir Notificaciones\n<size:11>Diagrama de Secuencia · UML 2.5.1 · cada mensaje es una operación de la clase que lo recibe</size>
+participant ":Server (Socket.io)" as SV
 control ":LiveRoom" as L
 control ":LiveNotifications" as N
-participant "Sistema operativo" as OS
+participant ":FlutterLocalNotificationsPlugin" as OS
 actor "Integrante (móvil)" as A
-G -> L : chat:new-message (de otro integrante o de la IA)
-L -> N : show("Moderador IA → Luis", texto)
-N -> OS : flutter_local_notifications.show()
-OS --> A : notificación
-G -> L : diagram-update {editorName}
+SV -> L : _onChatMessage(data) [chat:new-message de otro integrante o de la IA]
+L -> N : show("Moderador IA -> Luis", texto)
+N -> OS : show(id, title, body, notificationDetails)
+OS --> A : notificación del sistema
+SV -> L : _onDiagramUpdate(data) [diagram-update con editorName]
+L -> L : _notifyDiagramChange(editor, names)
 alt pasaron más de 10 s desde el último aviso
   L -> N : show("Diagrama actualizado", "Luis modificó Pedido")
-  N -> OS : notificación
+  N -> OS : show(id, title, body, notificationDetails)
 else dentro de los 10 s
-  L -> L : solo resalta en pantalla
+  L -> L : _highlight(changed)
 end
 @enduml

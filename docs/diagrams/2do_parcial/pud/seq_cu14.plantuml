@@ -1,21 +1,23 @@
 @startuml seq_cu14
 !include _seq.iuml
-title CU14 — Enviar Mensaje al Chat Grupal\n<size:11>Diagrama de Secuencia · UML 2.5.1</size>
+title CU14 — Enviar Mensaje al Chat Grupal\n<size:11>Diagrama de Secuencia · UML 2.5.1 · cada mensaje es una operación de la clase que lo recibe</size>
 actor Integrante as A
 boundary ":ChatPanel" as B
 control ":ChatGateway" as G
 control ":ModeratorService" as M
-database "MongoDB\n(group_chat_messages)" as DB
-collections "Sala del diagrama" as R
-A -> B : escribe un mensaje (botón IA apagado)
+participant ":Model<GroupChatMessage>" as DB
+participant ":Server (Socket.io)" as SV
+boundary ":ChatPanel (cada integrante)" as O
+control ":LiveRoom (móvil)" as L
+A -> B : sendText(text) [botón IA apagado]
 B -> B : onEnsureSaved()
-B -> G : chat:send {diagramId, text, askAi: false}
-G -> G : resolveSocketUser() (JWT)
+B -> G : handleSend(client, payload) [chat:send, askAi = false]
 G -> M : storeUserMessage(diagramId, user, text)
-M -> DB : insert {sender, text, timestamp}
-DB --> M : id
+M -> DB : create({diagramId, sender, text, timestamp})
+DB --> M : documento (id)
 M --> G : ChatMessage
-G -> R : chat:new-message
-R --> A : todos los integrantes (web y móvil)\nven el mensaje
-note over G : askAi = false y sin "@IA":\nla IA no interviene
+G -> SV : emit('chat:new-message', question) [a la sala]
+SV -> O : onNewMessage(message)
+SV -> L : _onChatMessage(data)
+note over G : resolveSocketUser() identifica al usuario por el JWT\ndel handshake. askAi = false y sin "@IA": la IA no interviene
 @enduml

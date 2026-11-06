@@ -1,7 +1,9 @@
 @startuml 05_secuencia_chat_ia
 ' Diagrama de secuencia — pregunta al Moderador IA en el chat grupal — UML 2.5.1 (OMG)
+' Cada mensaje es una operación de la clase que lo recibe (ver el código citado).
 ' Refleja: frontend/src/components/ChatPanel.tsx, backend/src/ai/chat/chat.gateway.ts,
-'          backend/src/ai/moderator/moderator.service.ts, backend/src/ai/providers/hybrid.provider.ts
+'          backend/src/ai/moderator/moderator.service.ts, backend/src/ai/ai.service.ts,
+'          backend/src/ai/providers/hybrid.provider.ts
 skinparam defaultFontName Arial
 skinparam defaultFontSize 12
 skinparam shadowing false
@@ -10,80 +12,82 @@ skinparam ParticipantBackgroundColor #EAF2FB
 skinparam ParticipantBorderColor #2C3E50
 skinparam NoteBackgroundColor #FFF8DC
 autonumber "<b>0."
-title Secuencia — Pregunta pública al Moderador IA (2do Parcial)\n<size:11>UML 2.5.1 · fragmentos combinados alt / opt / par</size>
+title Secuencia — Pregunta pública al Moderador IA (2do Parcial)\n<size:11>UML 2.5.1 · fragmentos alt / opt / par · cada mensaje es una operación de la clase que lo recibe</size>
 
 actor "Luis\n(navegador)" as luis
 participant ":ChatPanel" as panel
 participant ":ChatGateway" as gw
 participant ":ModeratorService" as mod
-database "MongoDB" as mongo
+participant ":Model<GroupChatMessage>" as chat
+participant ":DiagramsService" as diag
+participant ":Model<ActivityLog>" as logs
+participant ":SessionsService" as sess
 participant ":AiService" as ai
 participant ":HybridAiProvider" as hybrid
-participant "Gemini API" as gemini
-participant "Ollama local" as ollama
-collections "Sala del diagrama\n(Marco web, Elizabeth móvil)" as room
+participant ":GeminiProvider" as gemini
+participant ":OllamaProvider" as ollama
+participant ":Server (Socket.io)" as room
 
-luis -> panel : escribe "¿Qué es una composición?"\n(botón IA activo)
-panel -> panel : onEnsureSaved()\n(guarda el diagrama actual)
-panel -> gw : emit chat:send {diagramId, text, askAi: true}
-gw -> gw : resolveSocketUser(client)\n(JWT del handshake)
+luis -> panel : sendText(text) ["¿Qué es una composición?", botón IA activo]
+panel -> gw : handleSend(client, payload) [chat:send, askAi = true]
 alt usuario no autenticado
   gw --> panel : chat:error "Inicia sesión…"
 else autenticado
   gw -> mod : storeUserMessage(diagramId, user, text)
-  mod -> mongo : insert group_chat_messages
-  mongo --> mod : mensaje (id)
+  mod -> chat : create({diagramId, sender, text, timestamp})
+  chat --> mod : mensaje (id)
   mod --> gw : question
-  gw -> room : chat:new-message (question)
-  note right : todos ven la pregunta\nal instante (chat público)
-  gw -> room : ai:status {isThinking: true, promptBy: "Luis"}
+  gw -> room : emit('chat:new-message', question)
+  gw -> room : emit('ai:status', {isThinking: true, promptBy: "Luis"})
   gw -> mod : answer(diagramId, user, question)
   par contexto dual
-    mod -> mongo : diagrams.findById (modelo + autoría)
+    mod -> diag : findOne(diagramId) [modelo + autoría]
   else
-    mod -> mongo : activity_logs (últimas 25) — contexto grupal
+    mod -> logs : find({diagramId}) [últimas 25: contexto grupal]
   else
-    mod -> mongo : chat de la sala (últimos 8)
+    mod -> chat : find({diagramId}) [chat de la sala, últimos 8]
   else
-    mod -> mongo : hilo de Luis (últimos 8) — contexto individual
+    mod -> chat : find({sender o addressedTo = Luis}) [hilo individual]
   else
-    mod -> mongo : sesión (participantes conectados)
+    mod -> sess : getLatest(diagramId) [participantes conectados]
   end
-  mod -> mod : buildModeratorPrompt(ctx)\nbuildModeratorLitePrompt(ctx)
-  mod -> ai : editDiagram(text, modelo, prompts)
-  ai -> hybrid : editDiagram(...)
+  mod -> ai : editDiagram(text, model, prompts)
+  ai -> hybrid : editDiagram(message, model, options)
+  hybrid -> hybrid : textChain()
   alt AI_HYBRID_ORDER = cloud-first (defecto)
-    hybrid -> gemini : generateContent(systemPrompt, pregunta)
+    hybrid -> gemini : editDiagram(message, model, options)
     alt Gemini responde
       gemini --> hybrid : {reply, operations}
     else sin internet / error
       gemini --> hybrid : error
-      hybrid -> hybrid : abre circuit breaker de Gemini (30 s)
-      hybrid -> ollama : /api/generate (prompt lite, timeout 60 s)
+      hybrid -> hybrid : onFailure(member, err, next) [circuit breaker 30 s]
+      hybrid -> ollama : editDiagram(message, model, options) [prompt lite, timeout 60 s]
       ollama --> hybrid : {reply, operations}
     end
   else AI_HYBRID_ORDER = local-first (demo)
-    hybrid -> ollama : /api/generate (prompt lite, timeout 20 s)
+    hybrid -> ollama : editDiagram(message, model, options) [timeout 20 s]
     alt responde a tiempo
       ollama --> hybrid : {reply, operations}
     else timeout
-      hybrid -> gemini : generateContent(...)
+      hybrid -> gemini : editDiagram(message, model, options)
       gemini --> hybrid : {reply, operations}
     end
   end
   hybrid --> ai : resultado + providerUsed
-  ai -> ai : validateOperations()\n(descarta clases inexistentes/duplicadas)
-  ai --> mod : EditDiagramResult
-  opt el mensaje NO pide un cambio explícito
-    mod -> mod : operations = []\n(isExplicitChangeRequest)
-  end
-  mod -> mod : ensureAddressed(reply, "Luis")
-  mod -> mongo : insert respuesta {addressedTo: Luis, providerUsed}
+  ai --> mod : EditDiagramResult (operaciones validadas)
+  mod -> chat : create({sender: IA, addressedTo: Luis, providerUsed})
   mod --> gw : answer, operations
-  gw -> room : chat:new-message {"Luis, …", providerUsed, operations}
-  gw -> room : ai:status {isThinking: false}
+  gw -> room : emit('chat:new-message', {"Luis, …", providerUsed, operations})
+  gw -> room : emit('ai:status', {isThinking: false})
+  room -> panel : onNewMessage(message)
   opt operations no vacías y el cliente es el de Luis
-    room -> room : el cliente de Luis aplica las operaciones\ny guarda con source = AI\n(ver 06_secuencia_guardado_autoria)
+    panel -> panel : onApplyAiOperations(operations) [App aplica y guarda con source = AI]
   end
 end
+note right of mod
+  answer() además usa funciones de módulo:
+  classifyRequest() (intent.ts), buildModeratorPrompt() y
+  ensureAddressed() (moderator-prompt.ts), applyCanvasPolicy()
+end note
+note right of ai : editDiagram() valida con validateOperations()\n(descarta clases inexistentes o duplicadas)
 @enduml

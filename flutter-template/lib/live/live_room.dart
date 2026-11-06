@@ -61,89 +61,106 @@ class LiveRoom extends ChangeNotifier {
       notifyListeners();
     });
 
-    socket.on('session:init-state', (data) {
-      final chat = (data is Map ? data['chat'] : null) as List? ?? const [];
-      messages
-        ..clear()
-        ..addAll(chat.whereType<Map>().map(ChatMessageView.fromJson));
-      notifyListeners();
-    });
-
-    socket.on('diagram-update', (data) {
-      if (data is! Map) return;
-      final previous = {for (final c in diagram.classes) c.id: c.contentKey};
-      diagram = diagram.fromReactFlow(
-        data['nodes'] as List? ?? const [],
-        data['edges'] as List? ?? const [],
-      );
-      final changed = diagram.classes
-          .where((c) => previous[c.id] != c.contentKey)
-          .map((c) => c.id)
-          .toSet();
-      if (changed.isEmpty) {
-        notifyListeners(); // solo movieron clases en el lienzo
-        return;
-      }
-      final editor = data['editorName'] as String? ?? 'Alguien';
-      final names = diagram.classes
-          .where((c) => changed.contains(c.id))
-          .map((c) => c.name)
-          .join(', ');
-      _highlight(changed);
-      lastEvent = '$editor modificó $names';
-      _notifyDiagramChange(editor, names);
-      notifyListeners();
-    });
-
-    socket.on('diagram:authorship', (data) {
-      if (data is Map) {
-        diagram = diagram.withAuthorship(data);
-        notifyListeners();
-      }
-    });
-
-    socket.on('locks-update', (data) {
-      if (data is! Map) return;
-      locks = {
-        for (final e in data.entries)
-          '${e.key}': '${(e.value as Map?)?['editorName'] ?? 'Otro usuario'}',
-      };
-      notifyListeners();
-    });
-
-    socket.on('presence', (data) {
-      connectedCount =
-          (data is Map ? data['count'] as num? : null)?.toInt() ??
-          connectedCount;
-      notifyListeners();
-    });
-
-    socket.on('chat:new-message', (data) {
-      if (data is! Map) return;
-      final message = ChatMessageView.fromJson(data);
-      if (messages.any((m) => m.id == message.id)) return;
-      messages.add(message);
-      if (message.senderId != _api.userId) {
-        final title = message.isAi
-            ? 'Moderador IA → ${message.addressedTo ?? 'la sala'}'
-            : '${message.senderName} en "${diagram.name}"';
-        _notifications.show(title, message.text);
-      }
-      notifyListeners();
-    });
-
-    socket.on('ai:status', (data) {
-      if (data is! Map) return;
-      final id = '${data['requestId']}';
-      if (data['isThinking'] == true) {
-        thinkingFor[id] = '${data['promptBy']}';
-      } else {
-        thinkingFor.remove(id);
-      }
-      notifyListeners();
-    });
+    // Cada evento de la sala tiene su operación con nombre: así el código
+    // coincide con los diagramas de secuencia (CU19, CU20).
+    socket.on('session:init-state', _onInitState);
+    socket.on('diagram-update', _onDiagramUpdate);
+    socket.on('diagram:authorship', _onAuthorship);
+    socket.on('locks-update', _onLocksUpdate);
+    socket.on('presence', _onPresence);
+    socket.on('chat:new-message', _onChatMessage);
+    socket.on('ai:status', _onAiStatus);
 
     socket.connect();
+  }
+
+  /// Socket.io 'session:init-state'.
+  void _onInitState(dynamic data) {
+    final chat = (data is Map ? data['chat'] : null) as List? ?? const [];
+    messages
+      ..clear()
+      ..addAll(chat.whereType<Map>().map(ChatMessageView.fromJson));
+    notifyListeners();
+  }
+
+  /// Socket.io 'diagram-update'.
+  void _onDiagramUpdate(dynamic data) {
+    if (data is! Map) return;
+    final previous = {for (final c in diagram.classes) c.id: c.contentKey};
+    diagram = diagram.fromReactFlow(
+      data['nodes'] as List? ?? const [],
+      data['edges'] as List? ?? const [],
+    );
+    final changed = diagram.classes
+        .where((c) => previous[c.id] != c.contentKey)
+        .map((c) => c.id)
+        .toSet();
+    if (changed.isEmpty) {
+      notifyListeners(); // solo movieron clases en el lienzo
+      return;
+    }
+    final editor = data['editorName'] as String? ?? 'Alguien';
+    final names = diagram.classes
+        .where((c) => changed.contains(c.id))
+        .map((c) => c.name)
+        .join(', ');
+    _highlight(changed);
+    lastEvent = '$editor modificó $names';
+    _notifyDiagramChange(editor, names);
+    notifyListeners();
+  }
+
+  /// Socket.io 'diagram:authorship'.
+  void _onAuthorship(dynamic data) {
+    if (data is Map) {
+      diagram = diagram.withAuthorship(data);
+      notifyListeners();
+    }
+  }
+
+  /// Socket.io 'locks-update'.
+  void _onLocksUpdate(dynamic data) {
+    if (data is! Map) return;
+    locks = {
+      for (final e in data.entries)
+        '${e.key}': '${(e.value as Map?)?['editorName'] ?? 'Otro usuario'}',
+    };
+    notifyListeners();
+  }
+
+  /// Socket.io 'presence'.
+  void _onPresence(dynamic data) {
+    connectedCount =
+        (data is Map ? data['count'] as num? : null)?.toInt() ??
+        connectedCount;
+    notifyListeners();
+  }
+
+  /// Socket.io 'chat:new-message'.
+  void _onChatMessage(dynamic data) {
+    if (data is! Map) return;
+    final message = ChatMessageView.fromJson(data);
+    if (messages.any((m) => m.id == message.id)) return;
+    messages.add(message);
+    if (message.senderId != _api.userId) {
+      final title = message.isAi
+          ? 'Moderador IA → ${message.addressedTo ?? 'la sala'}'
+          : '${message.senderName} en "${diagram.name}"';
+      _notifications.show(title, message.text);
+    }
+    notifyListeners();
+  }
+
+  /// Socket.io 'ai:status'.
+  void _onAiStatus(dynamic data) {
+    if (data is! Map) return;
+    final id = '${data['requestId']}';
+    if (data['isThinking'] == true) {
+      thinkingFor[id] = '${data['promptBy']}';
+    } else {
+      thinkingFor.remove(id);
+    }
+    notifyListeners();
   }
 
   /// Un aviso cada 10 s como máximo: el editor web sincroniza en ráfagas.

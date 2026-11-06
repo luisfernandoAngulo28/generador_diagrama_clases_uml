@@ -22,7 +22,7 @@ BASE = r'C:\Program Files (x86)\Sparx Systems\EA\EABase.eap'
 
 def clean(text):
     text = re.sub(r'<<\s*([^<>]+?)\s*>>', r'«\1»', text)  # stereotypes survive
-    text = re.sub(r'<[^>]+>', '', text)                  # <size:11>, <b>…
+    text = re.sub(r'</?(size|b|i|u|color|font)\b[^>]*>', '', text)  # PlantUML markup; Model<T> stays
     return ea_text(text.replace('\\n', '\n').strip().strip('"').strip())
 
 
@@ -852,7 +852,7 @@ def build_activity(ea, pkg, name, lines):
 
 
 DTYPE = {'com': 'Collaboration', 'uc': 'Use Case', 'paquetes': 'Package', 'clases': 'Logical',
-         '03': 'Logical', '04': 'Logical', '01': 'Deployment', '02': 'Component'}
+         '03': 'Logical', '04': 'Logical', '09': 'Logical', '01': 'Deployment', '02': 'Component'}
 PKG = {'sequence': 'Diseño - Secuencia', 'Collaboration': 'Análisis - Comunicación', 'Use Case': 'Requisitos - Casos de uso',
        'Package': 'Análisis - Paquetes', 'Logical': 'Análisis y Diseño - Clases', 'Deployment': 'Diseño - Despliegue',
        'Component': 'Implementación - Componentes', 'states': 'Diseño - Estados', 'activity': 'Diseño - Actividad'}
