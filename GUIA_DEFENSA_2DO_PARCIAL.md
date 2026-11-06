@@ -209,6 +209,20 @@ Se probó de punta a punta: salir → PAUSED → volver → mismo id.
 
 📍 Muéstralo: `backend/src/diagrams/sessions.service.ts:46` y `:89` · diagrama **07**.
 
+**B4-bis. ¿Tienen control de versiones del diagrama? ¿Se puede volver atrás?**
+- Sí: *Archivo → Historial de versiones*. Cada sesión de edición deja una **foto
+  completa del modelo** en `diagram_versions`.
+- Los guardados seguidos de una misma persona (10 min) se unen en una versión, para
+  que el autoguardado cada 30 s no llene el historial. Un cambio de la IA y una
+  restauración son siempre versiones propias.
+- **Restaurar** es un guardado más: recalcula la autoría, queda en la bitácora
+  ("Restauró la versión 1") y crea una **versión nueva**. Nunca se borra historial,
+  como un `git revert` y no un `git reset`.
+- **Diferencia con la bitácora:** la bitácora dice **qué** cambió y **quién**; las
+  versiones guardan **cómo quedó** el diagrama completo, para poder volver.
+- 📍 `backend/src/diagrams/versions.service.ts` (`extendsLastVersion`, con sus 6
+  tests) y `diagrams.service.ts` (`restoreVersion`).
+
 **B5. ¿Perdieron los datos del 1er Parcial al migrar?**
 No:
 - El script `migrate-pg-to-mongo` copió 8 diagramas y 55 entradas de historial
@@ -358,7 +372,7 @@ Es **I-CASE (integrada)**:
 Que cambiar sea barato:
 - **módulos independientes**: agregar un proveedor de IA es implementar
   `AiProvider`;
-- **146 tests** que frenan regresiones;
+- **152 tests** que frenan regresiones;
 - estándares verificados por herramientas: TypeScript estricto, oxlint y
   Prettier;
 - configuración por variables de entorno.
@@ -561,7 +575,7 @@ laptop, sin AWS ni internet.
 
 | Dato | Valor |
 |---|---|
-| Pruebas unitarias | **146** (22 archivos), todas en verde |
+| Pruebas unitarias | **152** (22 archivos), todas en verde |
 | Commits | 89 hasta la Sección 1 (79 del 1er Parcial + 10 del 2do) |
 | Tamaño del 2do Parcial | 94 archivos, +8.673 / −252 líneas |
 | Ollama, prompt completo → lite | 36–79 s → 5–18 s (CPU) |

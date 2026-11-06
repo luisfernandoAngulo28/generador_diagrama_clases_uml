@@ -142,7 +142,7 @@ el motor que mejor se adapta a su forma.
 
 | Motor | Colecciones / tablas | Por qué |
 |---|---|---|
-| **MongoDB** (NoSQL documental) | `diagrams`, `diagram_sessions`, `diagram_activity_logs`, `group_chat_messages` | El modelo UML es un **árbol** (clases → atributos, relaciones) con la autoría **embebida** en cada elemento; las sesiones y la bitácora crecen con el uso. Un documento evita *joins* y se guarda tal cual. |
+| **MongoDB** (NoSQL documental) | `diagrams`, `diagram_versions`, `diagram_sessions`, `diagram_activity_logs`, `group_chat_messages` | El modelo UML es un **árbol** (clases → atributos, relaciones) con la autoría **embebida** en cada elemento; las sesiones y la bitácora crecen con el uso. Un documento evita *joins* y se guarda tal cual. |
 | **PostgreSQL** (relacional) | `users`, `attachments` | Datos relacionales con restricciones (correo único), estables y ya probados en el 1er Parcial. |
 
 Decisiones clave:
@@ -153,6 +153,10 @@ Decisiones clave:
 - **Bitácora estructurada:** una entrada por cambio (`CLASS_CREATED`,
   `ATTRIBUTE_ADDED`, `RELATION_DELETED`…), que permite a la IA responder
   *"¿qué hizo Marco?"* con datos reales.
+- **Historial de versiones:** cada sesión de edición deja una foto completa del
+  modelo (`diagram_versions`), y cualquiera se puede **restaurar**. Restaurar crea
+  una versión nueva: el historial nunca se reescribe. Un documento por versión es
+  natural en MongoDB, porque el modelo se guarda entero tal cual.
 - **Migración sin pérdida:** un script idempotente copió los datos del 1er
   Parcial conservando los mismos identificadores (UUID).
 
@@ -232,7 +236,7 @@ costo total ocurre después de la primera versión, en mantenimiento y evolució
    plantillas independientes en el generador y contratos explícitos
    (`AiProvider`). Agregar un tercer proveedor de IA o una nueva capa generada
    no obliga a modificar el resto.
-3. **Pruebas automatizadas:** **146 pruebas unitarias** (Vitest) cubren el
+3. **Pruebas automatizadas:** **152 pruebas unitarias** (Vitest) cubren el
    generador, la validación, XMI, la autoría, el motor híbrido y el prompt del
    moderador. Fallan si un cambio rompe un comportamiento existente.
 4. **Evolución sin romper lo anterior:** el 2do Parcial agregó MongoDB, IA

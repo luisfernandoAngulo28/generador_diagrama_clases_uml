@@ -71,8 +71,8 @@ Architect 13.5 (Import Package from XMI). EA reconoce las 4 clases con sus atrib
 
 ### A.7 Pruebas automatizadas
 
-El backend tiene **146 pruebas unitarias en 22 archivos** (Vitest), todas
-aprobadas al 02/11/2026. Cubren:
+El backend tiene **152 pruebas unitarias en 22 archivos** (Vitest), todas
+aprobadas al 05/11/2026. Cubren:
 - el generador y cada plantilla;
 - validación y XMI;
 - autoría y bitácora;
@@ -82,8 +82,10 @@ Evidencia: Captura 3 del capítulo 7 (`npx vitest run` con "117 passed").
 
 ### A.8 Persistencia en MongoDB con autoría granular (2do Parcial)
 
-- Colecciones `diagrams`, `diagram_sessions`, `diagram_activity_logs` y
-  `group_chat_messages`.
+- Colecciones `diagrams`, `diagram_versions`, `diagram_sessions`,
+  `diagram_activity_logs` y `group_chat_messages`.
+- Historial de versiones con **Restaurar** (*Archivo → Historial de versiones*;
+  Captura 14 del capítulo 7).
 - Cada clase, atributo y relación registra quién la creó, quién la modificó y
   desde qué fuente (manual, IA o XMI).
 - Migración desde PostgreSQL con IDs conservados: 8 diagramas y 55 entradas de

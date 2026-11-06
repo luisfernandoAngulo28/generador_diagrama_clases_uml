@@ -92,6 +92,8 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 | **Ejecutor configurable** | `d003cf8` | 18/10 | Interruptor por sala «IA edita el lienzo» / «IA solo sugiere» (`ai:settings`, `applyCanvasPolicy`) | 8 tests nuevos; prueba local con Ollama en ambos modos |
 | **Modelo propio en Ollama** | `83e4e9e` | 18/10 | `moderador-uml`: Modelfile generado desde el código, `npm run ollama:modelo`, respaldo a qwen2.5 base | 4 tests nuevos; respuesta real en el chat con 🏠 Ollama Local |
 | **Modo IA** | `fee2261` | 02/11 | Vista propia por persona: barra compacta, chat al centro con accesos directos (revisar, crear proyecto, explicar, qué hizo el equipo) y el diagrama como vista previa en vivo de solo lectura | Prueba en navegador a 1100 px y 375 px: sin scroll horizontal, se recuerda al recargar y se sale al lienzo normal |
+| **Generador según OMT** | `e4b9fbd` | 05/11 | La base del backend generado la crea solo el ORM; herencia JOINED; agregación y composición con su semántica UML; `data.sql` sobre las mismas tablas | Proyecto generado levantado con PostgreSQL (ver 2.4.7) |
+| **Historial de versiones** | `557acef` | 05/11 | Una foto del modelo por sesión de edición (colección `diagram_versions`); *Archivo → Historial de versiones* con **Restaurar**, que crea una versión nueva y queda en la bitácora | 6 tests nuevos; prueba de punta a punta por API y en el navegador (ver 2.4.8) |
 | **IA multifuncional** | `4150960` | 02/11 | Revisiones con los resultados reales del validador, proyecto completo de una sola vez, y respuestas sin notas técnicas cuando nadie pidió un cambio | 17 tests nuevos; prueba real con Gemini y con Ollama, y con un segundo usuario conectado |
 
 **Tamaño del cambio del 2do Parcial:** 94 archivos, **+8.673 / −252 líneas** (`348f1aa..b014a42`).
@@ -102,7 +104,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 
 ### 2.4.1 Pruebas automatizadas
 
-- **Backend:** **146 pruebas unitarias en 22 archivos, todas aprobadas**
+- **Backend:** **152 pruebas unitarias en 22 archivos, todas aprobadas**
   (`npx vitest run`, 02/11/2026; la Captura 3 muestra la corrida del 17/10,
   con 117, antes del interruptor configurable). Cubren el generador y sus plantillas,
   validación, XMI, autoría y bitácora (`authorship.util.spec.ts`), saneamiento
@@ -224,6 +226,20 @@ Empleado), una relación N:M (Producto–Categoría), una composición
 
 La primera corrida encontró los defectos 13 a 16 de la tabla siguiente; esta
 tabla muestra el resultado después de corregirlos.
+
+### 2.4.8 Historial de versiones (05/11/2026)
+
+`backend/scripts-prueba/probar-versiones.py`, contra la pila local:
+
+| Paso | Resultado |
+|---|---|
+| Crear el diagrama y guardar dos veces seguidas (misma persona) | ✅ Una sola versión (v1, 4 cambios): el autoguardado no llena el historial |
+| Un cambio aplicado por el Moderador IA | ✅ Versión propia (v2, «vía IA») |
+| Restaurar v1 | ✅ El diagrama vuelve a sus 3 clases y se crea **v3** ("Restauró la versión 1"); v1 y v2 siguen en el historial |
+| Bitácora | ✅ "Restauró la versión 1 del diagrama" y el efecto ("Eliminó la clase Factura") |
+| Restaurar desde el panel, en el navegador | ✅ El lienzo se recarga con el modelo restaurado; sin errores en la consola |
+
+![Captura 14: Archivo → Historial de versiones. La versión actual, un cambio «vía IA» y el botón Restaurar en las anteriores.](docs/documento_final/img/evidencias/versiones_panel.jpg){width=5.5in}
 
 ## 2.5 Registro de defectos encontrados y corregidos
 
