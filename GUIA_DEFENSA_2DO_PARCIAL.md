@@ -368,6 +368,22 @@ Es **I-CASE (integrada)**:
 - **Despliegue:** Docker Compose en EC2 con TLS → `docker-compose.prod.yml` y
   diagrama **01**.
 
+**E4-bis. ¿Dónde está desplegado? ¿Por qué en Ohio?**
+- EC2 t3.micro en **us-east-2 (Ohio)**, IP fija `77.112.242.36`, dominio
+  DuckDNS con certificado de Let's Encrypt (vence el 03/12/2026).
+- La cuenta de AWS pertenece a una organización educativa cuya política (SCP)
+  solo permite EC2 en Ohio: Virginia y São Paulo están bloqueadas. El precio
+  es el mismo que en Virginia y el QR apunta al dominio, no a la región.
+- **Mínimo privilegio:** dos usuarios IAM. `diagramador-deploy` (EC2 + S3) se
+  usa solo desde la terminal para desplegar; `diagramador-app-s3`, el que usa
+  el backend, solo puede leer, escribir y borrar en **un** bucket
+  (`deploy/iam/politica-app-s3.json`). Si se filtra la clave de la app, no
+  sirve para crear servidores.
+- **2 GB de swap:** el servidor tiene 1 GB de RAM y cuatro contenedores; sin swap
+  el sistema mataba procesos. Se compila en la PC y se sube el `dist/`
+  (`deploy/deploy-local-build.ps1`), porque compilar en el servidor lo dejaba
+  sin memoria.
+
 **E5. ¿Qué significa "dar larga vida al software" en su proyecto?**
 Que cambiar sea barato:
 - **módulos independientes**: agregar un proveedor de IA es implementar

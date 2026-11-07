@@ -17,7 +17,8 @@ La herramienta está desplegada en un servidor accesible públicamente, con
 certificado SSL válido (HTTPS):
 
 - **URL de producción:** `https://diagramasw1pracial100.duckdns.org`
-- **Infraestructura:** servidor AWS EC2 con Docker Compose. Contenedores:
+- **Infraestructura:** servidor AWS EC2 (t3.micro, región us-east-2) con
+  Docker Compose. Contenedores:
   - frontend (nginx con SSL);
   - backend NestJS;
   - PostgreSQL 16;
@@ -26,10 +27,13 @@ certificado SSL válido (HTTPS):
   Los servicios se reinician solos y HTTP redirige a HTTPS.
 
   La versión del 2do Parcial (con MongoDB y el Moderador IA) está desplegada
-  y verificada en producción desde el 17/10/2026.
+  y verificada en producción desde el 17/10/2026. El 07/11/2026 se volvió a
+  desplegar en una cuenta nueva de AWS, restaurando los respaldos de ambas
+  bases de datos.
 - **Dominio y certificado:** DuckDNS + Let's Encrypt.
 - **Almacenamiento en la nube:** los archivos adjuntos de los diagramas se
-  guardan en un *bucket* de Amazon S3.
+  guardan en un *bucket* de Amazon S3. El backend usa un usuario IAM que solo
+  puede leer, escribir y borrar en ese bucket (mínimo privilegio).
 
 ![Figura A.1: verificación del sitio en producción: certificado de Let's Encrypt válido hasta el 03/12/2026, TLS 1.3 y redirección de HTTP a HTTPS.](docs/documento_final/img/evidencias/prod_https.png){width=6in}
 
