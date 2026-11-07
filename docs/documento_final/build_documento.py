@@ -296,9 +296,13 @@ def construir_referencia() -> Path:
     para_style("Cover QR", 11, False, None, before=36, after=0)
     para_style("Cover QR Caption", 10, True, azul, after=0)
     # Portadillas de "PARTE N": página propia, centradas verticalmente.
-    parte = para_style("Parte", 28, True, azul, before=230, after=6)
+    parte = para_style("Parte", 24, True, azul, before=230, after=6)
     parte.paragraph_format.page_break_before = True
     parte.paragraph_format.keep_with_next = True
+    # Nivel de esquema 1: el índice (TOC con \u) lista "Parte I – …" como entrada.
+    nivel = OxmlElement("w:outlineLvl")
+    nivel.set(qn("w:val"), "0")
+    parte.element.get_or_add_pPr().append(nivel)
     para_style("Parte Titulo", 16, False, RGBColor(0x2C, 0x3E, 0x50), after=0)
     ph = para_style("Placeholder", 10, False, RGBColor(0x7A, 0x5C, 0x00), align=WD_ALIGN_PARAGRAPH.LEFT,
                     before=4, after=8)

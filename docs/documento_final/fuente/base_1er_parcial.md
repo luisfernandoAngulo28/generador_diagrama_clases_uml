@@ -988,11 +988,11 @@ El backend invoca directamente el SDK de Google Gemini (sin microservicio interm
 Esta fase **valida** que la implementación cumple los requisitos del Perfil y
 del Modelo de Casos de Uso, y **verifica** que cada parte hace lo que su diseño
 dice. A diferencia del resto del documento, aquí no se describe lo que el
-sistema debería hacer, sino la evidencia de que lo hace. El capítulo cubre los
+sistema debería hacer, sino la evidencia de que lo hace. Se organiza con las actividades del flujo de trabajo de Prueba del Proceso Unificado: planificar, diseñar, implementar, realizar las pruebas de integración y de sistema, y evaluar. El capítulo cubre los
 dos ciclos: los casos CP-01 a CP-04 y SYS-01 a SYS-05 son del 1er Parcial, y el
 resto del 2do.
 
-## 6.1 Plan de pruebas
+## 6.1 Planificar las pruebas
 
 | Nivel | Qué se prueba | Técnica | Herramienta | Entorno |
 |---|---|---|---|---|
@@ -1013,20 +1013,7 @@ resto del 2do.
   **sin recargar**.
 - La autoría la calcula el servidor: un autor enviado por el cliente se ignora.
 
-## 6.2 Pruebas unitarias
-
-La suite del backend tiene **152 casos en 22 archivos**, todos aprobados
-(`npx vitest run`). Cada archivo `*.spec.ts` está junto al código que prueba.
-
-| Módulo | Archivos de prueba | Casos | Qué verifican |
-|---|---|---|---|
-| **Generador** | `relations.util`, `generator.service` y las plantillas `entity`, `enum`, `interface`, `data-sql` y `postman` | 38 | Lado dueño e inverso de cada relación; cascada solo en la composición; `SET NULL` en la agregación; herencia `JOINED`; tablas intermedias N:M; datos de prueba y colección de Postman coherentes con las entidades |
-| **Diagramas** | `validation.util`, `authorship.util`, `model-diff.util`, `versions.service`, `xmi-import.util`, `model-sanitize.util`, `documentation.util` | 43 | Reglas de validación del modelo; autoría que el cliente no puede falsificar; una entrada de bitácora por cambio; unión de versiones dentro de 10 minutos; ida y vuelta del XMI |
-| **Inteligencia artificial** | `moderator/intent`, `providers/hybrid.provider`, `moderator/moderator-prompt`, `moderator/canvas-policy`, `validate-operations`, `providers/ollama.provider`, `ollama-modelfile` | 70 | Distinguir una pregunta de un pedido de cambio; respaldo Gemini ⇄ Ollama, *timeouts* y *circuit breaker*; que el prompt nombre a quien pregunta; que la IA no toque el lienzo sin un pedido explícito; descarte de operaciones inválidas |
-| **Aplicación** | `app.controller` | 1 | Arranque del controlador raíz |
-| **Total** | **22** | **152** | |
-
-## 6.3 Casos de prueba
+## 6.2 Diseñar las pruebas (casos de prueba)
 
 | ID | Caso de uso | Entrada y pasos | Resultado esperado | Resultado obtenido |
 |---|---|---|---|---|
@@ -1047,7 +1034,20 @@ La suite del backend tiene **152 casos en 22 archivos**, todos aprobados
 | CP-15 | Seguridad | Pedir `/diagrams` y `/auth/me` sin token; abrir el socket | 401 en ambas rutas; el socket solo identifica al usuario con el JWT del *handshake* | Aprobado |
 | CP-16 | Adjuntos (2do Parcial) | Subir, leer y borrar con el usuario IAM de la aplicación | Funciona con un usuario que solo tiene permiso sobre ese *bucket* | Aprobado |
 
-## 6.4 Pruebas de integración
+## 6.3 Implementar las pruebas (pruebas unitarias automatizadas)
+
+Los casos que se pueden automatizar se implementaron como componentes de prueba: la suite del backend tiene **152 casos en 22 archivos**, todos aprobados
+(`npx vitest run`). Cada archivo `*.spec.ts` está junto al código que prueba.
+
+| Módulo | Archivos de prueba | Casos | Qué verifican |
+|---|---|---|---|
+| **Generador** | `relations.util`, `generator.service` y las plantillas `entity`, `enum`, `interface`, `data-sql` y `postman` | 38 | Lado dueño e inverso de cada relación; cascada solo en la composición; `SET NULL` en la agregación; herencia `JOINED`; tablas intermedias N:M; datos de prueba y colección de Postman coherentes con las entidades |
+| **Diagramas** | `validation.util`, `authorship.util`, `model-diff.util`, `versions.service`, `xmi-import.util`, `model-sanitize.util`, `documentation.util` | 43 | Reglas de validación del modelo; autoría que el cliente no puede falsificar; una entrada de bitácora por cambio; unión de versiones dentro de 10 minutos; ida y vuelta del XMI |
+| **Inteligencia artificial** | `moderator/intent`, `providers/hybrid.provider`, `moderator/moderator-prompt`, `moderator/canvas-policy`, `validate-operations`, `providers/ollama.provider`, `ollama-modelfile` | 70 | Distinguir una pregunta de un pedido de cambio; respaldo Gemini ⇄ Ollama, *timeouts* y *circuit breaker*; que el prompt nombre a quien pregunta; que la IA no toque el lienzo sin un pedido explícito; descarte de operaciones inválidas |
+| **Aplicación** | `app.controller` | 1 | Arranque del controlador raíz |
+| **Total** | **22** | **152** | |
+
+## 6.4 Realizar las pruebas de integración
 
 Cada integración se probó contra el servicio real, no contra una respuesta
 simulada.
@@ -1074,7 +1074,7 @@ ensayando la pila completa con Docker Compose en local):
 - **Variables de entorno faltantes:** `docker-compose.prod.yml` no pasaba
   `JWT_SECRET` ni las variables de AWS al backend.
 
-## 6.5 Pruebas de sistema
+## 6.5 Realizar las pruebas de sistema
 
 | ID | Escenario de punta a punta | Entorno | Resultado |
 |---|---|---|---|
@@ -1087,7 +1087,7 @@ ensayando la pila completa con Docker Compose en local):
 | SYS-07 | Visor móvil en un teléfono Android real (CP-10) | Producción | Aprobado |
 | SYS-08 | Redespliegue en una cuenta nueva de AWS: restaurar los respaldos y verificar HTTPS, WebSocket y S3 | Producción, 07/11/2026 | Aprobado: 13 diagramas, 210 entradas de bitácora y 88 mensajes restaurados |
 
-## 6.6 Pruebas de regresión
+### 6.5.1 Pruebas de regresión
 
 - **Suite unitaria:** se corre completa después de cada cambio.
 - **Regresión del 1er Parcial (18/10/2026):** con la versión que incluye el
@@ -1095,12 +1095,12 @@ ensayando la pila completa con Docker Compose en local):
   peticiones de Postman, la edición por chat, el dictado por voz y la foto de
   pizarra (detalle en 7.4.5). Todo siguió funcionando.
 
-## 6.7 Evaluación de las pruebas
+## 6.6 Evaluar las pruebas
 
 | Nivel | Casos | Aprobados |
 |---|---|---|
-| Unitarias | 152 | 152 |
-| Casos de prueba (6.3) | 16 | 16 |
+| Unitarias (6.3) | 152 | 152 |
+| Casos de prueba (6.2) | 16 | 16 |
 | Integración (6.4) | 7 | 7 |
 | Sistema (6.5) | 8 | 8 |
 
@@ -1109,7 +1109,7 @@ causa en la sección 7.5. Los más importantes los encontraron las pruebas de
 sistema y de integración, no las unitarias: por ejemplo, el backend generado
 pasaba sus pruebas unitarias pero creaba tablas duplicadas, y solo se vio al
 **levantarlo** con PostgreSQL (CP-11). Se considera que el sistema cumple los
-criterios de aceptación de 6.1.
+criterios de aceptación planificados en la sección 6.1.
 
 **PARTE 3 --- Mecanismo para que el Usuario Utilice la Aplicación**
 
@@ -1207,7 +1207,7 @@ El backend de la herramienta CASE está construido en NestJS + TypeScript (modo 
 
 - **TypeScript strict:** verificación estricta de tipos en tiempo de compilación en backend y frontend.
 
-- **Vitest:** 152 pruebas unitarias del backend (detalle en la sección 6.2 de la Parte 2).
+- **Vitest:** 152 pruebas unitarias del backend (detalle en la sección 6.3 de la Parte 2).
 
 - **flutter_lints y flutter analyze:** reglas de análisis estático oficiales para el código Dart del cliente móvil.
 

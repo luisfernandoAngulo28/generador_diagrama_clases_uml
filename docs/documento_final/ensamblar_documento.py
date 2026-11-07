@@ -174,6 +174,150 @@ def anexos_2do() -> tuple[str, str]:
 
 
 # --------------------------------------------------------------------------
+# Orden final del documento (08/11/2026)
+# --------------------------------------------------------------------------
+# Perfil del Proyecto → Parte I (fundamentación) → Parte II (los flujos de
+# trabajo del PUDS, numerados desde 1) → Parte III (mecanismo de uso) →
+# Bibliografía → Anexos (grupo, estándar, evidencias, metodología).
+CAPS_PARTE2 = {
+    "2": "Flujo de Trabajo: Captura de Requisitos",
+    "3": "Flujo de Trabajo: Análisis",
+    "4": "Flujo de Trabajo: Diseño",
+    "5": "Flujo de Trabajo: Implementación",
+    "6": "Flujo de Trabajo: Prueba",
+    "7": "Registro del desarrollo (evidencia del proceso)",
+}
+
+
+def _bloques(texto: str, patron: str) -> list[str]:
+    """Parte `texto` antes de cada línea que cumple `patron` (multilínea)."""
+    return re.split(rf"(?m)^(?={patron})", texto)
+
+
+def _perfil_al_inicio(base: str) -> str:
+    ini = base.index("# 1. Perfil\n")
+    fin = base.index("# 2. Captura De Requisitos")
+    perfil, base = base[ini:fin], base[:ini] + base[fin:]
+    cabeza, *secs = _bloques(perfil, r"## 1\.\d[ .]")
+    grupos: dict[str, str] = {}
+    for s in secs:
+        grupos.setdefault(re.match(r"## 1\.(\d)", s).group(1), "")
+        grupos[re.match(r"## 1\.(\d)", s).group(1)] += s
+    # Introducción, Objetivo general, Objetivos específicos, Problema, Alcance
+    orden = ["1", "3", "4", "2", "5"]
+    nuevo = cabeza.replace("# 1. Perfil", "# 1. Perfil del Proyecto", 1)
+    for k, viejo in enumerate(orden, 1):
+        nuevo += re.sub(rf"(?m)^(#+ )1\.{viejo}(\.?)", rf"\g<1>1.{k}\2", grupos[viejo])
+    p1 = base.index("**PARTE 1")
+    return base[:p1] + nuevo.rstrip() + "\n\n" + base[p1:]
+
+
+def _diseno_en_orden(base: str) -> str:
+    """Diseño: arquitectura, casos de uso (con el diseño detallado) y datos."""
+    ini = base.index("# 4. Diseño\n")
+    fin = base.index("# 5. Implementación")
+    cap = base[ini:fin]
+    cabeza, *secs = _bloques(cap, r"## 4\.\d ")
+    s = {re.match(r"## 4\.(\d)", x).group(1): x for x in secs}
+    detallado = s["4"].replace("## 4.4 Diseño detallado del Segundo Ciclo", "### 4.2.2 Diseño detallado del Segundo Ciclo", 1)
+    casos = s["3"].replace("## 4.3 Diseño de casos de uso", "## 4.2 Diseño de casos de uso", 1)
+    casos = casos.replace("### 4.3.1 Diagrama de secuencia", "### 4.2.1 Diagrama de secuencia", 1)
+    datos = s["2"].replace("## 4.2 Diseño de datos lógicos", "## 4.3 Diseño de datos lógicos", 1)
+    nuevo = cabeza + s["1"] + casos + detallado + datos
+    nuevo = nuevo.replace("está en la sección 4.4)", "está en la sección 4.2.2)")
+    return base[:ini] + nuevo + base[fin:]
+
+
+def _restar(m: re.Match) -> str:
+    return m.group(1) + str(int(m.group(2)) - 1) + m.group(3)
+
+
+def _parte2_desde_uno(base: str) -> str:
+    """Los capítulos 2-7 de la Parte II pasan a 1-6, y con ellos sus
+    referencias (en la Parte II, en la Parte I cuando dicen «de la Parte 2»,
+    y en los anexos)."""
+    p2, p3 = base.index("**PARTE 2"), base.index("**PARTE 3")
+    an = base.index("# Anexos")
+    antes, parte2, medio, anexos = base[:p2], base[p2:p3], base[p3:an], base[an:]
+
+    def titulos(m: re.Match) -> str:
+        return f"# {int(m.group(1)) - 1}. {CAPS_PARTE2[m.group(1)]}"
+    parte2 = re.sub(r"(?m)^# ([2-7])\. .*$", titulos, parte2)
+    parte2 = re.sub(r"(?m)^(#{2,4} )([2-7])((?:\.\d+)+\.?)", _restar, parte2)
+
+    # "capítulo 7 de la Parte 1" (el PUDS) no se toca: solo cambia la Parte II.
+    refs = (r"(\(ver |[Ss]ecci(?:ón|ones) |detalle en |[Cc]apítulo |SYS-08 en el capítulo )"
+            r"([2-7])((?:\.\d+)*)(?![\d.]*\s+de la Parte 1)")
+    parte2 = re.sub(refs, _restar, parte2)
+    parte2 = parte2.replace("prueba completa en 2.4.7", "prueba completa en 6.4.7")
+    de_parte2 = r"((?:[Ss]ección|capítulo) )([2-7])((?:\.\d+)*)(?= de la Parte 2)"
+    antes = re.sub(de_parte2, _restar, antes)
+    antes = re.sub(r"(Parte 2, sección )([2-7])((?:\.\d+)*)", _restar, antes)
+    anexos = re.sub(de_parte2, _restar, anexos)
+    # En los anexos, "capítulo 7" y "sección 7.x" son el registro del desarrollo
+    # (Parte II); "sección 3.x" es la Parte III y no cambia.
+    anexos = re.sub(r"(\(ver |[Ss]ecci(?:ón|ones) |[Cc]apítulo )(7)((?:\.\d+)*)(?![\d.]*\s+de la Parte)",
+                    _restar, anexos)
+    return antes + parte2 + medio + anexos
+
+
+def _parte1_desde_uno(base: str) -> str:
+    """Los capítulos 2-8 de la Parte I pasan a 1-7 (el Perfil va antes, sin parte)."""
+    p1, p2 = base.index("**PARTE 1"), base.index("**PARTE 2")
+    antes, parte1, resto = base[:p1], base[p1:p2], base[p2:]
+    parte1 = re.sub(r"(?m)^(#{1,4} )([2-8])((?:\.\d+)*\.?)(?= )", _restar, parte1)
+    parte1 = re.sub(r"((?:mencionad[ao]s?|descrita|descritos?) en )([2-8])((?:\.\d+)+)", _restar, parte1)
+    resto = re.sub(r"([Cc]apítulo )([2-8])((?:\.\d+)*)(?= de la Parte 1)", _restar, resto)
+    return antes + parte1 + resto
+
+
+def _bibliografia_y_anexos(base: str) -> str:
+    """Bibliografía antes de los anexos; el Anexo A pasa a ser el del grupo
+    y las evidencias pasan a ser el Anexo C (como en el formato de referencia)."""
+    bib = base.index("# Bibliografía")
+    base, biblio = base[:bib], base[bib:]
+    an = base.index("# Anexos")
+    antes, anexos = base[:an], base[an:]
+    cabeza, *secs = _bloques(anexos, r"## Anexo [A-F]")
+    s = {re.match(r"## Anexo ([A-F])", x).group(1): x for x in secs}
+    grupo = re.sub(r"^## Anexo C\.", "## Anexo A.", s["C"])
+    evid = re.sub(r"^## Anexo A\.", "## Anexo C.", s["A"])
+    evid = re.sub(r"(?m)^### A\.(\d+)", r"### C.\1", evid)
+    otros = "".join(v for k, v in s.items() if k not in "ABCD")
+    anexos = cabeza + grupo + s["B"] + evid + s["D"] + otros
+
+    def renombrar(texto: str) -> str:
+        texto = re.sub(r"\bA\.(\d+) a A\.(\d+)", r"C.\1 a C.\2", texto)
+        texto = re.sub(r"\b(Figura |[Ss]ecciones |[Ss]ección )A\.(\d+[ab]?)", r"\1C.\2", texto)
+        texto = re.sub(r"(Pruebas; )Anexo A\b", r"\1Anexo C", texto)
+        texto = texto.replace("| 7.4; Anexo A |", "| 6.4; Anexo C |")
+        # Dos figuras de la Parte I llevaban un rótulo de anexo del 1er Parcial
+        return re.sub(r"(\*{1,2})Anexo A\.[12] --- ", r"\1Figura --- ", texto)
+    return renombrar(antes).rstrip() + "\n\n" + biblio.rstrip() + "\n\n" + renombrar(anexos).rstrip() + "\n"
+
+
+def _parte3_desde_uno(base: str) -> str:
+    """Parte III: "3.1." → "1.", "3.2.8" → "2.8"... como las otras partes."""
+    p3, bib = base.index("**PARTE 3"), base.index("# Bibliografía")
+    antes, parte3, resto = base[:p3], base[p3:bib], base[bib:]
+    parte3 = re.sub(r"(?m)^(#{1,4} )3\.(\d+(?:\.\d+)*\.?)(?= )", r"\1\2", parte3)
+    parte3 = re.sub(r"\(ver 3\.(\d+(?:\.\d+)*)\)", r"(ver \1)", parte3)
+    parte3 = re.sub(r"descrito en la sección 3\.1\b", "descrito en el capítulo 1 de esta parte", parte3)
+    parte3 = re.sub(r"descritos en la sección 3\.1\b", "descritos en el capítulo 1 de esta parte", parte3)
+    resto = re.sub(r"de la sección 3\.3 \(", "del capítulo 3 de la Parte 3 (", resto)
+    return antes + parte3 + resto
+
+
+def reordenar(base: str) -> str:
+    base = _perfil_al_inicio(base)
+    base = _diseno_en_orden(base)
+    base = _parte2_desde_uno(base)
+    base = _parte1_desde_uno(base)
+    base = _parte3_desde_uno(_bibliografia_y_anexos(base))
+    return base
+
+
+# --------------------------------------------------------------------------
 # Ensamblado
 # --------------------------------------------------------------------------
 def ensamblar() -> Path:
@@ -246,12 +390,18 @@ def ensamblar() -> Path:
     refs_idx = base.index("**Referencias**")
     base_refs = base[refs_idx + len("**Referencias**"):]
     base = base[:refs_idx] + anexo_c_d.strip() + "\n\n" + bibliografia(base_refs)
+    base = reordenar(base)
 
-    # "**PARTE N --- Título**" → portadilla centrada en su propia página
+    # "**PARTE N --- Título**" → portadilla "Parte I – Título" en su propia
+    # página; el estilo "Parte" tiene nivel de esquema 1 y entra al índice.
+    titulos_partes = {
+        "1": "Parte I – Fundamentación Teórica",
+        "2": "Parte II – Proceso de Desarrollo",
+        "3": "Parte III – Mecanismo para que el Usuario Utilice la Aplicación",
+    }
     base = re.sub(
-        r"^\*\*(PARTE \d+) --- (.+?)\*\*\s*$",
-        lambda m: f'::: {{custom-style="Parte"}}\n{m.group(1)}\n:::\n\n'
-        f'::: {{custom-style="Parte Titulo"}}\n{m.group(2)}\n:::\n',
+        r"^\*\*PARTE (\d+) --- (.+?)\*\*\s*$",
+        lambda m: f'::: {{custom-style="Parte"}}\n{titulos_partes[m.group(1)]}\n:::\n',
         base, flags=re.M,
     )
 

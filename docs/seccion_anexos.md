@@ -77,7 +77,7 @@ Architect 13.5 (Import Package from XMI). EA reconoce las 4 clases con sus atrib
 ### A.7 Pruebas automatizadas
 
 El backend tiene **152 pruebas unitarias en 22 archivos** (Vitest), todas
-aprobadas. El detalle por módulo está en la sección 6.2 de la Parte 2.
+aprobadas. El detalle por módulo está en la sección 6.3 de la Parte 2.
 
 ![Figura A.7: salida de `npx vitest run --reporter=verbose` en el backend (07/11/2026), agrupada por archivo: 22 archivos y 152 pruebas aprobadas.](docs/documento_final/img/evidencias/vitest_152.png){width=5.6in}
 
@@ -182,7 +182,7 @@ correspondiente (`docs/estandar_de_codificacion.md`). Incluye:
 | Materia | Ingeniería de Software 1 (SW1) |
 | Docente | Ing. Rolando Martínez |
 | Grupo | **43** |
-| Integrantes | **Elizabeth Rivero Peña** (registro ⟨…⟩) · **Luis Fernando Angulo Heredia** (registro ⟨…⟩) |
+| Integrantes | **Angulo Heredia Luis Fernando** (registro 215001958) · **Peña Rivero Elizabeth** (registro 215053745) |
 | Fecha de entrega | Martes 10 de noviembre de 2026: documento hasta las 08:00, defensa a las 16:00 |
 | Repositorio (QR 1) | `https://github.com/luisfernandoAngulo28/generador_diagrama_clases_uml` |
 | Aplicación en producción (QR 2) | `https://diagramasw1pracial100.duckdns.org` |
