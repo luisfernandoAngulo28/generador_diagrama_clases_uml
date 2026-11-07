@@ -58,7 +58,7 @@ El ciclo incluye además persistencia en MongoDB con autoría granular y sesione
 
 ### Módulo de Chat Grupal y Moderador IA (Segundo Ciclo)
 
-Chat público de la sala del diagrama: todos ven cada mensaje. Las preguntas a la IA las responde el Moderador IA dirigiéndose por nombre a quien pregunta, con contexto grupal e individual, y muestra qué proveedor respondió (🏠 Ollama Local / ☁️ Gemini Cloud). Si se le pide explícitamente, aplica cambios al diagrama, que quedan registrados como "vía IA".
+Chat público de la sala del diagrama: todos ven cada mensaje. Las preguntas a la IA las responde el Moderador IA dirigiéndose por nombre a quien pregunta, con contexto grupal e individual, y muestra qué proveedor respondió («Ollama Local» o «Gemini Cloud»). Si se le pide explícitamente, aplica cambios al diagrama, que quedan registrados como "vía IA".
 
 ### Módulo de Autoría, Bitácora y Sesiones (Segundo Ciclo)
 
@@ -399,11 +399,54 @@ En el segundo ciclo, el paquete **ai** deja de ser independiente: depende de **d
 
 @@ despliegue
 
-**Despliegue --- Segundo Ciclo.** Se agrega un cuarto contenedor, **MongoDB 7** con el volumen `mongo_data`, junto a PostgreSQL 16, el backend NestJS y el frontend (nginx con TLS de Let's Encrypt). nginx enruta además `/sessions`. El backend consulta Gemini en la nube y, como respaldo, un Ollama local (`docker-compose.local.yml` para la defensa sin internet). El celular se conecta por HTTPS/WSS al mismo dominio.
+**Despliegue --- Segundo Ciclo.** Se agrega un cuarto contenedor, **MongoDB 7** con el volumen `mongo_data`, junto a PostgreSQL 16, el backend NestJS y el frontend (nginx con TLS de Let's Encrypt). El backend consulta Gemini en la nube y, como respaldo, un Ollama local (`docker-compose.local.yml` para la defensa sin internet). El celular se conecta por HTTPS/WSS al mismo dominio.
 
-![](docs/diagrams/ea/img/01_despliegue.png){width="6.2in"}
+![rot](docs/diagrams/ea/img/01_despliegue.png){width="6.4in"}
 
 *Figura --- Diagrama de Despliegue, Ciclo 2 (UML 2.5.1)*
+
+**Nodos y artefactos.** Cada elemento del diagrama corresponde a un archivo de configuración del repositorio:
+
+| Nodo | Tipo UML | Qué ejecuta | Definido en |
+|---|---|---|---|
+| PC del usuario | «device» | Navegador con la SPA React | `frontend/` (compilada con Vite) |
+| Celular Android | «device» | `ExamenSW1.apk`, visor UML en vivo | `flutter-template/` |
+| AWS EC2 t3.micro, us-east-2 | «device» | Ubuntu 24.04 con Docker; 1 GB de RAM más 2 GB de *swap* | `deploy/ec2-user-data.sh` |
+| Docker Engine + Compose | «executionEnvironment» | Los cuatro contenedores, con reinicio automático | `docker-compose.prod.yml` |
+| Contenedor frontend | «executionEnvironment» | nginx: TLS, redirección de HTTP a HTTPS y *proxy* al backend | `frontend/nginx.conf` |
+| Contenedor backend | «executionEnvironment» | NestJS en Node.js 24 (`dist/main.js`) | `backend/Dockerfile.prod` |
+| Contenedores mongo y db | «executionEnvironment» | MongoDB 7 y PostgreSQL 16 con volúmenes persistentes | `docker-compose.prod.yml` |
+| Amazon S3 | «device» | *Bucket* de adjuntos | `deploy/iam/politica-app-s3.json` |
+| Google Cloud | «device» | API de Gemini | variable `GEMINI_API_KEY` |
+| Equipo local | «device» | Ollama con el modelo `moderador-uml` (plan B sin internet) | `docker-compose.local.yml` |
+
+**Rutas de comunicación.**
+
+| Desde → hasta | Protocolo y puerto | Para qué |
+|---|---|---|
+| Navegador / celular → nginx | HTTPS y WSS, 443 | Toda la aplicación; el 80 solo redirige |
+| nginx → backend | HTTP y WebSocket, 3000 | `/auth`, `/diagrams`, `/sessions`, `/ai`, `/generator`, `/attachments`, `/socket.io` |
+| Backend → MongoDB | Protocolo de MongoDB, 27017 | Diagramas, versiones, bitácora, sesiones y chat |
+| Backend → PostgreSQL | SQL sobre TCP, 5432 | Usuarios y adjuntos |
+| Backend → S3 y Gemini | HTTPS, 443 | Archivos e inteligencia artificial |
+| Backend → Ollama | HTTP, 11434 | Respaldo de la IA sin internet |
+
+**Seguridad del despliegue.**
+
+- **Red:** el *Security Group* solo abre los puertos 22 (SSH, únicamente con la llave privada), 80 y 443. Las bases de datos no se exponen: solo el backend las ve, por la red interna de Docker.
+- **Cifrado:** certificado de Let's Encrypt para el dominio `diagramasw1pracial100.duckdns.org`; el tráfico HTTP se redirige a HTTPS.
+- **Mínimo privilegio en AWS:** dos usuarios IAM. `diagramador-deploy` (EC2 y S3) se usa solo desde la terminal para desplegar; `diagramador-app-s3`, el que usa el backend, solo puede leer, escribir y borrar en el *bucket* de adjuntos. Si se filtra la clave de la aplicación, no sirve para crear servidores.
+- **Secretos:** las claves viven en `.env.production`, fuera del repositorio.
+
+**Proceso de despliegue** (detalle en `deploy/GUIA_REDESPLIEGUE_AWS.md`):
+
+1. Crear la instancia EC2 con `ec2-user-data.sh`, que instala Docker y configura el *swap*, y asignarle una IP fija (Elastic IP).
+2. Apuntar el dominio de DuckDNS a esa IP.
+3. Copiar el código, las variables de entorno y el certificado.
+4. Compilar en la PC y subir el resultado (`deploy/deploy-local-build.ps1`): compilar en el servidor de 1 GB agotaba la memoria.
+5. Restaurar los respaldos de MongoDB y PostgreSQL y verificar HTTPS, WebSocket y S3 (SYS-08 en el capítulo 6).
+
+El 07/11/2026 este proceso se repitió completo en una cuenta nueva de AWS, en unos 40 minutos y sin perder datos.
 
 @@ diseno_logico
 
@@ -583,39 +626,6 @@ El segundo ciclo extiende los mismos servicios (backend NestJS, frontend React y
 
 @@ pruebas
 
-## 6.6 Pruebas del Segundo Ciclo
-
-- **Pruebas automatizadas:** 152 pruebas unitarias en 22 archivos (Vitest), todas aprobadas. Cubren autoría y bitácora, saneamiento del modelo, motor híbrido, prompt del moderador, detección de pedidos explícitos, validación de operaciones de la IA, generador y XMI.
-- **CP-05 --- Autoría granular:** Marco crea una clase y Luis le agrega un atributo. El sistema registra a Marco como autor, a Luis como última edición y a Luis como autor del atributo; un autor enviado por el cliente se ignora. *Resultado: correcto.*
-- **CP-06 --- Sesión continua:** salir de la sala la deja PAUSED; volver la reactiva con el mismo identificador y restaura el chat. *Resultado: correcto.*
-- **CP-07 --- Moderador IA:**
-  - una pregunta teórica obtiene respuesta por nombre;
-  - *"¿quién creó Pedido?"* se responde con la bitácora;
-  - *"como te comenté antes…"* demuestra el contexto individual;
-  - un pedido de cambio genera las operaciones correctas y una pregunta no modifica el lienzo.
-
-  *Resultado: correcto.*
-- **CP-08 --- Motor híbrido (medido en CPU):**
-
-  | Escenario | Proveedor que respondió | Tiempo |
-  |---|---|---|
-  | `cloud-first` | Gemini | 4,3 s |
-  | Falla Gemini → respaldo | Ollama | 13,5 s |
-  | `local-first`, modelo precalentado | Ollama | 5,0 s |
-- **CP-09 --- Dos usuarios en el navegador:**
-  - indicador *"pensando para Luis"* visible para ambos;
-  - el cambio pedido por Luis aparece en ambos lienzos;
-  - el inspector muestra *"Creada por Luis · vía IA"*.
-
-  *Resultado: correcto.*
-- **CP-10 --- Visor móvil:** un cambio pedido desde la web aparece en el celular sin recargar, junto con el chat y la autoría. *Resultado: correcto.*
-
-Las pruebas con usuarios reales encontraron y corrigieron, entre otros, estos defectos (el registro completo está en la sección 7.5):
-
-- una pestaña en segundo plano dejaba de sincronizar;
-- las clases perdían su posición al recargar (defecto del ciclo 1);
-- aparecían entradas falsas en la bitácora.
-
 @@ manual
 
 ### 3.2.8 Iniciar sesión (Segundo Ciclo)
@@ -626,7 +636,7 @@ Desde el segundo ciclo, la herramienta pide **registrarse e iniciar sesión** co
 
 El panel derecho es el **chat público del equipo**: todos los conectados ven cada mensaje.
 
-1. Con el **botón del robot activo**, el mensaje se envía también al **Moderador IA**. Todos ven *"La IA está pensando la respuesta para …"* y luego la respuesta, que empieza con tu nombre y muestra qué IA respondió (🏠 Ollama Local o ☁️ Gemini Cloud).
+1. Con el **botón del robot activo**, el mensaje se envía también al **Moderador IA**. Todos ven *"La IA está pensando la respuesta para …"* y luego la respuesta, que empieza con tu nombre y muestra qué IA respondió («Ollama Local» o «Gemini Cloud»).
 2. Con el robot **apagado**, el mensaje es solo para el equipo.
 3. Para que la IA **cambie el diagrama**, pídeselo con un verbo de acción (*"agrega la clase Producto con nombre y precio y relaciónala muchos a muchos con Pedido"*). El cambio aparece en el lienzo de todos y queda registrado como "vía IA".
 4. El **micrófono** permite dictar la pregunta.

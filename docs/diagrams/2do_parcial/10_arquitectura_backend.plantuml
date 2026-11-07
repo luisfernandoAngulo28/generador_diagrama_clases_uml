@@ -1,0 +1,54 @@
+@startuml 10_arquitectura_backend
+' Arquitectura del backend: monolito modular NestJS — UML 2.5.1
+' Refleja backend/src/*/*.module.ts (imports) y las clases de cada módulo.
+!include _estilo.iuml
+hide empty members
+title Arquitectura del Backend — monolito modular NestJS (capas en cada módulo)\n<size:11>UML 2.5.1 · paquetes = módulos NestJS · dependencias = imports entre módulos</size>
+
+package "auth" {
+  class AuthController <<controller>>
+  class AuthService <<service>>
+  class JwtAuthGuard <<guard>>
+}
+package "users" {
+  class UsersService <<service>>
+  class User <<entity>>
+}
+package "diagrams" {
+  class DiagramsController <<controller>>
+  class SessionsController <<controller>>
+  class DiagramsGateway <<gateway>>
+  class DiagramsService <<service>>
+  class SessionsService <<service>>
+  class VersionsService <<service>>
+  class DiagramDocument <<schema>>
+  class DiagramVersionDocument <<schema>>
+  class ActivityLogDocument <<schema>>
+  class DiagramSessionDocument <<schema>>
+  class GroupChatMessageDocument <<schema>>
+}
+package "ai" {
+  class AiController <<controller>>
+  class ChatGateway <<gateway>>
+  class ModeratorService <<service>>
+  class AiService <<service>>
+  class HybridAiProvider <<provider>>
+  class GeminiProvider <<provider>>
+  class OllamaProvider <<provider>>
+}
+package "generator" {
+  class GeneratorController <<controller>>
+  class GeneratorService <<service>>
+}
+package "attachments" {
+  class AttachmentsController <<controller>>
+  class AttachmentsService <<service>>
+  class S3Service <<service>>
+  class Attachment <<entity>>
+}
+
+"auth" ..> "users" : <<use>>
+"diagrams" ..> "auth" : <<use>>
+"ai" ..> "diagrams" : <<use>>
+"ai" ..> "auth" : <<use>>
+"generator" ..> "diagrams" : <<use>>

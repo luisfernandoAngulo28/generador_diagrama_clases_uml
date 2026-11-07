@@ -1,0 +1,42 @@
+@startuml 11_arquitectura_frontend
+' Arquitectura del frontend: componentes, estado global, hooks y capa de API — UML 2.5.1
+' Refleja frontend/src/{components,context,hooks,api,lib}.
+!include _estilo.iuml
+hide empty members
+title Arquitectura del Frontend — React + Vite (componentes, contexto, hooks y capa de API)\n<size:11>UML 2.5.1 · los componentes nunca llaman al servidor directamente: pasan por api/</size>
+
+package "components (vista)" {
+  class App <<component>>
+  class UmlClassNode <<component>>
+  class ClassInspector <<component>>
+  class ChatPanel <<component>>
+  class AiModeBar <<component>>
+  class HistoryPanel <<component>>
+  class VersionsPanel <<component>>
+  class ValidationPanel <<component>>
+  class Tour <<component>>
+}
+package "context (estado global)" {
+  class AuthContext <<context>>
+  class ToastContext <<context>>
+}
+package "hooks" {
+  class useSpeechRecognition <<hook>>
+}
+package "api (acceso al servidor)" {
+  class "client.ts" as client <<REST · Axios + JWT>>
+  class "socket.ts" as socket <<Socket.io + JWT>>
+}
+package "lib (lógica sin interfaz)" {
+  class "layout.ts" as layout
+  class "multiplicity.ts" as mult
+  class "sqlExport.ts" as sqlx
+  class "modelDiff.ts" as mdiff
+}
+
+"components (vista)" ..> "context (estado global)" : <<use>>
+"components (vista)" ..> "hooks" : <<use>>
+"components (vista)" ..> "api (acceso al servidor)" : <<use>>
+"components (vista)" ..> "lib (lógica sin interfaz)" : <<use>>
+"context (estado global)" ..> "api (acceso al servidor)" : <<use>>
+@enduml

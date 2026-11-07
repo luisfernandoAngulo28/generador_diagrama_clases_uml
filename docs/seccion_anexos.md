@@ -9,7 +9,8 @@
 
 Este anexo reúne la evidencia de que el sistema fue construido, desplegado y
 verificado de extremo a extremo. Las secciones A.1 a A.7 corresponden al 1er
-Parcial (se mantienen vigentes) y las A.8 a A.12 a lo agregado en el 2do Parcial.
+Parcial (se mantienen vigentes) y las A.8 a A.13 a lo agregado en el 2do Parcial.
+Cada figura lleva el número de su sección: la Figura A.4a está en la sección A.4.
 
 ### A.1 Despliegue en producción
 
@@ -41,17 +42,17 @@ certificado SSL válido (HTTPS):
 
 Evidencia del lienzo, las relaciones con multiplicidades (1, 0..\*) y la edición de atributos: Capturas 6 y 7 del capítulo 7.
 
-![Figura A.5: vista previa del código Java Spring Boot generado: entidades, controladores REST y servicios en arquitectura de 4 capas.](docs/documento_final/img/evidencias/codigo_java.jpg){width=6in}
+![Figura A.2: vista previa del código Java Spring Boot generado: entidades, controladores REST y servicios en arquitectura de 4 capas.](docs/documento_final/img/evidencias/codigo_java.jpg){width=6in}
 
 ### A.3 Colaboración en tiempo real
 
-![Figura A.6: el mismo diagrama abierto en dos navegadores, Edge con la sesión de Luis y Chrome con la de Fernando. Ambos muestran «2 conectados», el mismo lienzo y el mismo chat público, incluida la pregunta de Elizabeth y la respuesta del Moderador IA dirigida a ella.](docs/documento_final/img/evidencias/prod_dos_navegadores.png){width=6.4in}
+![Figura A.3: el mismo diagrama abierto en dos navegadores, Edge con la sesión de Luis y Chrome con la de Fernando. Ambos muestran «2 conectados», el mismo lienzo y el mismo chat público, incluida la pregunta de Elizabeth y la respuesta del Moderador IA dirigida a ella.](docs/documento_final/img/evidencias/prod_dos_navegadores.png){width=6.4in}
 
 ### A.4 Asistencia por inteligencia artificial (1er Parcial)
 
-![Figura A.7a: diagrama creado desde una fotografía de pizarra (Archivo → Foto de pizarra (IA)): cinco clases con sus atributos y relaciones, en producción.](docs/documento_final/img/evidencias/prod_foto_pizarra.png){width=6.2in}
+![Figura A.4a: diagrama creado desde una fotografía de pizarra (Archivo → Foto de pizarra (IA)): cinco clases con sus atributos y relaciones, en producción.](docs/documento_final/img/evidencias/prod_foto_pizarra.png){width=6.2in}
 
-![Figura A.7b: clase Factura creada por dictado de voz en el chat del equipo; el Moderador IA responde a Luis por su nombre y aplica el cambio.](docs/documento_final/img/evidencias/prod_voz_factura.png){width=6.2in}
+![Figura A.4b: clase Factura creada por dictado de voz en el chat del equipo; el Moderador IA responde a Luis por su nombre y aplica el cambio.](docs/documento_final/img/evidencias/prod_voz_factura.png){width=6.2in}
 
 ### A.5 Interoperabilidad con Enterprise Architect (XMI)
 
@@ -60,7 +61,7 @@ El diagrama de veterinaria que el Moderador IA creó en el Modo IA se exportó d
 Architect 13.5 (Import Package from XMI). EA reconoce las 4 clases con sus atributos tipados y las
 3 relaciones con su multiplicidad. El proyecto de EA queda en `docs/diagrams/ea/veterinaria_modo_ia.eap`.
 
-![Figura A.8: modelo exportado en XMI desde el sistema e importado en Enterprise Architect 13.5: las clases Propietario, Mascota, Veterinario y Cita con sus atributos y las relaciones uno a muchos.](docs/documento_final/img/evidencias/ea_import_xmi.png){width=3.6in}
+![Figura A.5: modelo exportado en XMI desde el sistema e importado en Enterprise Architect 13.5: las clases Propietario, Mascota, Veterinario y Cita con sus atributos y las relaciones uno a muchos.](docs/documento_final/img/evidencias/ea_import_xmi.png){width=3.6in}
 
 ### A.6 Cliente móvil y IA local verificados en dispositivo físico
 
@@ -71,18 +72,14 @@ Architect 13.5 (Import Package from XMI). EA reconoce las 4 clases con sus atrib
   - dictado por voz;
   - **asistente de IA local funcionando en modo avión**.
 
-![Figura A.9: asistente de IA local de la aplicación móvil en un teléfono Android real, sin conexión: rechaza un saludo fuera de tema y responde qué es una clase.](docs/documento_final/img/evidencias/movil_ia_offline.png){width=3in}
+![Figura A.6: asistente de IA local de la aplicación móvil en un teléfono Android real, sin conexión: rechaza un saludo fuera de tema y responde qué es una clase.](docs/documento_final/img/evidencias/movil_ia_offline.png){width=3in}
 
 ### A.7 Pruebas automatizadas
 
 El backend tiene **152 pruebas unitarias en 22 archivos** (Vitest), todas
-aprobadas al 05/11/2026. Cubren:
-- el generador y cada plantilla;
-- validación y XMI;
-- autoría y bitácora;
-- el motor de IA híbrido y el prompt del moderador.
+aprobadas. El detalle por módulo está en la sección 6.2 de la Parte 2.
 
-Evidencia: Captura 3 del capítulo 7 (`npx vitest run` con "117 passed").
+![Figura A.7: salida de `npx vitest run --reporter=verbose` en el backend (07/11/2026), agrupada por archivo: 22 archivos y 152 pruebas aprobadas.](docs/documento_final/img/evidencias/vitest_152.png){width=5.6in}
 
 ### A.8 Persistencia en MongoDB con autoría granular (2do Parcial)
 
@@ -95,14 +92,14 @@ Evidencia: Captura 3 del capítulo 7 (`npx vitest run` con "117 passed").
 - Migración desde PostgreSQL con IDs conservados: 8 diagramas y 55 entradas de
   historial. Se ejecutó dos veces sin duplicar datos.
 
-![Figura A.11: documento real en el MongoDB de producción: la clase Cliente con `author` (Luis, manual) y `lastModifiedBy` (Fernando, vía IA), y el atributo email con su propia autoría.](docs/documento_final/img/evidencias/prod_mongo_autoria.jpg){width=6in}
+![Figura A.8a: documento real en el MongoDB de producción: la clase Cliente con `author` (Luis, manual) y `lastModifiedBy` (Fernando, vía IA), y el atributo email con su propia autoría.](docs/documento_final/img/evidencias/prod_mongo_autoria.jpg){width=6in}
 
-![Figura A.12: bitácora de cambios en producción, con cada cambio atribuido a su autor e indicando los hechos «(vía IA)».](docs/documento_final/img/evidencias/prod_bitacora.jpg){width=6in}
+![Figura A.8b: bitácora de cambios en producción, con cada cambio atribuido a su autor e indicando los hechos «(vía IA)».](docs/documento_final/img/evidencias/prod_bitacora.jpg){width=6in}
 
 ### A.9 Chat grupal público con el Moderador IA (2do Parcial)
 
 - Todos los conectados ven cada pregunta y respuesta; la IA nombra a quien
-  pregunta y muestra qué proveedor respondió (🏠 Ollama Local / ☁️ Gemini Cloud).
+  pregunta y muestra qué proveedor respondió («Ollama Local» o «Gemini Cloud»).
 - Prueba con dos usuarios simultáneos:
   - indicador *"La IA está pensando la respuesta para Luis"*;
   - cambio aplicado y sincronizado en ambos lienzos;
@@ -120,7 +117,7 @@ Mediciones reales en la laptop del equipo (CPU):
 | Falla Gemini → respaldo automático | Ollama Local | 13,5 s |
 | Ollama primero, modelo precalentado | Ollama Local | 5,0 s |
 
-Evidencia: Capturas 4 y 5 del capítulo 7 (log de Ollama y badge «🏠 Ollama Local»).
+Evidencia: Capturas 4 y 5 del capítulo 7 (log de Ollama y badge «Ollama Local»).
 
 ### A.11 Visor UML en tiempo real en Flutter (2do Parcial)
 
@@ -137,6 +134,31 @@ Evidencia: Captura 8 del capítulo 7 (pestañas Diagrama y Chat del visor).
 Evidencia: Capturas 9 a 12 de la sección 3.3 (estado vacío, recorrido guiado, leyenda y atajos, y respuesta teórica del Moderador IA).
 
 ---
+
+### A.13 Modelos UML en Enterprise Architect
+
+Todos los diagramas del documento están hechos en **Enterprise Architect 13.5**,
+en dos proyectos que se pueden abrir y editar:
+
+| Paquete del proyecto | `ciclo1.eap` (1er Parcial) | `ciclo2.eap` (2do Parcial) |
+|---|---|---|
+| Requisitos - Casos de uso | 1 | 1 |
+| Análisis - Paquetes | 1 | 1 |
+| Análisis - Comunicación | 12 | 8 |
+| Análisis y Diseño - Clases | 1 | 6 |
+| Diseño - Secuencia | 12 | 10 |
+| Diseño - Estados | — | 1 |
+| Diseño - Actividad | — | 1 |
+| Diseño - Despliegue | 1 | 1 |
+| Implementación - Componentes | — | 1 |
+| **Total** | **28** | **30** |
+
+Los proyectos están en `docs/diagrams/ea/`. Cada diagrama se escribió primero
+como borrador de texto a partir del código (`docs/diagrams/1er_parcial/` y
+`docs/diagrams/2do_parcial/`), se construyó en Enterprise Architect con su API
+de automatización (`ea_builder.py`) y se revisó y acomodó a mano en la
+herramienta. Las imágenes del documento se exportaron desde Enterprise
+Architect.
 
 ## Anexo B. Estándar de Codificación
 
@@ -188,7 +210,7 @@ Rumbaugh, 1999). Sus tres principios se ven en el proyecto:
 | Inicio | Requisitos del docente, actores y EMCU, plan de 4 semanas (`PLAN_EVOLUCION_2DO_PARCIAL.md`) |
 | Elaboración | Arquitectura de datos políglota, protocolo WebSocket, diseño del motor IA híbrido |
 | Construcción | Iteración 1: MongoDB y autoría · 2: IA híbrida · 3: chat grupal · 4: visor Flutter |
-| Transición | Pruebas de regresión, documentación SDD, despliegue en el VPS y simulacro |
+| Transición | Pruebas de regresión, documentación SDD, despliegue en AWS (EC2 y S3) y simulacro |
 
 ### D.2 Métodos de investigación empleados
 

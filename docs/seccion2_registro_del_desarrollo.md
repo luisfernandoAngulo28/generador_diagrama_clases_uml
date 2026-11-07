@@ -90,7 +90,7 @@ hasta la entrega queda para la documentación, el despliegue y el simulacro.
 | Despliegue en AWS | `90f081a` | 17/10 | MongoDB en el VPS, migración y nueva Elastic IP | Dominio, TLS y WebSocket verificados en producción |
 | Corrección en producción | `4daba22` | 17/10 | Renombres encadenados y confirmaciones ("sí, hazlo") | 8 tests nuevos; prueba real en producción (Capturas 6 y 12) |
 | **Ejecutor configurable** | `d003cf8` | 18/10 | Interruptor por sala «IA edita el lienzo» / «IA solo sugiere» (`ai:settings`, `applyCanvasPolicy`) | 8 tests nuevos; prueba local con Ollama en ambos modos |
-| **Modelo propio en Ollama** | `83e4e9e` | 18/10 | `moderador-uml`: Modelfile generado desde el código, `npm run ollama:modelo`, respaldo a qwen2.5 base | 4 tests nuevos; respuesta real en el chat con 🏠 Ollama Local |
+| **Modelo propio en Ollama** | `83e4e9e` | 18/10 | `moderador-uml`: Modelfile generado desde el código, `npm run ollama:modelo`, respaldo a qwen2.5 base | 4 tests nuevos; respuesta real en el chat con «Ollama Local» |
 | **Modo IA** | `fee2261` | 02/11 | Vista propia por persona: barra compacta, chat al centro con accesos directos (revisar, crear proyecto, explicar, qué hizo el equipo) y el diagrama como vista previa en vivo de solo lectura | Prueba en navegador a 1100 px y 375 px: sin scroll horizontal, se recuerda al recargar y se sale al lienzo normal |
 | **Generador según OMT** | `e4b9fbd` | 05/11 | La base del backend generado la crea solo el ORM; herencia JOINED; agregación y composición con su semántica UML; `data.sql` sobre las mismas tablas | Proyecto generado levantado con PostgreSQL (ver 2.4.7) |
 | **Historial de versiones** | `557acef` | 05/11 | Una foto del modelo por sesión de edición (colección `diagram_versions`); *Archivo → Historial de versiones* con **Restaurar**, que crea una versión nueva y queda en la bitácora | 6 tests nuevos; prueba de punta a punta por API y en el navegador (ver 2.4.8) |
@@ -139,7 +139,7 @@ Comprobaciones de comportamiento del moderador:
 
 ![Captura 4: log del backend local (AI_HYBRID_ORDER=local-first) con el precalentamiento del modelo y los tiempos de cada respuesta de Ollama.](docs/documento_final/img/evidencias/ollama_log.png){width=6in}
 
-![Captura 5: el Moderador IA responde con el modelo local (badge «🏠 Ollama Local»); en producción la misma vista muestra «☁️ Gemini Cloud» (Captura 6).](docs/documento_final/img/evidencias/ollama_badge.jpg){width=6in}
+![Captura 5: el Moderador IA responde con el modelo local (badge «Ollama Local»); en producción la misma vista muestra «Gemini Cloud» (Captura 6).](docs/documento_final/img/evidencias/ollama_badge.jpg){width=6in}
 
 ### 2.4.3 Prueba de colaboración con dos usuarios (navegador)
 
@@ -178,12 +178,12 @@ con la versión que incluye el Moderador IA:
 
 | Función del 1er Parcial | Cómo se probó | Resultado |
 |---|---|---|
-| Exportar e importar XMI (Enterprise Architect) | `GET /diagrams/:id/xmi` → `POST /diagrams/import-xmi` | ✅ Ida y vuelta idéntica: 6 clases con sus atributos y 5 relaciones del mismo tipo |
-| Generar el backend Spring Boot | ZIP del generador → `docker compose up` (PostgreSQL + Spring Boot) | ✅ Compila y arranca; Swagger en `/swagger-ui.html` |
-| Probar con Postman | Las 30 requests de la colección generada, en orden (como el *Runner*) | ✅ **30/30 con 2xx** (CRUD de las 6 entidades, incluida `Reserva`, creada por la IA) |
-| Edición del diagrama por chat | Chat del equipo con pedidos explícitos | ✅ Probado en producción (Capturas 5 y 6) |
-| Dictado por voz | Luis dictó "Agrega la clase factura con número y total" en el chat del equipo, en producción | ✅ La IA respondió por su nombre y creó `Factura` (Figura A.7b) |
-| Foto de pizarra | *Archivo → Foto de pizarra (IA)* con un diagrama dibujado a mano, en producción | ✅ Reconoció 5 clases con sus atributos y relaciones (Figura A.7a) |
+| Exportar e importar XMI (Enterprise Architect) | `GET /diagrams/:id/xmi` → `POST /diagrams/import-xmi` | Correcto: ida y vuelta idéntica: 6 clases con sus atributos y 5 relaciones del mismo tipo |
+| Generar el backend Spring Boot | ZIP del generador → `docker compose up` (PostgreSQL + Spring Boot) | Correcto: compila y arranca; Swagger en `/swagger-ui.html` |
+| Probar con Postman | Las 30 requests de la colección generada, en orden (como el *Runner*) | Correcto: **30/30 con 2xx** (CRUD de las 6 entidades, incluida `Reserva`, creada por la IA) |
+| Edición del diagrama por chat | Chat del equipo con pedidos explícitos | Correcto: probado en producción (Capturas 5 y 6) |
+| Dictado por voz | Luis dictó "Agrega la clase factura con número y total" en el chat del equipo, en producción | Correcto: la IA respondió por su nombre y creó `Factura` (Figura A.4b) |
+| Foto de pizarra | *Archivo → Foto de pizarra (IA)* con un diagrama dibujado a mano, en producción | Correcto: reconoció 5 clases con sus atributos y relaciones (Figura A.4a) |
 
 **Limitación heredada del 1er Parcial, corregida el 05/11/2026:** los datos de
 `data.sql` se cargaban en las tablas de un `schema.sql` propio (`cliente`) y no
@@ -195,10 +195,10 @@ entidades (defecto 13; prueba completa en 2.4.7).
 
 | Pedido | Motor | Tiempo | Resultado |
 |---|---|---|---|
-| "Crea el diagrama de clases completo para un sistema de biblioteca" | Gemini | 3 s | ✅ 5 clases con PK y atributos, 4 relaciones, diagrama ordenado |
-| "…para un sistema de veterinaria", desde el Modo IA | Gemini | < 10 s | ✅ 4 clases y 3 relaciones en la vista previa; guardado con autoría "vía IA" y recibido en vivo por un segundo usuario conectado |
-| "Revisa nuestro diagrama…" | Ollama | 38 s | ✅ Observación del modelo más el resultado real del validador, escrito por el servidor |
-| "Crea el diagrama completo…", **sin internet** | Ollama | 25 s | ⚠️ Solo 2 clases |
+| "Crea el diagrama de clases completo para un sistema de biblioteca" | Gemini | 3 s | Correcto: 5 clases con PK y atributos, 4 relaciones, diagrama ordenado |
+| "…para un sistema de veterinaria", desde el Modo IA | Gemini | < 10 s | Correcto: 4 clases y 3 relaciones en la vista previa; guardado con autoría "vía IA" y recibido en vivo por un segundo usuario conectado |
+| "Revisa nuestro diagrama…" | Ollama | 38 s | Correcto: observación del modelo más el resultado real del validador, escrito por el servidor |
+| "Crea el diagrama completo…", **sin internet** | Ollama | 25 s | Parcial: solo 2 clases |
 
 **Limitación conocida:** el modelo local (qwen2.5 de 1,5 mil millones de parámetros, en CPU) no alcanza para modelar un
 sistema completo. Por eso, en estos pedidos el motor híbrido intenta primero con la nube aunque el orden sea
@@ -234,11 +234,11 @@ tabla muestra el resultado después de corregirlos.
 
 | Paso | Resultado |
 |---|---|
-| Crear el diagrama y guardar dos veces seguidas (misma persona) | ✅ Una sola versión (v1, 4 cambios): el autoguardado no llena el historial |
-| Un cambio aplicado por el Moderador IA | ✅ Versión propia (v2, «vía IA») |
-| Restaurar v1 | ✅ El diagrama vuelve a sus 3 clases y se crea **v3** ("Restauró la versión 1"); v1 y v2 siguen en el historial |
-| Bitácora | ✅ "Restauró la versión 1 del diagrama" y el efecto ("Eliminó la clase Factura") |
-| Restaurar desde el panel, en el navegador | ✅ El lienzo se recarga con el modelo restaurado; sin errores en la consola |
+| Crear el diagrama y guardar dos veces seguidas (misma persona) | Correcto: una sola versión (v1, 4 cambios): el autoguardado no llena el historial |
+| Un cambio aplicado por el Moderador IA | Correcto: versión propia (v2, «vía IA») |
+| Restaurar v1 | Correcto: el diagrama vuelve a sus 3 clases y se crea **v3** ("Restauró la versión 1"); v1 y v2 siguen en el historial |
+| Bitácora | Correcto: "Restauró la versión 1 del diagrama" y el efecto ("Eliminó la clase Factura") |
+| Restaurar desde el panel, en el navegador | Correcto: el lienzo se recarga con el modelo restaurado; sin errores en la consola |
 
 ![Captura 14: Archivo → Historial de versiones. La versión actual, un cambio «vía IA» y el botón Restaurar en las anteriores.](docs/documento_final/img/evidencias/versiones_panel.jpg){width=5.5in}
 
@@ -320,11 +320,12 @@ efectivo.
 
 ---
 
-## 2.8 Pendientes registrados (al 18/10/2026)
+## 2.8 Pendientes y limitaciones (al 07/11/2026)
 
-- [x] Desplegar en el VPS: levantar Mongo y correr una sola vez `migrate-pg-to-mongo.js` (17/10).
-- [ ] Probar las notificaciones en un Android real (en web no se pudo conceder el permiso).
-- [ ] Probar el corte de internet real (WiFi apagado) con `cloud-first`.
-- [ ] Limitación conocida: el guardado reemplaza el modelo completo
-  (*last-write-wins*), mitigado con locks por clase.
-- [ ] Simulacro final con tres usuarios + visor móvil.
+| Tema | Estado |
+|---|---|
+| Desplegar MongoDB en el servidor y migrar los datos del 1er Parcial | Hecho el 17/10/2026; el 07/11/2026 se redesplegó en una cuenta nueva de AWS con los mismos datos |
+| Notificaciones del visor móvil en un Android real | Pendiente de verificar en el teléfono (en la versión web el navegador no permitió conceder el permiso) |
+| Corte de internet real (WiFi apagado) con `cloud-first` | Pendiente; se ensaya antes de la defensa |
+| Guardado *last-write-wins*: un guardado reemplaza el modelo completo | Limitación conocida, mitigada con bloqueos por clase y con el historial de versiones, que permite restaurar |
+| Simulacro final con tres usuarios y el visor móvil | Pendiente, antes del 10/11/2026 |

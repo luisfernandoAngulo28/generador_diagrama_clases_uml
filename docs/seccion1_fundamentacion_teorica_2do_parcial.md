@@ -117,6 +117,14 @@ de IA se aplica el **patrón Strategy** (`AiProvider`, con dos implementaciones:
 `GeminiProvider` y `OllamaProvider`) compuesto por `HybridAiProvider`, que
 agrega fallback automático y *circuit breaker*.
 
+![rot](docs/diagrams/ea/img/10_arquitectura_backend.png){width="6.4in"}
+
+*Figura --- Arquitectura del backend en Enterprise Architect: cada paquete es un módulo NestJS con sus capas (controller o gateway, service, schema o entity) y las dependencias son los imports entre módulos.*
+
+Las dependencias entre módulos van en un solo sentido (`ai` → `diagrams` →
+`auth` → `users`, y `generator` → `diagrams`), sin ciclos: por eso un módulo
+se puede cambiar sin tocar los que dependen de él.
+
 **Evidencia:** `backend/src/app.module.ts`, `backend/src/*/…module.ts`,
 `backend/src/ai/providers/`.
 
@@ -131,6 +139,8 @@ agrega fallback automático y *circuit breaker*.
   interceptor JWT) y `api/socket.ts` (Socket.io con el JWT en el *handshake*).
   Los componentes no hablan directamente con el servidor.
 - **Lienzo con React Flow**, que representa clases como nodos y relaciones como aristas.
+
+![Arquitectura del frontend en Enterprise Architect: los componentes usan el estado global, los hooks y la lógica de lib/, y llegan al servidor solo a través de api/.](docs/diagrams/ea/img/11_arquitectura_frontend.png){width=6in}
 
 **Evidencia:** `frontend/src/components/`, `frontend/src/context/`,
 `frontend/src/hooks/`, `frontend/src/api/`.
@@ -175,23 +185,17 @@ Decisiones clave:
 
 ### 1.3.4 Arquitectura de despliegue — contenedores en la nube
 
-```
-Usuario (web / móvil Flutter)
-        │ HTTPS (Let's Encrypt)
-        ▼
-  nginx (contenedor frontend) ── sirve el SPA React
-        │  /auth /diagrams /ai /sessions /generator /attachments  → proxy
-        │  /socket.io                                              → WebSocket
-        ▼
-  backend NestJS (contenedor) ──┬── MongoDB 7 (contenedor, volumen mongo_data)
-                                ├── PostgreSQL 16 (contenedor, volumen db_data)
-                                ├── Amazon S3 (adjuntos)
-                                └── Gemini API (IA en la nube) / Ollama (IA local)
-```
+La figura muestra el diagrama de despliegue hecho en Enterprise Architect:
+los usuarios llegan por HTTPS a nginx, que sirve la aplicación y reenvía la API
+y el WebSocket al backend; el backend usa dos bases de datos en contenedores y
+tres servicios externos (S3, Gemini y, sin internet, Ollama). El diagrama
+completo, en una página, junto con la tabla de nodos, las rutas de
+comunicación y la seguridad del despliegue, está en la Parte 2, sección 4.1.1
+(Diseño físico de arquitectura).
 
 - **Docker Compose** orquesta cuatro contenedores separados con *healthchecks*
   y reinicio automático; los datos viven en volúmenes persistentes.
-- **Servidor en la nube** (instancia AWS EC2 de 1 GB) con dominio
+- **Servidor en la nube** (instancia AWS EC2 t3.micro en us-east-2, 1 GB de RAM y 2 GB de *swap*) con dominio
   **DuckDNS** (`diagramasw1pracial100.duckdns.org`) y certificado
   **SSL/TLS de Let's Encrypt**; nginx redirige HTTP → HTTPS.
 - **Despliegue por compilación local:** el `dist/` se compila en la PC y se sube

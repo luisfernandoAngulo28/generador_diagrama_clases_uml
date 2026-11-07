@@ -356,7 +356,8 @@ Es **I-CASE (integrada)**:
 
 **E3. ¿Qué versión de UML? ¿Quién la define?**
 - **UML 2.5.1**, del **OMG** (omg.org).
-- Los **56 diagramas** del documento (28 del Ciclo 1 y 28 del Ciclo 2) están en
+- Los **58 diagramas** del documento (28 del Ciclo 1 y 30 del Ciclo 2, con los
+  dos de arquitectura) están en
   notación UML 2.5.1, hechos en Enterprise Architect.
 - El intercambio es en XMI 2.1, también del OMG.
 - Las reglas de modelado vienen de **OMT** (Rumbaugh, 1991).
@@ -605,7 +606,7 @@ laptop, sin AWS ni internet.
 | Timeouts de Ollama | 20 s (va primero) · 60 s (respaldo) |
 | Contexto de la IA | 25 entradas de bitácora · 8 de la sala · 8 del hilo individual |
 | Migración | 8 diagramas + 55 entradas de historial, IDs conservados |
-| Modelos UML | 56 diagramas en Enterprise Architect 13.5, UML 2.5.1 (28 por ciclo) |
+| Modelos UML | 58 diagramas en Enterprise Architect 13.5, UML 2.5.1 (28 del Ciclo 1 y 30 del Ciclo 2) |
 | Verificación secuencia ↔ código | 86 de 86 mensajes son operaciones de la clase receptora (+28 de librerías) |
 | Proceso Unificado | 2 ciclos × 4 fases (Inicio, Elaboración, Construcción, Transición) × 5 flujos |
 

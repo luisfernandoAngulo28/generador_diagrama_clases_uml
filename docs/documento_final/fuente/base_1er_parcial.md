@@ -841,7 +841,47 @@ Se optó deliberadamente por una única entidad con un campo JSONB para el model
 
 ### 4.3.1 Diagrama de secuencia
 
-Los diagramas de secuencia especifican el comportamiento dinámico de cada caso de uso mostrando el intercambio de mensajes entre los componentes reales del sistema (frontend, controladores NestJS, servicios, base de datos y la API de Gemini) en orden cronológico.
+Los diagramas de secuencia especifican el comportamiento dinámico de cada caso de uso: qué objetos participan y qué mensajes se envían, en orden cronológico de arriba hacia abajo. Los 20 diagramas están hechos en Enterprise Architect (UML 2.5.1).
+
+**Notación utilizada.**
+
+| Elemento | Significado |
+|---|---|
+| Actor (figura humana) | Quien inicia el caso de uso: el integrante del equipo, en la web o en el celular |
+| Línea de vida «boundary» | Objeto de interfaz: una pantalla o componente (`:LienzoUML`, `:ChatPanel`, `:LoginPage`) |
+| Línea de vida «control» | Objeto que coordina: controladores, *gateways* y servicios de NestJS |
+| Línea de vida «entity» o base de datos | Datos persistentes: PostgreSQL, o un modelo de Mongoose (`:Model<ActivityLog>`) |
+| Flecha continua | Mensaje síncrono: una llamada a una operación del objeto que la recibe |
+| Flecha discontinua | Respuesta (retorno) |
+| Rectángulo sobre la línea de vida | Activación: el objeto está ejecutando |
+| Marco `alt` / `opt` / `par` | Fragmento combinado: alternativas, paso opcional o mensajes en paralelo |
+
+**Dos niveles de detalle.** Los diagramas del **Ciclo 1** (CU1–CU12) son los del 1er Parcial: sus mensajes describen las acciones del usuario y las llamadas HTTP entre capas. Los del **Ciclo 2** (CU13–CU20) son de diseño: **cada mensaje es una operación real de la clase que lo recibe**. Esto se verificó con un script que busca cada mensaje en el código (`docs/diagrams/ea/verificar_secuencias.py`): los 86 mensajes a clases del proyecto existen como operaciones, y otros 28 son operaciones de librerías (Mongoose, Socket.io, notificaciones de Flutter).
+
+**Resumen de los diagramas.**
+
+| CU | Objetos que participan | Flujo principal |
+|---|---|---|
+| CU1 Crear Clase | `:LienzoUML` | El lienzo genera un identificador y agrega el nodo de la clase |
+| CU2 Editar Clase | `:LienzoUML`, `:Inspector` | Doble clic abre el inspector; cada cambio vuelve al lienzo con `onChange` |
+| CU3 Eliminar Clase | `:Inspector`, `:LienzoUML` | `onDelete(classId)` quita el nodo y sus relaciones |
+| CU4 Crear Relación | `:LienzoUML` | Se elige el tipo y se arrastra la conexión; `addEdge` la dibuja |
+| CU5 Guardar Diagrama | `:LienzoUML`, `:api/client.ts`, `:DiagramsController`, `:DiagramsService`, PostgreSQL | `buildModel()` arma el modelo, que se guarda con `POST` o `PATCH /diagrams` |
+| CU6 Cargar Diagrama Compartido | Los mismos que CU5 | `GET /diagrams/:id` recupera el modelo y el lienzo se reconstruye |
+| CU7 Colaborar en Tiempo Real | `:LienzoUML`, `:api/socket.ts`, `:DiagramsGateway` | `join-diagram` une a la sala; cada cambio se difunde con `diagram-update` |
+| CU8 Generar Backend | `:api/client.ts`, `:GeneratorController`, `:DiagramsService`, `:GeneratorService` | `generate(modelo)` produce las cuatro capas por clase y se descarga un ZIP |
+| CU9 Exportar a XMI | `:api/client.ts`, `:DiagramsController`, `:DiagramsService` | `renderXmi(modelo)` produce el archivo `.xmi` |
+| CU10 Consultar Asistente | `:ChatPanel`, `:AiController`, `:AiService`, Gemini | `chat(mensaje)` llama a `generateContent` con el prompt del sistema |
+| CU11 Dictar por Voz | `:ChatPanel`, Web Speech API | El texto reconocido (`onresult`) se envía como en CU10 |
+| CU12 Foto de Pizarra | `:LienzoUML`, `:AiController`, `:AiService`, Gemini | `interpretDiagramPhoto` devuelve un JSON con las clases, que se agregan al lienzo |
+| CU13 Iniciar Sesión | `:LoginPage`, `:AuthProvider`, `:ApiClient`, `:AuthController`, `:AuthService`, `:UsersService` | `login(dto)` verifica la contraseña; `alt` entre credenciales válidas e inválidas |
+| CU14 Enviar Mensaje al Chat | `:ChatPanel`, `:ChatGateway`, `:ModeratorService`, `:Model<GroupChatMessage>`, `:Server` | `handleSend` guarda el mensaje y lo difunde a la web y al móvil |
+| CU15 Consultar al Moderador IA | Los de CU14 más `:DiagramsService`, `:Model<ActivityLog>`, `:AiService`, `:HybridAiProvider` | `answer()` lee en paralelo (`par`) el diagrama, la bitácora y el hilo de la persona, y consulta al motor híbrido |
+| CU16 Pedir un Cambio a la IA | `:ChatGateway`, `:ModeratorService`, `:Intent`, `:CanvasPolicy`, `:App`, `:DiagramsService` | `classifyRequest` detecta el pedido, `applyCanvasPolicy` filtra las operaciones y el lienzo de quien pidió las aplica y guarda (`opt`) |
+| CU17 Consultar Autoría y Bitácora | `:App`, `:ClassInspector`, `:HistoryPanel`, `:DiagramsService`, `:Model<ActivityLog>` | El inspector muestra la autoría; `getHistory(id)` trae la bitácora |
+| CU18 Reanudar Sesión | `:App`, `:DiagramsGateway`, `:SessionsService`, `:Model<DiagramSession>`, `:ChatPanel` | `join()` reactiva la sesión o crea una (`alt`); `getInitState` restaura chat y bloqueos |
+| CU19 Ver el Diagrama en el Celular | `:_LiveDiagramPage`, `:CaseApi`, `:DiagramsController`, `:LiveRoom`, `:DiagramsGateway` | Carga el diagrama por REST y se une a la sala por socket para recibir cambios |
+| CU20 Recibir Notificaciones | `:LiveRoom`, `:LiveNotifications`, plugin de notificaciones | Cada mensaje o cambio de otro integrante genera una notificación; `alt`: si hubo otra en los últimos 10 s, solo se resalta el cambio |
 
 ***CU1 --- Crear Clase UML***
 
@@ -945,63 +985,131 @@ El backend invoca directamente el SDK de Google Gemini (sin microservicio interm
 
 # 6. Pruebas
 
-Esta fase valida que la implementación cumpla los requisitos definidos en el Perfil y el Modelo de Casos de Uso. A diferencia del resto de este documento, aquí no se describe lo que el sistema debería hacer, sino la evidencia concreta de que se verificó que lo hace.
+Esta fase **valida** que la implementación cumple los requisitos del Perfil y
+del Modelo de Casos de Uso, y **verifica** que cada parte hace lo que su diseño
+dice. A diferencia del resto del documento, aquí no se describe lo que el
+sistema debería hacer, sino la evidencia de que lo hace. El capítulo cubre los
+dos ciclos: los casos CP-01 a CP-04 y SYS-01 a SYS-05 son del 1er Parcial, y el
+resto del 2do.
 
 ## 6.1 Plan de pruebas
 
-- **Alcance:** pruebas unitarias sobre la lógica pura del backend (el algoritmo de diff de la bitácora), pruebas funcionales del backend generado (Spring Boot) con Postman, y pruebas de integración y de sistema ejecutadas en vivo contra los servicios reales (PostgreSQL, Amazon S3, Google Gemini) y, para el sistema completo, contra el servidor de producción real en AWS (http://34.231.176.225), no contra localhost.
+| Nivel | Qué se prueba | Técnica | Herramienta | Entorno |
+|---|---|---|---|---|
+| **Unitarias** | Lógica del backend aislable: generador, validación, autoría, bitácora, versiones, motor de IA | Caja blanca | Vitest (152 casos) | PC de desarrollo |
+| **Integración** | Backend con MongoDB, PostgreSQL, Amazon S3, Gemini, Ollama y nginx | Caja negra, con los servicios reales (sin *mocks*) | curl, scripts de prueba, navegador | Docker Compose local y producción |
+| **Sistema** | Cada caso de uso de punta a punta, con varios usuarios y el celular | Caja negra | Navegador, app Flutter, Postman | Producción en AWS |
+| **Regresión** | Que lo del 1er Parcial siga funcionando después de cada cambio | Caja negra y suite completa | Vitest, Postman, navegador | Local y producción |
+| **Aceptación** | Los requisitos del docente | Demostración | — | Defensa |
 
-- **Estrategia:** caja blanca (Vitest) para la lógica de negocio aislable, y caja negra (peticiones HTTP reales vía curl/Postman y verificación desde el navegador) para los endpoints REST, los WebSockets y el flujo end-to-end del usuario.
+**Criterios de aceptación:**
 
-- **Criterios de aceptación:** el código Spring Boot generado debe compilar y ejecutarse sin modificaciones; cada endpoint debe responder con el código HTTP y el cuerpo esperado; un archivo subido a S3 debe descargarse con el mismo contenido byte a byte que el original.
+- El proyecto Spring Boot generado compila y arranca **sin modificaciones**, y
+  su base de datos respeta las reglas de mapeo de OMT.
+- Cada endpoint responde con el código HTTP y el cuerpo esperados; sin token,
+  la API responde 401.
+- Un archivo subido a S3 se descarga con el **mismo contenido byte a byte**.
+- Un cambio hecho por un usuario aparece en los demás clientes (web y móvil)
+  **sin recargar**.
+- La autoría la calcula el servidor: un autor enviado por el cliente se ignora.
 
-## 6.2 Diseño de pruebas (casos de prueba)
+## 6.2 Pruebas unitarias
 
-- **CP-01 --- Generación de backend Spring Boot:** a partir de un diagrama con relaciones 1:1, 1:N y N:N, el backend generado debe incluir las cuatro capas (Entity, Repository, Service, Controller) por clase, con las anotaciones JPA correctas (@OneToMany/@ManyToOne, tabla intermedia para N:N).
+La suite del backend tiene **152 casos en 22 archivos**, todos aprobados
+(`npx vitest run`). Cada archivo `*.spec.ts` está junto al código que prueba.
 
-- **CP-02 --- Autenticación y bitácora:** registrar un usuario, iniciar sesión, crear y modificar un diagrama, y verificar que la bitácora registre el nombre real del usuario autenticado y un resumen legible del cambio (clases agregadas, atributos modificados, relaciones eliminadas).
+| Módulo | Archivos de prueba | Casos | Qué verifican |
+|---|---|---|---|
+| **Generador** | `relations.util`, `generator.service` y las plantillas `entity`, `enum`, `interface`, `data-sql` y `postman` | 38 | Lado dueño e inverso de cada relación; cascada solo en la composición; `SET NULL` en la agregación; herencia `JOINED`; tablas intermedias N:M; datos de prueba y colección de Postman coherentes con las entidades |
+| **Diagramas** | `validation.util`, `authorship.util`, `model-diff.util`, `versions.service`, `xmi-import.util`, `model-sanitize.util`, `documentation.util` | 43 | Reglas de validación del modelo; autoría que el cliente no puede falsificar; una entrada de bitácora por cambio; unión de versiones dentro de 10 minutos; ida y vuelta del XMI |
+| **Inteligencia artificial** | `moderator/intent`, `providers/hybrid.provider`, `moderator/moderator-prompt`, `moderator/canvas-policy`, `validate-operations`, `providers/ollama.provider`, `ollama-modelfile` | 70 | Distinguir una pregunta de un pedido de cambio; respaldo Gemini ⇄ Ollama, *timeouts* y *circuit breaker*; que el prompt nombre a quien pregunta; que la IA no toque el lienzo sin un pedido explícito; descarte de operaciones inválidas |
+| **Aplicación** | `app.controller` | 1 | Arranque del controlador raíz |
+| **Total** | **22** | **152** | |
 
-- **CP-03 --- Adjuntos en S3:** subir un archivo permitido y verificar que aparece en el listado del diagrama, descargarlo mediante la URL firmada y comparar el contenido con el original, eliminarlo y confirmar que desaparece del bucket, e intentar subir un archivo de tipo no permitido (.exe) y verificar el rechazo.
+## 6.3 Casos de prueba
 
-- **CP-04 --- Colaboración en tiempo real:** con dos sesiones de navegador abiertas sobre el mismo diagrama, verificar que un cambio hecho en una se refleje en la otra vía WebSocket sin recargar la página.
+| ID | Caso de uso | Entrada y pasos | Resultado esperado | Resultado obtenido |
+|---|---|---|---|---|
+| CP-01 | CU8 Generar Backend | Diagrama con relaciones 1:1, 1:N y N:M; descargar el ZIP | Entity, Repository, Service y Controller por clase; `@OneToMany` / `@ManyToOne`; tabla intermedia para N:M | Aprobado |
+| CP-02 | CU5 Guardar Diagrama | Registrar un usuario, iniciar sesión, crear y modificar un diagrama | La bitácora registra el nombre real del usuario y un resumen legible del cambio | Aprobado |
+| CP-03 | Adjuntos | Subir un archivo, descargarlo con la URL firmada, borrarlo; subir un `.exe` | Contenido idéntico; desaparece del *bucket*; el `.exe` se rechaza | Aprobado |
+| CP-04 | CU7 Colaborar | Dos navegadores en el mismo diagrama; editar en uno | El cambio aparece en el otro sin recargar | Aprobado |
+| CP-05 | CU17 Autoría | Marco crea una clase y Luis le agrega un atributo; el cliente envía un autor falso | Autor: Marco; última edición: Luis; autor del atributo: Luis; el autor falso se ignora | Aprobado |
+| CP-06 | CU18 Reanudar Sesión | Salir de la sala y volver | La sesión pasa a PAUSED y vuelve a ACTIVE con el mismo identificador y el chat restaurado | Aprobado |
+| CP-07 | CU15 / CU16 Moderador IA | Pregunta teórica; *"¿quién creó Pedido?"*; *"como te comenté antes…"*; un pedido de cambio | Responde por nombre; usa la bitácora y el hilo de la persona; solo el pedido explícito cambia el lienzo | Aprobado |
+| CP-08 | CU15 Motor híbrido | Gemini primero; Gemini caído; Ollama primero | Responde Gemini (4,3 s); respaldo con Ollama (13,5 s); Ollama precalentado (5,0 s) | Aprobado |
+| CP-09 | CU14 / CU16 Chat grupal | Dos usuarios; Luis pide un cambio a la IA | Ambos ven *"pensando para Luis"* y el cambio; el inspector dice *"Creada por Luis · vía IA"* | Aprobado |
+| CP-10 | CU19 / CU20 Visor móvil | Pedir un cambio desde la web con el celular conectado | El cambio, el chat y la autoría aparecen en el celular sin recargar | Aprobado |
+| CP-11 | CU8 Generar Backend (OMT) | Modelo con herencia, N:M, composición, agregación, 1:1 y enum; `docker compose up` | 10 tablas; herencia JOINED; borrar el todo borra la composición y conserva la agregación (`SET NULL`) | Aprobado |
+| CP-12 | Historial de versiones | Guardar dos veces; un cambio de la IA; restaurar la versión 1 | Una sola versión por sesión; la IA crea su propia versión; restaurar crea una versión nueva y queda en la bitácora | Aprobado |
+| CP-13 | CU9 Exportar a XMI | Exportar el diagrama del restaurante y volver a importarlo | Ida y vuelta idéntica: 6 clases y 5 relaciones del mismo tipo | Aprobado |
+| CP-14 | CU8 + Postman | Ejecutar las 30 peticiones de la colección generada | 30 respuestas 2xx | Aprobado |
+| CP-15 | Seguridad | Pedir `/diagrams` y `/auth/me` sin token; abrir el socket | 401 en ambas rutas; el socket solo identifica al usuario con el JWT del *handshake* | Aprobado |
+| CP-16 | Adjuntos (2do Parcial) | Subir, leer y borrar con el usuario IAM de la aplicación | Funciona con un usuario que solo tiene permiso sobre ese *bucket* | Aprobado |
 
-- **Componente de prueba:** la suite model-diff.util.spec.ts (Vitest) ejercita la función pura summarizeModelDiff con 7 casos --- clase agregada, eliminada, renombrada, atributos y operaciones modificados, y relaciones agregadas/eliminadas/con tipo cambiado --- sin depender de base de datos ni red.
+## 6.4 Pruebas de integración
 
-## 6.3 Pruebas de integración
+Cada integración se probó contra el servicio real, no contra una respuesta
+simulada.
 
-- **Frontend ↔ Backend (vía Nginx):** en producción, Nginx actúa como proxy reverso hacia NestJS para /auth, /diagrams, /attachments, /generator, /ai y /socket.io. Se verificó cada ruta con peticiones reales contra la IP pública.
+| Integración | Cómo se verificó | Resultado |
+|---|---|---|
+| Frontend ↔ backend (nginx) | Peticiones a `/auth`, `/diagrams`, `/sessions`, `/attachments`, `/generator` y `/ai` a través del proxy; *upgrade* de `/socket.io` a WebSocket | Rutas correctas; el WebSocket responde **101** |
+| Backend ↔ MongoDB | Guardado del modelo con autoría embebida, bitácora, sesiones, chat y versiones | Documentos correctos (Figura A.8a) |
+| Backend ↔ PostgreSQL | Usuarios con correo único y adjuntos | Correcto |
+| Backend ↔ Amazon S3 | Subida, descarga con URL firmada (5 min) y borrado | Contenido idéntico byte a byte |
+| Backend ↔ Gemini | Chat, dictado por voz y foto de pizarra | Respuestas reales del servicio |
+| Backend ↔ Ollama | Respuesta local y respaldo cuando Gemini no responde | Badge «Ollama Local» (Captura 5) |
+| Backend ↔ app Flutter | Eventos de la sala recibidos en el celular | Correcto (Captura 8) |
 
-- **Backend ↔ PostgreSQL:** persistencia de diagramas, relaciones y entradas de la bitácora, con DB_SYNCHRONIZE=true generando el esquema automáticamente al iniciar el contenedor.
+Defectos encontrados al integrar, antes del primer despliegue (se detectaron
+ensayando la pila completa con Docker Compose en local):
 
-- **Backend ↔ Amazon S3:** subida, descarga con URL firmada (expira en 5 minutos) y eliminación, verificadas contra el bucket real diagramador-uml-adjuntos-fernando, no contra un mock.
+- **Rutas de nginx incompletas:** `nginx.conf` no reenviaba `/auth` ni
+  `/attachments`; en producción el login y los adjuntos habrían devuelto el HTML
+  de la aplicación en vez de JSON.
+- **Versión de Node/npm en la imagen:** `npm ci` fallaba dentro del contenedor
+  (`node:22-alpine` resolvía el *lockfile* distinto); se alinearon ambos
+  Dockerfiles a `node:24-alpine`.
+- **Variables de entorno faltantes:** `docker-compose.prod.yml` no pasaba
+  `JWT_SECRET` ni las variables de AWS al backend.
 
-- **Backend ↔ Google Gemini:** el chat conversacional, el dictado por voz y la interpretación de fotografías de diagramas dibujados a mano se probaron contra el servicio real de IA, no contra una respuesta simulada.
+## 6.5 Pruebas de sistema
 
-Defectos encontrados y corregidos durante la integración (antes del primer despliegue a producción, gracias a un ensayo local completo con Docker Compose sobre la misma imagen que se desplegaría):
+| ID | Escenario de punta a punta | Entorno | Resultado |
+|---|---|---|---|
+| SYS-01 | Registro, inicio de sesión, crear un diagrama y agregar clases | Producción (1er Parcial) | Aprobado |
+| SYS-02 | Cada modificación queda en la bitácora con el usuario real | Producción (1er Parcial) | Aprobado |
+| SYS-03 | Subir un adjunto a S3 desde la infraestructura de AWS | Producción (1er Parcial) | Aprobado |
+| SYS-04 | Descargar el backend generado y revisar sus capas | Producción (1er Parcial) | Aprobado |
+| SYS-05 | Reiniciar la instancia EC2: los contenedores vuelven solos | Producción (1er Parcial) | Aprobado |
+| SYS-06 | Dos usuarios y el Moderador IA en la misma sala (CP-09) | Producción | Aprobado |
+| SYS-07 | Visor móvil en un teléfono Android real (CP-10) | Producción | Aprobado |
+| SYS-08 | Redespliegue en una cuenta nueva de AWS: restaurar los respaldos y verificar HTTPS, WebSocket y S3 | Producción, 07/11/2026 | Aprobado: 13 diagramas, 210 entradas de bitácora y 88 mensajes restaurados |
 
-- **Rutas de Nginx incompletas:** nginx.conf no reenviaba /auth ni /attachments al backend --- se habían agregado esos módulos después de escribir la configuración original. Sin el fix, login y adjuntos habrían devuelto el HTML de la SPA en vez de JSON en producción, aunque funcionaran en desarrollo.
+## 6.6 Pruebas de regresión
 
-- **Incompatibilidad de versión de Node/npm en el build:** node:22-alpine (npm 10.x) resolvía package-lock.json de forma distinta al npm 11.x local, y npm ci fallaba dentro del contenedor con "Missing: typescript@5.9.3 from lock file". Se corrigió alineando ambos Dockerfiles a node:24-alpine.
+- **Suite unitaria:** se corre completa después de cada cambio.
+- **Regresión del 1er Parcial (18/10/2026):** con la versión que incluye el
+  Moderador IA, se volvieron a probar el XMI, la generación del backend, las 30
+  peticiones de Postman, la edición por chat, el dictado por voz y la foto de
+  pizarra (detalle en 7.4.5). Todo siguió funcionando.
 
-- **Variables de entorno incompletas en Docker Compose:** docker-compose.prod.yml no exponía JWT_SECRET ni las variables AWS\_\* al contenedor del backend --- se agregaron esas variables después de escribir el archivo original.
+## 6.7 Evaluación de las pruebas
 
-## 6.4 Pruebas de sistema
+| Nivel | Casos | Aprobados |
+|---|---|---|
+| Unitarias | 152 | 152 |
+| Casos de prueba (6.3) | 16 | 16 |
+| Integración (6.4) | 7 | 7 |
+| Sistema (6.5) | 8 | 8 |
 
-Se ejecutó el flujo completo extremo a extremo contra el servidor de producción real (http://34.231.176.225), no contra un entorno local:
-
-- **SYS-01 --- Registro, autenticación y creación de diagrama:** un usuario nuevo se registra, inicia sesión, crea un diagrama y agrega clases --- resultado: correcto.
-
-- **SYS-02 --- Bitácora de cambios:** cada modificación queda registrada con el nombre real del usuario y un resumen del cambio --- resultado: correcto.
-
-- **SYS-03 --- Documentos adjuntos:** subida a S3 real desde dentro de la infraestructura de AWS --- resultado: correcto.
-
-- **SYS-04 --- Generación de backend Spring Boot:** descarga del proyecto generado, revisión de las cuatro capas por clase --- resultado: correcto.
-
-- **SYS-05 --- Recuperación ante reinicio del servidor:** los tres contenedores (restart: unless-stopped, Docker habilitado al arranque) vuelven a levantarse automáticamente tras un reinicio de la instancia EC2, sin intervención manual.
-
-## 6.5 Evaluación de las pruebas
-
-Todos los casos de prueba diseñados en 6.2 se ejecutaron y pasaron. Los tres defectos encontrados durante la integración (6.3) se detectaron antes de tocar la infraestructura de AWS ---gracias a ensayar primero la pila completa de Docker Compose en local--- y se corrigieron y verificaron antes del primer despliegue real, por lo que ninguno llegó a afectar al sistema en producción. Se considera que el sistema cumple los criterios de aceptación definidos en el plan de pruebas y está listo para la fase de despliegue documentada en la Parte I, sección 3.
+Las pruebas encontraron **16 defectos**, todos corregidos y registrados con su
+causa en la sección 7.5. Los más importantes los encontraron las pruebas de
+sistema y de integración, no las unitarias: por ejemplo, el backend generado
+pasaba sus pruebas unitarias pero creaba tablas duplicadas, y solo se vio al
+**levantarlo** con PostgreSQL (CP-11). Se considera que el sistema cumple los
+criterios de aceptación de 6.1.
 
 **PARTE 3 --- Mecanismo para que el Usuario Utilice la Aplicación**
 
@@ -1047,7 +1155,7 @@ Antes de generar código, el botón " Validar diagrama" ejecuta un análisis aut
 
 - **Colaborar en tiempo real:** el botón " Copiar enlace" genera una URL compartible; cada persona que la abre se une a la misma sesión sobre WebSockets, y los cambios de todos se propagan al instante entre los conectados, con un contador visible en la barra superior.
 
-- **Recorrido guiado:** en la primera visita, un tour de siete pasos resalta cada control principal de la barra de herramientas; puede repetirse en cualquier momento con el botón "❓ Recorrido", útil tanto para nuevos usuarios como para una demostración en vivo.
+- **Recorrido guiado:** en la primera visita, un tour de siete pasos resalta cada control principal de la barra de herramientas; puede repetirse en cualquier momento con el botón "Recorrido", útil tanto para nuevos usuarios como para una demostración en vivo.
 
 ### 3.2.5 Generación del backend y exportación a XMI
 
@@ -1057,7 +1165,7 @@ Antes de generar código, el botón " Validar diagrama" ejecuta un análisis aut
 
 ### 3.2.6 Uso del asistente de IA
 
-El panel de chat, siempre visible junto al lienzo, admite tres canales de entrada descritos en la sección 3.1: texto libre, dictado por voz (icono de micrófono, vía Web Speech API) y una fotografía de un diagrama dibujado a mano (botón "📷 Foto de pizarra"), que el asistente interpreta y traduce en clases y relaciones agregadas automáticamente al lienzo.
+El panel de chat, siempre visible junto al lienzo, admite tres canales de entrada descritos en la sección 3.1: texto libre, dictado por voz (icono de micrófono, vía Web Speech API) y una fotografía de un diagrama dibujado a mano (botón "Foto de pizarra"), que el asistente interpreta y traduce en clases y relaciones agregadas automáticamente al lienzo.
 
 ### 3.2.7 Conexión con la aplicación móvil
 
@@ -1091,7 +1199,7 @@ El presente estándar define las convenciones, herramientas y prácticas aplicad
 
 ### 3. Stack Tecnológico y Herramientas de Calidad
 
-El backend de la herramienta CASE está construido en NestJS + TypeScript (modo strict) con TypeORM y PostgreSQL; el frontend en React + Vite + TypeScript con React Flow; el cliente móvil en Flutter/Dart; y la salida generada en Spring Boot 3.3.4 con Java 17 y Maven. El aseguramiento de la calidad se apoya en herramientas automáticas:
+El backend de la herramienta CASE está construido en NestJS + TypeScript (modo strict), con Mongoose sobre MongoDB 7 para los diagramas y TypeORM sobre PostgreSQL 16 para usuarios y adjuntos; el frontend en React + Vite + TypeScript con React Flow; el cliente móvil en Flutter/Dart; y la salida generada en Spring Boot 3.3.4 con Java 17 y Maven. El aseguramiento de la calidad se apoya en herramientas automáticas:
 
 - **oxlint:** analizador estático (linter) del código TypeScript en backend y frontend, que detecta errores y malas prácticas antes de la ejecución.
 
@@ -1099,17 +1207,17 @@ El backend de la herramienta CASE está construido en NestJS + TypeScript (modo 
 
 - **TypeScript strict:** verificación estricta de tipos en tiempo de compilación en backend y frontend.
 
-- **vitest:** pruebas unitarias y de integración del backend, con medición de cobertura y pruebas end-to-end.
+- **Vitest:** 152 pruebas unitarias del backend (detalle en la sección 6.2 de la Parte 2).
 
 - **flutter_lints y flutter analyze:** reglas de análisis estático oficiales para el código Dart del cliente móvil.
 
 ### 4. Configuración del Entorno de Desarrollo
 
-- **Requisitos:** Node.js 22+, PostgreSQL en localhost:5432 y el SDK de Flutter.
+- **Requisitos:** Node.js 24, Docker Desktop (levanta MongoDB y PostgreSQL), el SDK de Flutter y, para la IA local, Ollama.
 
-- **Variables de entorno (.env, nunca versionadas):** credenciales de base de datos, GEMINI_API_KEY y AI_PROVIDER (para alternar entre IA en la nube y la IA local).
+- **Variables de entorno (.env, nunca versionadas):** credenciales de MongoDB y PostgreSQL, `JWT_SECRET`, `GEMINI_API_KEY`, la clave IAM de S3 y `AI_HYBRID_ORDER` (qué IA responde primero: la de la nube o la local).
 
-- **Comandos estandarizados:** npm run start:dev (desarrollo con recarga en caliente), npm run lint (oxlint), npm run format (Prettier), npm test y npm run test:cov (vitest), npm run test:e2e (end-to-end).
+- **Comandos estandarizados:** npm run start:dev (desarrollo con recarga en caliente), npm run lint (oxlint), npm run format (Prettier), npx vitest run (pruebas).
 
 - **Formateo automático al guardar** habilitado en el editor, para mantener el estilo sin intervención manual.
 
