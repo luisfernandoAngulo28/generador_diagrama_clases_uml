@@ -15,12 +15,14 @@ param(
     [switch]$BackendOnly,
     [switch]$FrontendOnly,
     # Cambia si se recrea el servidor (ver deploy/GUIA_REDESPLIEGUE_AWS.md).
-    [string]$Server = "ubuntu@100.56.70.99"
+    [string]$Server = "ubuntu@77.112.242.36",
+    # Llave de la key pair de Ohio (us-east-2), creada el 07/11/2026.
+    [string]$Pem = ".deploy\diagramador-uml-key-ohio.pem"
 )
 
 $ErrorActionPreference = "Stop"
 
-$PEM     = ".deploy\diagramador-uml-key.pem"
+$PEM     = $Pem
 $APP_DIR = "app"
 
 function Log-Step { param($msg); Write-Host "`n== $msg ==" -ForegroundColor Cyan }

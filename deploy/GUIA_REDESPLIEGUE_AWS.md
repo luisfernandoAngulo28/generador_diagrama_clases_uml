@@ -27,6 +27,26 @@ Al volver a encenderlo, el costo aproximado es: t3.micro ≈ 7,6 USD/mes + disco
 
 ---
 
+## Redespliegue del 07/11/2026: cuenta nueva, región Ohio
+
+La cuenta nueva (`441356679038`) pertenece a una organización educativa cuya
+política solo permite EC2 en **us-east-2 (Ohio)**; Virginia, São Paulo y las demás
+están bloqueadas. Por eso los recursos actuales son otros que los de esta guía:
+
+| Qué | Valor actual |
+|---|---|
+| Región | `us-east-2` (`$env:AWS_DEFAULT_REGION = "us-east-2"` antes de los comandos) |
+| Instancia / IP fija | `i-0a073deff05ced4a6` / `77.112.242.36` |
+| Security Group | `sg-0daa4cfcf8a80774c` |
+| Key pair | `diagramador-uml-key-ohio` → `.deploy\diagramador-uml-key-ohio.pem` |
+| Bucket | `diagramador-uml-adjuntos-g43` (política del usuario de la app: `deploy/iam/politica-app-s3.json`) |
+| Usuarios IAM | `diagramador-deploy` (EC2 + S3 + SSM lectura, para la CLI) y `diagramador-app-s3` (solo el bucket) |
+
+La lista completa está en `.deploy/recursos-ohio.txt`. En los comandos de abajo,
+reemplazá la key pair, el Security Group y la llave `.pem` por estos. La AMI de
+Ubuntu se busca con `aws ec2 describe-images --owners 099720109477` (el parámetro
+SSM falla desde Git Bash por la conversión de rutas).
+
 ## Paso a paso (desde la raíz del repo, en PowerShell)
 
 ### 1. Crear el servidor (Ubuntu 24.04, t3.micro)
@@ -62,7 +82,7 @@ En **duckdns.org**, en la fila `diagramasw1pracial100`, escribe la IP nueva en
 ### 4. Copiar código, secretos y certificado al servidor
 
 ```powershell
-$k = ".deploy\diagramador-uml-key.pem"
+$k = ".deploy\diagramador-uml-key-ohio.pem"
 ssh -i $k -o StrictHostKeyChecking=no ubuntu@$ip "git clone -b feat/mongodb-autoria https://github.com/luisfernandoAngulo28/generador_diagrama_clases_uml.git app && sudo mkdir -p /var/www/certbot"
 scp -i $k .deploy\servidor\.env.production ubuntu@${ip}:app/.env.production
 scp -i $k .deploy\servidor\letsencrypt.tgz ubuntu@${ip}:/tmp/
