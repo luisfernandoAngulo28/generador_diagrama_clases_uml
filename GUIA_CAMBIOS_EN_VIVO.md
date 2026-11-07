@@ -26,7 +26,8 @@ menos una vez antes del martes, **los dos**, y anotar el tiempo.
 
 | Qué se cambió | Cómo se ve el cambio |
 |---|---|
-| Lógica del backend con test | `npx vitest run src/<carpeta>` (segundos) |
+| Lógica del backend con test | `npx vitest run src/<carpeta>` (segundos). El proyecto usa **Vitest**, no Jest |
+| Que el backend compila | `npm run build` en `backend/` (no `npx tsc`: marca un error viejo de un test e2e que no tiene que ver) |
 | Backend en la app | `docker compose -f docker-compose.prod.yml -f docker-compose.local.yml --env-file .env.production up -d --build backend` y recargar el navegador (**medir el tiempo en el ensayo**) |
 | Frontend | lo mismo con `frontend` en vez de `backend`, o `npm run dev` en `frontend/` para verlo al instante en http://localhost:5173 |
 | Proyecto Spring Boot generado | *Archivo → Generar backend* y abrir el `.zip`; o mirar la vista previa de código |
@@ -97,17 +98,35 @@ tipeo.
   misma persona y la misma fuente; la IA y las restauraciones siempre crean
   versión propia.
 
-## 4. Cambiar lo que genera una entidad JPA
+## 4. Cambiar lo que genera una entidad JPA (ensayado)
 
-*"Que la clave primaria use `GenerationType.SEQUENCE`"* o *"que los `String`
-tengan `length = 150`"*.
+*"Que los atributos `String` tengan `length = 150`."*
 
 - **Archivo:** `backend/src/generator/templates/entity.template.ts`.
-- **Cambio:** buscar donde se escribe `@GeneratedValue` o `@Column` y editar el
-  texto del template.
-- **Prueba:** `npx vitest run src/generator/templates/entity` (hay que
-  actualizar el `toContain(...)` del spec). Para mostrarlo: generar el backend
+- **Cambio 1**, en `const fields = cls.attributes ... .map((attr) => {`:
+  ```ts
+  const annotation = enumClassNames.has(attr.type)
+    ? '    @Enumerated(EnumType.STRING)\n'
+    : toJavaType(attr.type) === 'String'
+      ? '    @Column(length = 150)\n'
+      : '';
+  ```
+- **Cambio 2**, el import, junto a los otros del `for (const attr ...)`:
+  ```ts
+  if (javaType === 'String') imports.add('jakarta.persistence.Column');
+  ```
+- **Prueba:** un test con `renderEntity(cls, { classes: [cls], relations: [] }, 'com.example.demo')`
+  y `expect(java).toContain('@Column(length = 150)\n    private String nombre;')`;
+  `npx vitest run src/generator` (39 tests). Para mostrarlo: generar el backend
   desde la app y abrir la entidad en el `.zip`.
+- **⚠️ Trampa si piden `GenerationType.SEQUENCE`:** los tests **siguen pasando**,
+  pero el proyecto generado **falla al crear registros**. `data.sql` inserta ids
+  fijos y ajusta la secuencia con `pg_get_serial_sequence`, que solo existe con
+  `IDENTITY`; con `SEQUENCE`, Hibernate usa otra secuencia que empieza en 1 y
+  choca con los ids existentes. Si lo piden, explicar esto: es un buen ejemplo
+  de por qué probamos el proyecto generado **corriendo** y no solo con tests
+  unitarios. Habría que cambiar también el `setval` de
+  `templates/data-sql.template.ts`.
 - **Para explicar:** la base de datos la crea **solo** Hibernate desde las
   entidades (`ddl-auto=update`); por eso un cambio en el template cambia la
   tabla (defecto 13 del registro).
@@ -153,7 +172,8 @@ diagrama"*.
 - **Archivo:** `flutter-template/lib/live/uml_viewer_screen.dart`:
   - título: `AppBar(title: const Text('Visor UML en vivo'))`;
   - lista: `ListTile(title: Text(d.name), subtitle: ...)`.
-- **Prueba:** `flutter analyze` y `flutter run -d chrome` (recarga con `r`).
+- **Prueba:** `flutter analyze` (~30 s; la **primera** vez del día tarda ~3 min,
+  correrlo antes de entrar) y `flutter run -d chrome` (recarga con `r`).
 - **Para explicar:** el visor es de solo lectura; escucha los eventos del
   socket en `live_room.dart` (`_onDiagramUpdate`, `_onAuthorship`, ...).
 
@@ -167,8 +187,20 @@ diagrama"*.
   `client.to(diagramId).emit('user-joined', { userName: client.data.editorName })`.
   Ya existe algo parecido: `broadcastPresence(diagramId)` actualiza la lista de
   conectados.
-- **Frontend:** escuchar `user-joined` donde se manejan los otros eventos del
-  socket y mostrar un toast.
+- **Frontend:** `frontend/src/App.tsx`, en el `useEffect` donde están
+  `socket.on('locks-update', ...)` y `socket.on('diagram:authorship', ...)`:
+  ```ts
+  function handleUserJoined(data: { userName: string }) {
+    toast.info(`${data.userName} entró a la sala`);
+  }
+  socket.on('user-joined', handleUserJoined);
+  ```
+  y en el `return () => { ... }` de ese efecto:
+  `socket.off('user-joined', handleUserJoined);` (si no, se acumulan
+  oyentes cada vez que se cambia de diagrama).
+- **Prueba:** `npm run build` en `backend/` y `npx tsc -b` en `frontend/`
+  (ensayado: ambos compilan). Para verlo: reconstruir los dos contenedores y
+  abrir la misma sala en dos navegadores.
 - **Para explicar:** con sesión iniciada, el usuario sale del JWT validado en el
   *handshake* (`resolveSocketUser` en `socket-auth.ts`), no del `userName` que
   manda el cliente, así que no se puede suplantar. El `userName` del payload
@@ -189,6 +221,11 @@ diagrama"*.
 | # | Cambio | Quién | Tiempo | Notas |
 |---|---|---|---|---|
 | 1 | Tipo `char` | Claude (prueba) | 27 s | Hay que usar Vitest |
+| 2 | Regla de validación | Claude (prueba) | 47 s | 14 tests pasan |
+| 3 | Ventana de versiones | Claude (prueba) | < 30 s | 6 tests pasan sin tocarlos |
+| 4 | Entidad JPA `@Column` | Claude (prueba) | ~1 min | Con test propio; ver la trampa de `SEQUENCE` |
+| 8 | Flutter (título) | Claude (prueba) | 3 min | Por el primer `flutter analyze` del día |
+| 9 | Evento de socket | Claude (prueba) | ~2 min | Compila; falta verlo en dos navegadores |
 | 1 | Tipo `char` | | | |
 | 2 | Regla de validación | | | |
 | 3 | Ventana de versiones | | | |

@@ -183,7 +183,9 @@ class _ApiScreenState extends State<ApiScreen> {
     final entry = {'endpoint': ep, 'json': body};
     if (_history.isNotEmpty &&
         _history.first['endpoint'] == ep &&
-        _history.first['json'] == body) return;
+        _history.first['json'] == body) {
+      return;
+    }
     setState(() {
       _history.insert(0, entry);
       if (_history.length > _kMaxHistory) {
@@ -243,7 +245,7 @@ class _ApiScreenState extends State<ApiScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: _history.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (_, i) {
                     final h = _history[i];
                     return ListTile(
@@ -639,7 +641,7 @@ class _ApiScreenState extends State<ApiScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _presets.length,
-        separatorBuilder: (_, _r) => const SizedBox(width: 6),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, i) {
           final p = _presets[i];
           return ActionChip(
