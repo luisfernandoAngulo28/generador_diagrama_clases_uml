@@ -1,0 +1,11 @@
+@startuml com_cu11
+!include ../2do_parcial/pud/_com.iuml
+title CU11 — Dictar Comando por Voz\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":ChatPanel" as B <<boundary>>
+object ":Web Speech API" as C <<control>>
+actor "Usuario" as A
+A -down- B : "1: click micrófono →"
+B -down- C : "2: start() →\n4: onresult(transcript) ←"
+A -down- C : "3: dictar frase →"
+B -down- B : "5: sendText() → CU10"
+@enduml

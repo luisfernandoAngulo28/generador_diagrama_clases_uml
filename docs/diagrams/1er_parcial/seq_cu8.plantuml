@@ -1,0 +1,21 @@
+@startuml seq_cu8
+!include ../2do_parcial/pud/_seq.iuml
+title CU8 — Generar Backend Spring Boot\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":LienzoUML" as L
+control ":api/client.ts" as A
+control ":GeneratorController" as GC
+control ":DiagramsService" as DS
+control ":GeneratorService" as GS
+U -> L : click "Generar backend Spring Boot"
+L -> A : downloadGeneratedBackend(id)
+A -> GC : POST /generator/:id/zip
+GC -> DS : findOne(id)
+DS --> GC : modelo UML
+GC -> GS : generate(modelo)
+GS -> GS : renderEntity/Repository/Service/Controller por clase
+GS --> GC : archivos generados (Map)
+GC -> GC : empaquetar .zip (archiver)
+GC --> A : stream del .zip
+A --> U : descarga del archivo
+@enduml

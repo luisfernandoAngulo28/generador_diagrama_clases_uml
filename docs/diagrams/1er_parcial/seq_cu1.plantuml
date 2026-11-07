@@ -1,0 +1,10 @@
+@startuml seq_cu1
+!include ../2do_parcial/pud/_seq.iuml
+title CU1 — Crear Clase UML\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":LienzoUML (App.tsx)" as L
+U -> L : click "+ Clase"
+L -> L : generar id (crypto.randomUUID)
+L -> L : crear nodo "NuevaClase"
+L --> U : mostrar clase en el lienzo
+@enduml

@@ -1,0 +1,21 @@
+@startuml seq_cu6
+!include ../2do_parcial/pud/_seq.iuml
+title CU6 — Cargar Diagrama Compartido\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":LienzoUML" as L
+control ":api/client.ts" as A
+control ":DiagramsController" as DC
+control ":DiagramsService" as DS
+database ":PostgreSQL" as DB
+U -> L : abrir URL con ?diagram=id
+L -> A : getDiagram(id)
+A -> DC : GET /diagrams/:id
+DC -> DS : findOne(id)
+DS -> DB : SELECT
+DB --> DS : modelo
+DS --> DC : diagrama
+DC --> A : 200 + modelo
+A --> L : modelo
+L -> L : reconstruir nodos y aristas
+L --> U : diagrama visible
+@enduml

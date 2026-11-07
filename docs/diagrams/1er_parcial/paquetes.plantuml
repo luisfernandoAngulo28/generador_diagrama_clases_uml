@@ -1,0 +1,30 @@
+@startuml paquetes
+' Diagrama de paquetes — Ciclo 1 (1er Parcial) — UML 2.5.1
+!include ../2do_parcial/_estilo.iuml
+title Diagrama de Paquetes del Sistema — Ciclo 1\n<size:11>UML 2.5.1 · dependencias «use» · 1er Parcial</size>
+
+package "Frontend (React + Vite)" {
+  package "Lienzo UML (React Flow)"
+  package "Panel de Chat IA"
+  package "api/client.ts"
+  package "api/socket.ts"
+}
+package "Backend (NestJS)" {
+  package "diagrams"
+  package "generator"
+  package "ai"
+}
+package "PostgreSQL"
+package "Google Gemini API"
+
+"Lienzo UML (React Flow)" ..> "api/client.ts" : <<use>>
+"Panel de Chat IA" ..> "api/client.ts" : <<use>>
+"Lienzo UML (React Flow)" ..> "api/socket.ts" : <<use>>
+"api/client.ts" ..> "diagrams" : <<use>>
+"api/client.ts" ..> "generator" : <<use>>
+"api/client.ts" ..> "ai" : <<use>>
+"api/socket.ts" ..> "diagrams" : <<use>>
+"generator" ..> "diagrams" : <<use>>
+"diagrams" ..> "PostgreSQL" : <<use>>
+"ai" ..> "Google Gemini API" : <<use>>
+@enduml

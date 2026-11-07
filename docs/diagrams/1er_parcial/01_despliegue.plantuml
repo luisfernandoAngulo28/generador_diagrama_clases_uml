@@ -1,0 +1,26 @@
+@startuml 01_despliegue
+' Diagrama de despliegue — Ciclo 1 (1er Parcial) — UML 2.5.1
+!include ../2do_parcial/_estilo.iuml
+title Diagrama de Despliegue del Sistema — Ciclo 1\n<size:11>UML 2.5.1 · nodos, entornos de ejecución y rutas de comunicación · 1er Parcial</size>
+
+node "Dispositivo del usuario" <<device>> as pc {
+  node "Navegador web" <<executionEnvironment>> as browser {
+    artifact "React SPA" as spa
+  }
+}
+node "Servidor de aplicación" <<device>> as app {
+  node "Node.js" <<executionEnvironment>> as node {
+    artifact "Backend NestJS\n:3000" as nest
+  }
+}
+node "Servidor de base de datos" <<device>> as dbs {
+  database "PostgreSQL\n:5432" as pg
+}
+node "Servicios en la nube" <<device>> as cloud {
+  artifact "Google Gemini API" as gemini
+}
+
+pc -- app : <<HTTPS / WebSocket>>
+app -- dbs : <<SQL / TCP>>
+app -- cloud : <<HTTPS>>
+@enduml

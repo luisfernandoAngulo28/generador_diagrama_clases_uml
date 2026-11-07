@@ -1,0 +1,18 @@
+@startuml seq_cu7
+!include ../2do_parcial/pud/_seq.iuml
+title CU7 — Colaborar en Tiempo Real\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+actor "Usuario Colaborador" as UC
+boundary ":LienzoUML" as L
+control ":api/socket.ts" as SC
+control ":DiagramsGateway" as GW
+U -> L : abrir diagrama guardado
+L -> SC : emit("join-diagram", id)
+SC -> GW : join-diagram
+GW -> GW : client.join(sala)
+GW --> SC : presence {count}
+UC -> GW : emit("diagram-update", payload)
+GW -> SC : broadcast diagram-update
+SC --> L : aplicar cambios remotos
+L --> U : lienzo actualizado sin recargar
+@enduml

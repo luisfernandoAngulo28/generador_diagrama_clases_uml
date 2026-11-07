@@ -302,6 +302,14 @@ efectivo.
   construyó en Enterprise Architect por automatización (su API COM). Las
   imágenes del documento se exportaron desde Enterprise Architect, donde cada
   diagrama se puede abrir, revisar y editar.
+- **Diagramas del Ciclo 1 rehechos en Enterprise Architect (08/11/2026):** los
+  28 diagramas del 1er Parcial (casos de uso, paquetes, comunicación y
+  secuencia de CU1–CU12, clases de análisis y despliegue) estaban dibujados con
+  Mermaid. Se pasaron a Enterprise Architect con el mismo contenido, en
+  `docs/diagrams/ea/ciclo1.eap`: `convertir_ciclo1.py` traduce cada borrador a
+  la notación UML (estereotipos Boundary-Control-Entity, actores, mensajes
+  numerados), `ea_builder.py` los construye en EA y `ajustar_ciclo1.py`
+  acomoda a mano los que el diseño automático dejaba enredados.
 - **Asistente de programación:** el equipo trabajó con **Claude Code**
   (Anthropic) como asistente de programación. Por transparencia, los commits en
   que participó llevan la línea `Co-Authored-By: Claude` (82 de 89 commits). El

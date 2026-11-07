@@ -1,0 +1,20 @@
+@startuml seq_cu10
+!include ../2do_parcial/pud/_seq.iuml
+title CU10 — Consultar Asistente de IA\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":ChatPanel" as CP
+control ":api/client.ts" as A
+control ":AiController" as AC
+control ":AiService" as AS
+participant ":Google Gemini" as G
+U -> CP : escribir mensaje + Enviar
+CP -> A : sendChatMessage(texto)
+A -> AC : POST /ai/chat
+AC -> AS : chat(mensaje)
+AS -> G : generateContent(systemPrompt + mensaje)
+G --> AS : respuesta
+AS --> AC : reply
+AC --> A : 200 + reply
+A --> CP : reply
+CP --> U : mostrar respuesta
+@enduml

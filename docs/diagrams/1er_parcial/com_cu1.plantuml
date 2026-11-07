@@ -1,0 +1,8 @@
+@startuml com_cu1
+!include ../2do_parcial/pud/_com.iuml
+title CU1 — Crear Clase UML\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":LienzoUML" as B <<boundary>>
+actor "Usuario" as A
+A -down- B : "1: click + Clase →"
+B -down- B : "2: crear nodo"
+@enduml

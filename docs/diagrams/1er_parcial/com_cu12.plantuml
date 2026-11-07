@@ -1,0 +1,12 @@
+@startuml com_cu12
+!include ../2do_parcial/pud/_com.iuml
+title CU12 — Interpretar Foto de Pizarra\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":LienzoUML" as B <<boundary>>
+object ":AiController/Service" as C <<control>>
+object ":Google Gemini" as E <<entity>>
+actor "Usuario" as A
+A -down- B : "1: subir foto →"
+B -down- C : "2: POST /ai/interpret-photo →\n5: clases y relaciones ←"
+C -down- E : "3: generateContent(imagen) →\n4: JSON del modelo ←"
+B -down- B : "6: agregar al lienzo"
+@enduml

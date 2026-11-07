@@ -1,0 +1,11 @@
+@startuml com_cu10
+!include ../2do_parcial/pud/_com.iuml
+title CU10 — Consultar Asistente de IA\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":ChatPanel" as B <<boundary>>
+object ":AiController/Service" as C <<control>>
+object ":Google Gemini" as E <<entity>>
+actor "Usuario" as A
+A -down- B : "1: enviar mensaje →"
+B -down- C : "2: POST /ai/chat →\n5: reply ←"
+C -down- E : "3: generateContent() →\n4: respuesta ←"
+@enduml

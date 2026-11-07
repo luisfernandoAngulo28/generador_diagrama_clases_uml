@@ -1,0 +1,56 @@
+@startuml clases_analisis
+' Clases de análisis del Ciclo 1 (1er Parcial) — patrón ECB — UML 2.5.1
+!include ../2do_parcial/_estilo.iuml
+hide empty members
+title Clases de Análisis — Ciclo 1\n<size:11>UML 2.5.1 · Boundary-Control-Entity · 1er Parcial</size>
+
+package "Boundary" {
+  class LienzoUML <<boundary>> {
+    +addClass()
+    +onConnect()
+    +saveDiagram()
+  }
+  class ClassInspector <<boundary>> {
+    +onChange()
+    +onDelete()
+  }
+  class ChatPanel <<boundary>> {
+    +sendText()
+    +startListening()
+  }
+}
+package "Control" {
+  class DiagramsController <<control>> {
+    +create()
+    +findOne()
+    +exportXmi()
+  }
+  class DiagramsGateway <<control>> {
+    +handleJoin()
+    +handleUpdate()
+  }
+  class GeneratorService <<control>> {
+    +generate()
+  }
+  class AiService <<control>> {
+    +chat()
+    +interpretDiagramPhoto()
+  }
+}
+package "Entity" {
+  class Diagram <<entity>> {
+    +id
+    +name
+    +model
+  }
+}
+
+LienzoUML --> DiagramsController
+LienzoUML --> DiagramsGateway
+LienzoUML --> GeneratorService
+ClassInspector --> LienzoUML
+ChatPanel --> AiService
+DiagramsController --> Diagram
+DiagramsGateway --> Diagram
+GeneratorService --> Diagram
+@enduml

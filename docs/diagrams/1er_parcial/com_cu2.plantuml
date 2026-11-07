@@ -1,0 +1,10 @@
+@startuml com_cu2
+!include ../2do_parcial/pud/_com.iuml
+title CU2 — Editar Clase UML\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":LienzoUML" as B <<boundary>>
+object ":Inspector" as C <<control>>
+actor "Usuario" as A
+A -down- B : "1: doble clic →"
+B -down- C : "2: abrir panel →\n4: onChange ←"
+A -down- C : "3: editar dato →"
+@enduml

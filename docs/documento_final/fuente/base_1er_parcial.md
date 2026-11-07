@@ -709,7 +709,7 @@ A diferencia de un sistema con roles y autenticación, esta herramienta no disti
 
 El diagrama general de casos de uso muestra los doce casos de uso del sistema, todos accesibles por el actor Usuario (sin restricción de rol), con el caso Colaborar en Tiempo Real compartido con el actor Usuario Colaborador, y los casos Consultar Asistente de IA e Interpretar Foto de Pizarra extendidos hacia el actor secundario Asistente de IA.
 
-![](./media/image2.png){width="5.0in" height="8.78125in"}
+![](docs/diagrams/ea/img/ciclo1/uc_general.png){width="5.2in"}
 
 *Figura 1. Diagrama General de Casos de Uso --- Vista completa del sistema*
 
@@ -721,7 +721,7 @@ El diagrama general de casos de uso muestra los doce casos de uso del sistema, t
 
 El sistema se organiza en tres paquetes principales dentro del backend de la herramienta (diagrams, generator, ai), consumidos por dos módulos del frontend (el lienzo y el panel de chat). Cada paquete agrupa los casos de uso relacionados y define un subsistema con responsabilidades bien delimitadas.
 
-![](./media/image3.png){width="5.208333333333333in" height="3.71875in"}
+![](docs/diagrams/ea/img/ciclo1/paquetes.png){width="6.2in"}
 
 *Figura 2. Diagrama de Paquetes del Sistema*
 
@@ -731,73 +731,73 @@ Los diagramas de comunicación muestran las interacciones entre objetos boundary
 
 ***CU1 --- Crear Clase UML***
 
-![](./media/image4.png){width="5.0in" height="0.8125in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu1.png){width="2.91in"}
 
 *Figura --- Diagrama de Comunicación CU1*
 
 ***CU2 --- Editar Clase UML***
 
-![](./media/image5.png){width="5.0in" height="1.1875in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu2.png){width="3.25in"}
 
 *Figura --- Diagrama de Comunicación CU2*
 
 ***CU3 --- Eliminar Clase UML***
 
-![](./media/image6.png){width="5.0in" height="0.5104166666666666in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu3.png){width="2.78in"}
 
 *Figura --- Diagrama de Comunicación CU3*
 
 ***CU4 --- Crear Relación entre Clases***
 
-![](./media/image7.png){width="5.0in" height="0.6979166666666666in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu4.png){width="2.86in"}
 
 *Figura --- Diagrama de Comunicación CU4*
 
 ***CU5 --- Guardar Diagrama***
 
-![](./media/image8.png){width="5.0in" height="0.6458333333333334in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu5.png){width="2.88in"}
 
 *Figura --- Diagrama de Comunicación CU5*
 
 ***CU6 --- Cargar Diagrama Compartido***
 
-![](./media/image9.png){width="5.0in" height="0.6354166666666666in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu6.png){width="2.8in"}
 
 *Figura --- Diagrama de Comunicación CU6*
 
 ***CU7 --- Colaborar en Tiempo Real***
 
-![](./media/image10.png){width="5.0in" height="0.8333333333333334in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu7.png){width="2.69in"}
 
 *Figura --- Diagrama de Comunicación CU7*
 
 ***CU8 --- Generar Backend Spring Boot***
 
-![](./media/image11.png){width="5.0in" height="0.5520833333333334in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu8.png){width="3.19in"}
 
 *Figura --- Diagrama de Comunicación CU8*
 
 ***CU9 --- Exportar Diagrama a XMI***
 
-![](./media/image12.png){width="5.0in" height="0.6041666666666666in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu9.png){width="3.24in"}
 
 *Figura --- Diagrama de Comunicación CU9*
 
 ***CU10 --- Consultar Asistente de IA***
 
-![](./media/image13.png){width="5.0in" height="0.4166666666666667in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu10.png){width="2.4in"}
 
 *Figura --- Diagrama de Comunicación CU10*
 
 ***CU11 --- Dictar Comando por Voz***
 
-![](./media/image14.png){width="5.0in" height="1.0208333333333333in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu11.png){width="3.25in"}
 
 *Figura --- Diagrama de Comunicación CU11*
 
 ***CU12 --- Interpretar Foto de Pizarra***
 
-![](./media/image15.png){width="5.0in" height="0.7604166666666666in"}
+![](docs/diagrams/ea/img/ciclo1/com_cu12.png){width="2.82in"}
 
 *Figura --- Diagrama de Comunicación CU12*
 
@@ -805,7 +805,7 @@ Los diagramas de comunicación muestran las interacciones entre objetos boundary
 
 Las clases de análisis siguen el patrón ECB: clases boundary (interfaz con el usuario), control (lógica de negocio) y entity (datos persistentes).
 
-![](./media/image16.png){width="5.0in" height="6.333333333333333in"}
+![](docs/diagrams/ea/img/ciclo1/clases_analisis.png){width="4.33in"}
 
 *Figura 15. Clases de Análisis --- Patrón Boundary-Control-Entity del sistema*
 
@@ -821,7 +821,7 @@ El diagrama de paquetes (Figura 2) organiza la arquitectura lógica en tres paqu
 
 El sistema se despliega como dos servicios independientes: el frontend (aplicación React servida al navegador) y el backend (Node.js/NestJS), con PostgreSQL como servidor de base de datos y Google Gemini como servicio de IA en la nube.
 
-![](./media/image17.png){width="5.208333333333333in" height="1.6770833333333333in"}
+![](docs/diagrams/ea/img/ciclo1/01_despliegue.png){width="3.67in"}
 
 *Figura 16. Diagrama de Despliegue del Sistema*
 
@@ -845,73 +845,73 @@ Los diagramas de secuencia especifican el comportamiento dinámico de cada caso 
 
 ***CU1 --- Crear Clase UML***
 
-![](./media/image18.png){width="5.208333333333333in" height="4.104166666666667in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu1.png){width="2.83in"}
 
 *Figura --- Diagrama de Secuencia CU1*
 
 ***CU2 --- Editar Clase UML***
 
-![](./media/image19.png){width="5.208333333333333in" height="2.5729166666666665in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu2.png){width="3.47in"}
 
 *Figura --- Diagrama de Secuencia CU2*
 
 ***CU3 --- Eliminar Clase UML***
 
-![](./media/image20.png){width="5.208333333333333in" height="2.875in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu3.png){width="3.27in"}
 
 *Figura --- Diagrama de Secuencia CU3*
 
 ***CU4 --- Crear Relación entre Clases***
 
-![](./media/image21.png){width="5.208333333333333in" height="3.2291666666666665in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu4.png){width="2.3in"}
 
 *Figura --- Diagrama de Secuencia CU4*
 
 ***CU5 --- Guardar Diagrama***
 
-![](./media/image22.png){width="5.208333333333333in" height="2.6770833333333335in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu5.png){width="6.2in"}
 
 *Figura --- Diagrama de Secuencia CU5*
 
 ***CU6 --- Cargar Diagrama Compartido***
 
-![](./media/image23.png){width="5.208333333333333in" height="2.75in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu6.png){width="6.2in"}
 
 *Figura --- Diagrama de Secuencia CU6*
 
 ***CU7 --- Colaborar en Tiempo Real***
 
-![](./media/image24.png){width="5.208333333333333in" height="2.78125in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu7.png){width="6.2in"}
 
 *Figura --- Diagrama de Secuencia CU7*
 
 ***CU8 --- Generar Backend Spring Boot***
 
-![](./media/image25.png){width="5.208333333333333in" height="2.3958333333333335in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu8.png){width="6.2in"}
 
 *Figura --- Diagrama de Secuencia CU8*
 
 ***CU9 --- Exportar Diagrama a XMI***
 
-![](./media/image26.png){width="4.7774409448818895in" height="2.4556036745406824in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu9.png){width="5.81in"}
 
 *Figura --- Diagrama de Secuencia CU9*
 
 ***CU10 --- Consultar Asistente de IA***
 
-![](./media/image27.png){width="5.208333333333333in" height="2.1875in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu10.png){width="6.2in"}
 
 *Figura --- Diagrama de Secuencia CU10*
 
 ***CU11 --- Dictar Comando por Voz***
 
-![](./media/image28.png){width="5.208333333333333in" height="3.75in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu11.png){width="5.3in"}
 
 *Figura --- Diagrama de Secuencia CU11*
 
 ***CU12 --- Interpretar Foto de Pizarra***
 
-![](./media/image29.png){width="5.208333333333333in" height="2.3645833333333335in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu12.png){width="6.2in"}
 
 *Figura --- Diagrama de Secuencia CU12*
 

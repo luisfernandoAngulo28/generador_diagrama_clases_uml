@@ -356,7 +356,8 @@ Es **I-CASE (integrada)**:
 
 **E3. ¿Qué versión de UML? ¿Quién la define?**
 - **UML 2.5.1**, del **OMG** (omg.org).
-- Los 28 diagramas del Ciclo 2 están en notación UML 2.5.1, hechos en Enterprise Architect.
+- Los **56 diagramas** del documento (28 del Ciclo 1 y 28 del Ciclo 2) están en
+  notación UML 2.5.1, hechos en Enterprise Architect.
 - El intercambio es en XMI 2.1, también del OMG.
 - Las reglas de modelado vienen de **OMT** (Rumbaugh, 1991).
 
@@ -512,8 +513,11 @@ que refleja. Ejemplo en vivo:
   clases de diseño de la sala** (09), generado a partir de las secuencias.
 
 **F4. "¿Los diagramas los hizo la IA?"**
-- Están hechos en **Enterprise Architect 13.5**, en `docs/diagrams/ea/ciclo2.eap`.
-  Ábranlo y muestren cualquier diagrama.
+- Están hechos en **Enterprise Architect 13.5**: `docs/diagrams/ea/ciclo1.eap`
+  (1er Parcial, CU1–CU12) y `docs/diagrams/ea/ciclo2.eap` (2do Parcial).
+  Ábranlos y muestren cualquier diagrama.
+- Los del 1er Parcial estaban en Mermaid; se rehicieron en EA el 08/11 con el
+  mismo contenido, porque el ingeniero pidió que fueran de la herramienta CASE.
 - **Cómo se hicieron:** un borrador textual escrito a partir del código
   (`docs/diagrams/2do_parcial/`), que el script `ea_builder.py` construyó en EA por
   su API COM. Después se revisaron contra el código y se corrigieron (por ejemplo,
@@ -601,7 +605,7 @@ laptop, sin AWS ni internet.
 | Timeouts de Ollama | 20 s (va primero) · 60 s (respaldo) |
 | Contexto de la IA | 25 entradas de bitácora · 8 de la sala · 8 del hilo individual |
 | Migración | 8 diagramas + 55 entradas de historial, IDs conservados |
-| Modelos UML del Ciclo 2 | 28 diagramas en Enterprise Architect 13.5, UML 2.5.1 |
+| Modelos UML | 56 diagramas en Enterprise Architect 13.5, UML 2.5.1 (28 por ciclo) |
 | Verificación secuencia ↔ código | 86 de 86 mensajes son operaciones de la clase receptora (+28 de librerías) |
 | Proceso Unificado | 2 ciclos × 4 fases (Inicio, Elaboración, Construcción, Transición) × 5 flujos |
 

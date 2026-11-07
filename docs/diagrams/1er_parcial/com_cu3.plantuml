@@ -1,0 +1,10 @@
+@startuml com_cu3
+!include ../2do_parcial/pud/_com.iuml
+title CU3 — Eliminar Clase UML\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":Inspector" as B <<boundary>>
+object ":LienzoUML" as C <<control>>
+actor "Usuario" as A
+A -down- B : "1: eliminar clase →"
+B -down- C : "2: onDelete(id) →"
+C -down- C : "3: filtrar nodo/aristas"
+@enduml

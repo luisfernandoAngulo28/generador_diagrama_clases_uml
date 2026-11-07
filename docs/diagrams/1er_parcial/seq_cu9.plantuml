@@ -1,0 +1,17 @@
+@startuml seq_cu9
+!include ../2do_parcial/pud/_seq.iuml
+title CU9 — Exportar a XMI\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":LienzoUML" as L
+control ":api/client.ts" as A
+control ":DiagramsController" as DC
+control ":DiagramsService" as DS
+U -> L : click "Exportar XMI"
+L -> A : downloadXmi(id)
+A -> DC : GET /diagrams/:id/xmi
+DC -> DS : findOne(id)
+DS --> DC : modelo UML
+DC -> DC : renderXmi(modelo)
+DC --> A : archivo .xmi
+A --> U : descarga del archivo
+@enduml

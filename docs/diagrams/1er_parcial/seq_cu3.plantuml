@@ -1,0 +1,11 @@
+@startuml seq_cu3
+!include ../2do_parcial/pud/_seq.iuml
+title CU3 — Eliminar Clase UML\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":Inspector" as I
+boundary ":LienzoUML" as L
+U -> I : click "Eliminar clase"
+I -> L : onDelete(classId)
+L -> L : filtrar nodo y aristas asociadas
+L --> U : nodo removido del lienzo
+@enduml

@@ -41,7 +41,8 @@
       pregunta antes para que quede "caliente").
 - [ ] Correr una vez `flutter analyze` (la primera tarda ~3 min) y
       `npx vitest run` en `backend/` (152 tests).
-- [ ] **Enterprise Architect** abierto con `docs/diagrams/ea/ciclo2.eap`.
+- [ ] **Enterprise Architect** abierto con `docs/diagrams/ea/ciclo2.eap`, y
+      `ciclo1.eap` a mano (los diagramas del 1er Parcial).
 - [ ] VS Code abierto en el repo, en la rama `demo-en-vivo`.
 - [ ] Celular cargado, con la app instalada y la sesión iniciada.
 - [ ] Datos móviles del celular como respaldo de internet (compartir conexión).

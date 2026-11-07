@@ -14,9 +14,12 @@ import sys
 import win32com.client
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.normpath(os.path.join(HERE, '..', '2do_parcial'))
-EAP = os.path.join(HERE, 'ciclo2.eap')
-IMG = os.path.join(HERE, 'img')
+# EA_CICLO=1 construye los diagramas del 1er Parcial (docs/diagrams/1er_parcial)
+# en ciclo1.eap e img/ciclo1/; sin la variable, los del Ciclo 2.
+CICLO = os.environ.get('EA_CICLO', '2')
+SRC = os.path.normpath(os.path.join(HERE, '..', '1er_parcial' if CICLO == '1' else '2do_parcial'))
+EAP = os.path.join(HERE, 'ciclo1.eap' if CICLO == '1' else 'ciclo2.eap')
+IMG = os.path.join(HERE, 'img', 'ciclo1') if CICLO == '1' else os.path.join(HERE, 'img')
 BASE = r'C:\Program Files (x86)\Sparx Systems\EA\EABase.eap'
 
 

@@ -1,0 +1,10 @@
+@startuml com_cu7
+!include ../2do_parcial/pud/_com.iuml
+title CU7 — Colaborar en Tiempo Real\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":LienzoUML" as B <<boundary>>
+object ":DiagramsGateway (Socket.io)" as C <<control>>
+actor "Usuario" as A
+A -down- B : "1: abrir diagrama →"
+B -down- C : "2: join-diagram →\n3: presence ←\n4: broadcast diagram-update ←"
+B -down- B : "5: aplicar cambios remotos"
+@enduml

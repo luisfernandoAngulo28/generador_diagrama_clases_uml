@@ -1,0 +1,10 @@
+@startuml seq_cu4
+!include ../2do_parcial/pud/_seq.iuml
+title CU4 — Crear Relación\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":LienzoUML" as L
+U -> L : seleccionar tipo de relación
+U -> L : arrastrar conexión (handle origen → destino)
+L -> L : addEdge(label, tipo)
+L --> U : relación visible en el lienzo
+@enduml

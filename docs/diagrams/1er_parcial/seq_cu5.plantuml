@@ -1,0 +1,21 @@
+@startuml seq_cu5
+!include ../2do_parcial/pud/_seq.iuml
+title CU5 — Guardar Diagrama\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
+actor "Usuario" as U
+boundary ":LienzoUML" as L
+control ":api/client.ts" as A
+control ":DiagramsController" as DC
+control ":DiagramsService" as DS
+database ":PostgreSQL" as DB
+U -> L : click "Guardar diagrama"
+L -> L : buildModel() (clases + posiciones + relaciones)
+L -> A : createDiagram / updateDiagram
+A -> DC : POST/PATCH /diagrams
+DC -> DS : create/update(dto)
+DS -> DB : INSERT/UPDATE
+DB --> DS : diagrama persistido
+DS --> DC : diagrama
+DC --> A : 200/201 + id
+A --> L : diagramId
+L -> L : actualizar URL (?diagram=id)
+@enduml

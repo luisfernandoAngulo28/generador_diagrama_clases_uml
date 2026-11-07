@@ -1,0 +1,12 @@
+@startuml com_cu8
+!include ../2do_parcial/pud/_com.iuml
+title CU8 — Generar Backend Spring Boot\n<size:11>Diagrama de Comunicación · UML 2.5.1 · patrón ECB · Ciclo 1 (1er Parcial)</size>
+object ":LienzoUML" as B <<boundary>>
+object ":GeneratorController/Service" as C <<control>>
+object ":Diagram (PostgreSQL)" as E <<entity>>
+actor "Usuario" as A
+A -down- B : "1: generar backend →"
+B -down- C : "2: POST /generator/:id/zip →\n6: descarga .zip ←"
+C -down- E : "3: findOne(id) →\n4: modelo ←"
+C -down- C : "5: generate() por clase"
+@enduml

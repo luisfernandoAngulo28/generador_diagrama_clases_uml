@@ -1,0 +1,41 @@
+@startuml uc_general
+' Diagrama general de casos de uso — Ciclo 1 (1er Parcial) — UML 2.5.1
+!include ../2do_parcial/_estilo.iuml
+left to right direction
+title Diagrama General de Casos de Uso — Ciclo 1 (CU1–CU12)\n<size:11>UML 2.5.1 · 1er Parcial</size>
+
+actor "Usuario" as U
+actor "Usuario Colaborador" as UC
+actor "Asistente de IA\n(Google Gemini)" as IA <<sistema>>
+
+rectangle "Herramienta CASE — Modelado UML" {
+  usecase "CU1 Crear Clase UML" as CU1
+  usecase "CU2 Editar Clase UML" as CU2
+  usecase "CU3 Eliminar Clase UML" as CU3
+  usecase "CU4 Crear Relación" as CU4
+  usecase "CU5 Guardar Diagrama" as CU5
+  usecase "CU6 Cargar Diagrama Compartido" as CU6
+  usecase "CU7 Colaborar en Tiempo Real" as CU7
+  usecase "CU8 Generar Backend Spring Boot" as CU8
+  usecase "CU9 Exportar a XMI" as CU9
+  usecase "CU10 Consultar Asistente de IA" as CU10
+  usecase "CU11 Dictar Comando por Voz" as CU11
+  usecase "CU12 Interpretar Foto de Pizarra" as CU12
+}
+
+U --> CU1
+U --> CU2
+U --> CU3
+U --> CU4
+U --> CU5
+U --> CU6
+U --> CU7
+U --> CU8
+U --> CU9
+U --> CU10
+U --> CU11
+U --> CU12
+UC --> CU7
+CU10 --> IA
+CU12 --> IA
+@enduml
