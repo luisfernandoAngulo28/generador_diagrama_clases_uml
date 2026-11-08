@@ -1,21 +1,27 @@
 @startuml seq_cu5
 !include ../2do_parcial/pud/_seq.iuml
-title CU5 — Guardar Diagrama\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
-actor "Usuario" as U
-boundary ":LienzoUML" as L
-control ":api/client.ts" as A
-control ":DiagramsController" as DC
-control ":DiagramsService" as DS
-database ":PostgreSQL" as DB
-U -> L : click "Guardar diagrama"
-L -> L : buildModel() (clases + posiciones + relaciones)
-L -> A : createDiagram / updateDiagram
-A -> DC : POST/PATCH /diagrams
-DC -> DS : create/update(dto)
-DS -> DB : INSERT/UPDATE
-DB --> DS : diagrama persistido
-DS --> DC : diagrama
-DC --> A : 200/201 + id
-A --> L : diagramId
-L -> L : actualizar URL (?diagram=id)
+title CU5 — Guardar Diagrama\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 · cada mensaje es una operación de la clase que lo recibe</size>
+actor Usuario as U
+boundary ":App" as A
+participant ":ApiClient" as API
+control ":DiagramsController" as C
+control ":DiagramsService" as S
+participant ":AuthorshipUtil" as AU
+participant ":Model<DiagramDocument>" as DB
+control ":VersionsService" as V
+U -> A : saveDiagram() [botón "Guardar"]
+A -> A : buildModel()
+A -> API : updateDiagram(id, name, model, source)
+API -> C : update(id, dto, user) [PATCH /diagrams/:id]
+C -> S : update(id, dto, user, source)
+S -> S : findOne(id)
+S -> AU : applyAuthorship(previous, incoming, stamp)
+S -> AU : diffModel(previous, incoming)
+S -> DB : findByIdAndUpdate(id, {$set})
+S -> V : record(versión)
+S --> C : diagrama guardado
+C --> API : 200
+API --> A : diagrama
+A --> U : "guardado correctamente"
+note over A : la primera vez se usa createDiagram(name, model) [POST /diagrams]
 @enduml

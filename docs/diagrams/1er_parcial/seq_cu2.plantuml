@@ -1,12 +1,12 @@
 @startuml seq_cu2
 !include ../2do_parcial/pud/_seq.iuml
-title CU2 — Editar Clase UML\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
-actor "Usuario" as U
-boundary ":LienzoUML" as L
-boundary ":Inspector (ClassInspector)" as I
-U -> L : doble clic en la clase
-L -> I : abrir panel con datos actuales
-U -> I : modificar nombre / atributo
-I -> L : onChange(umlClass actualizado)
-L --> U : refrescar nodo en el lienzo
+title CU2 — Editar Clase UML\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 · cada mensaje es una operación de la clase que lo recibe</size>
+actor Usuario as U
+boundary ":App" as A
+boundary ":ClassInspector" as I
+U -> A : handleEditClass(classId) [doble clic en la clase]
+A -> I : ClassInspector(props: clase, onChange, onDelete)
+U -> I : onChange(evento) [escribe el nombre o un atributo]
+I -> A : updateClass(updated)
+A --> U : nodo actualizado en el lienzo
 @enduml

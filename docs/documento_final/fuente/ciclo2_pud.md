@@ -485,7 +485,7 @@ Las referencias entre colecciones son por identificador, sin claves foráneas, p
 
 *Figura --- Diagrama de Clases de Diseño de la sala colaborativa (web, servidor y móvil)*
 
-**Verificación modelo-código.** El script `docs/diagrams/ea/verificar_secuencias.py` recorre los 10 diagramas de secuencia del ciclo y busca en el código cada mensaje que llega a un objeto. Resultado: **86 de 86 mensajes son operaciones de la clase que los recibe**. Otros 28 son operaciones de librerías: `Model` de Mongoose, `Server` de Socket.io y el plugin de notificaciones de Flutter. Ejemplo: en CU15, `ChatGateway` envía `answer()` a `ModeratorService`, y `answer()` está implementada en `ModeratorService`, no en `ChatGateway`.
+**Verificación modelo-código.** El script `docs/diagrams/ea/verificar_secuencias.py` recorre los 22 diagramas de secuencia de los dos ciclos (los 20 de los casos de uso y los 2 detallados) y busca en el código cada mensaje que llega a un objeto. Resultado: **146 de 146 mensajes son operaciones de la clase que los recibe**. Otros 38 son operaciones de librerías: `Model` de Mongoose, `Server` de Socket.io, React Flow, la API de voz del navegador, el empaquetador ZIP y el plugin de notificaciones de Flutter. Ejemplo: en CU15, `ChatGateway` envía `answer()` a `ModeratorService`, y `answer()` está implementada en `ModeratorService`, no en `ChatGateway`.
 
 @@ secuencias
 

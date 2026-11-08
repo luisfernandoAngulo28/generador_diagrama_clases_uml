@@ -104,10 +104,11 @@ def convert_com(n):
 def main():
     os.makedirs(OUT, exist_ok=True)
     for n in CU:
-        for name, body in ((f'seq_cu{n}', convert_seq(n)), (f'com_cu{n}', convert_com(n))):
+        # Las secuencias ya no salen de Mermaid: las escribe secuencias_ciclo1.py con operaciones reales.
+        for name, body in ((f'com_cu{n}', convert_com(n)),):
             with open(os.path.join(OUT, name + '.plantuml'), 'w', encoding='utf-8', newline='\n') as f:
                 f.write('\n'.join(body) + '\n')
-    print('24 diagramas en', OUT)
+    print('12 diagramas de comunicación en', OUT)
 
 
 if __name__ == '__main__':

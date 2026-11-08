@@ -1,23 +1,24 @@
 @startuml seq_cu12
 !include ../2do_parcial/pud/_seq.iuml
-title CU12 — Interpretar Foto de Pizarra\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
-actor "Usuario" as U
-boundary ":LienzoUML" as L
-control ":api/client.ts" as A
-control ":AiController" as AC
-control ":AiService" as AS
-participant ":Google Gemini" as G
-U -> L : click "Foto de pizarra" + seleccionar imagen
-L -> L : leer archivo como base64
-L -> A : interpretDiagramPhoto(base64, mediaType)
-A -> AC : POST /ai/interpret-photo
-AC -> AS : interpretDiagramPhoto(imagen)
-AS -> G : generateContent(imagen + instrucciones UML)
-G --> AS : JSON del modelo detectado
-AS -> AS : parsear y validar JSON
-AS --> AC : modelo UML
-AC --> A : clases y relaciones
-A --> L : modelo
-L -> L : remapear ids y agregar al lienzo
-L --> U : nuevas clases visibles
+title CU12 — Interpretar Foto de Pizarra\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 · cada mensaje es una operación de la clase que lo recibe</size>
+actor Usuario as U
+boundary ":App" as A
+participant ":ApiClient" as API
+control ":AiController" as C
+control ":AiService" as AI
+control ":HybridAiProvider" as H
+participant ":Multiplicity" as M
+U -> A : handlePhotoSelected(e) [Archivo → Foto de pizarra]
+A -> A : readFileAsBase64(file)
+A -> API : interpretDiagramPhoto(base64, mediaType)
+API -> C : interpretPhoto(dto) [POST /ai/interpret-photo]
+C -> AI : interpretDiagramPhoto(imageBase64, mediaType)
+AI -> H : interpretDiagramPhoto(imageBase64, mediaType)
+H --> AI : clases y relaciones (JSON)
+AI --> C : modelo reconocido
+C --> API : 200
+API --> A : modelo
+A -> A : pushHistory()
+A -> M : edgeAppearance(rel.type)
+A --> U : clases nuevas en el lienzo
 @enduml

@@ -1,14 +1,14 @@
 @startuml seq_cu11
 !include ../2do_parcial/pud/_seq.iuml
-title CU11 — Dictar Comando por Voz\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
-actor "Usuario" as U
+title CU11 — Dictar Comando por Voz\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 · cada mensaje es una operación de la clase que lo recibe</size>
+actor Usuario as U
 boundary ":ChatPanel" as CP
-participant ":Web Speech API" as WS
-U -> CP : click micrófono
-CP -> WS : start()
-WS --> U : solicitar permiso de micrófono
-U -> WS : dictar frase
-WS --> CP : onresult(transcript)
-CP -> CP : sendText(transcript)
-note over CP : reutiliza el flujo de CU10 (Consultar Asistente de IA)
+control ":useSpeechRecognition" as SR
+participant ":SpeechRecognition" as WS
+U -> SR : start() [botón del micrófono]
+SR -> WS : start()
+WS -> WS : onresult(event) [el usuario dicta la frase]
+WS --> SR : transcripción
+SR -> CP : sendText(transcript) [onResult]
+note over CP : el texto sigue el mismo camino que en CU10
 @enduml

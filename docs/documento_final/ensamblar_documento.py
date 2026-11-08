@@ -18,6 +18,7 @@ Fuentes:
 """
 from __future__ import annotations
 
+import html
 import re
 import subprocess
 from pathlib import Path
@@ -90,6 +91,7 @@ Peña Rivero Elizabeth — Registro: 215053745
 
 {PAGE_BREAK}
 {bd.TOC_FIELD}
+{bd.TOF_FIELD}
 """
 
 
@@ -208,8 +210,35 @@ def _perfil_al_inicio(base: str) -> str:
     nuevo = cabeza.replace("# 1. Perfil", "# 1. Perfil del Proyecto", 1)
     for k, viejo in enumerate(orden, 1):
         nuevo += re.sub(rf"(?m)^(#+ )1\.{viejo}(\.?)", rf"\g<1>1.{k}\2", grupos[viejo])
+    nuevo = _perfil_unificado(nuevo)
     p1 = base.index("**PARTE 1")
     return base[:p1] + nuevo.rstrip() + "\n\n" + base[p1:]
+
+
+def _perfil_unificado(perfil: str) -> str:
+    """Una sola sección por tema: el segundo ciclo continúa el texto del
+    primero en vez de ir en una subsección aparte."""
+    perfil = re.sub(r"## 1\.1\.1 Introducción al Segundo Parcial\n+El segundo ciclo de desarrollo convierte",
+                    "**El segundo ciclo de desarrollo (2do Parcial)** convierte", perfil, count=1)
+    obj = re.search(r"(?s)## 1\.2 Objetivo General\n.*?(?=## 1\.3 )", perfil).group(0)
+    perfil = perfil.replace(obj, """## 1.2 Objetivo General
+
+Desarrollar una herramienta CASE web que permita a un equipo de desarrollo modelar diagramas de clases UML de forma colaborativa y en tiempo real, acompañado por un **Moderador IA grupal** que responde a cada integrante por su nombre y modifica el diagrama solo a pedido explícito, y que genere automáticamente a partir de ese modelo un backend Spring Boot funcional y compilable.
+
+En el primer ciclo se construyó el modelado colaborativo y la generación del backend; en el segundo, el Moderador IA con contexto grupal e individual, la persistencia en MongoDB con autoría granular, las sesiones continuas, el motor de IA híbrido (nube y local) y el visor móvil en tiempo real.
+
+""", 1)
+    perfil = perfil.replace("## 1.3 Objetivos Específicos\n", "## 1.3 Objetivos Específicos\n\n**Primer ciclo (1er Parcial):**\n", 1)
+    perfil = perfil.replace("## 1.3.1 Objetivos Específicos --- Segundo Parcial\n", "**Segundo ciclo (2do Parcial):**\n", 1)
+    perfil = re.sub(r"## 1\.4\.1 Descripción del problema --- Segundo Parcial\n+",
+                    "**Lo que quedaba por resolver después del primer ciclo.** ", perfil, count=1)
+    perfil = re.sub(r"(?m)^(### Módulo .+?) \(Segundo Ciclo\)$", r"\1", perfil)
+    perfil = perfil.replace("### Módulo de Chat Grupal y Moderador IA\n",
+                            "**Módulos agregados en el segundo ciclo:**\n\n### Módulo de Chat Grupal y Moderador IA\n", 1)
+    for resto in ("## 1.1.1", "## 1.2.1", "## 1.3.1", "## 1.4.1"):
+        if resto in perfil:
+            raise SystemExit(f"Quedó una subsección del Perfil sin unificar: {resto}")
+    return perfil
 
 
 def _diseno_en_orden(base: str) -> str:
@@ -261,11 +290,70 @@ def _parte2_desde_uno(base: str) -> str:
     return antes + parte2 + medio + anexos
 
 
+def _demote(md: str) -> str:
+    """Baja un nivel los títulos (## → ###) para que una sección entre como subsección."""
+    return re.sub(r"(?m)^(#{2,5}) ", r"#\1 ", md)
+
+
+def fusionar_teoria(base: str, teoria: str) -> str:
+    """La fundamentación del 2do Parcial no va como capítulo aparte: cada tema
+    se integra al capítulo de la Parte I que ya lo trata, sin repetir las
+    definiciones."""
+    secs = {m.group(1): m.group(0) for m in
+            re.finditer(r"(?ms)^## 8\.(\d) .*?(?=^## 8\.\d |\Z)", teoria)}
+
+    def cuerpo(n: str, desde: str | None = None) -> str:
+        t = secs[n].split("\n", 1)[1]
+        if desde:
+            t = t[t.index(desde):]
+        return t.strip()
+
+    case = "### El Diagramador como herramienta I-CASE\n\n" + _demote(cuerpo("1", "**Nuestra aplicación es una herramienta I-CASE**"))
+    reuso = "### Reuso en el generador del proyecto\n\n" + _demote(cuerpo("2", "Nuestro generador aplica el reuso"))
+    arq = "## Las cuatro arquitecturas del proyecto\n\n" + cuerpo("3", "Estilos conocidos para el backend:")
+    vida = "## Propósito del software: dar larga vida al software\n\n" + cuerpo("4")
+    ia_local = "## IA local: diferencia entre entrenar y configurar un modelo\n\n" + cuerpo("5")
+    sdd = "## SDD: desarrollo dirigido por especificaciones\n\n" + cuerpo("6")
+    uml = "## Estándares UML aplicados\n\n" + cuerpo("7")
+    onboarding = "## Mecanismo de onboarding del usuario (agente de ayuda)\n\n" + cuerpo("8")
+
+    base = insertar(base, "## 2.2. Desarrollo de Software Basado en Componentes", case)
+    base = insertar(base, "## 2.3. El Software como Producto", reuso)
+    base = insertar(base, "# 3. Arquitectura de software", onboarding)
+    base = insertar(base, "# 4. Modelado UML", arq + "\n\n" + vida)
+    base = insertar(base, "# 5. La Inteligencia Artificial", uml)
+    base = insertar(base, "# 6. Todo lo relacionado con Spring Boot", ia_local)
+    return insertar(base, "**PARTE 2", sdd)
+
+
+def _numerar_parte1(parte1: str) -> str:
+    """Numera en orden todos los títulos de la Parte I (1., 1.1, 1.1.1…)."""
+    cont = [0, 0, 0, 0]
+
+    def titulo(m: re.Match) -> str:
+        # Si el título ya traía número, su nivel es la cantidad de partes del
+        # número ("### 5.1" es nivel 2); si no, el nivel de Markdown.
+        nivel = len(m.group(2).split(".")) if m.group(2) else len(m.group(1))
+        cont[nivel - 1] += 1
+        for k in range(nivel, 4):
+            cont[k] = 0
+        num = ".".join(str(c) for c in cont[:nivel])
+        return f"{'#' * nivel} {num}{'.' if nivel == 1 else ''} {m.group(3)}"
+    out, en_codigo = [], False
+    for linea in parte1.split("\n"):
+        if linea.startswith("```"):
+            en_codigo = not en_codigo
+        elif not en_codigo:
+            linea = re.sub(r"^(#{1,4}) (?:(\d+(?:\.\d+)*)\.?\s+)?(.+)$", titulo, linea)
+        out.append(linea)
+    return "\n".join(out)
+
+
 def _parte1_desde_uno(base: str) -> str:
-    """Los capítulos 2-8 de la Parte I pasan a 1-7 (el Perfil va antes, sin parte)."""
+    """Los capítulos de la Parte I se numeran desde 1 (el Perfil va antes, sin parte)."""
     p1, p2 = base.index("**PARTE 1"), base.index("**PARTE 2")
     antes, parte1, resto = base[:p1], base[p1:p2], base[p2:]
-    parte1 = re.sub(r"(?m)^(#{1,4} )([2-8])((?:\.\d+)*\.?)(?= )", _restar, parte1)
+    parte1 = _numerar_parte1(parte1)
     parte1 = re.sub(r"((?:mencionad[ao]s?|descrita|descritos?) en )([2-8])((?:\.\d+)+)", _restar, parte1)
     resto = re.sub(r"([Cc]apítulo )([2-8])((?:\.\d+)*)(?= de la Parte 1)", _restar, resto)
     return antes + parte1 + resto
@@ -291,9 +379,13 @@ def _bibliografia_y_anexos(base: str) -> str:
         texto = re.sub(r"\b(Figura |[Ss]ecciones |[Ss]ección )A\.(\d+[ab]?)", r"\1C.\2", texto)
         texto = re.sub(r"(Pruebas; )Anexo A\b", r"\1Anexo C", texto)
         texto = texto.replace("| 7.4; Anexo A |", "| 6.4; Anexo C |")
-        # Dos figuras de la Parte I llevaban un rótulo de anexo del 1er Parcial
-        return re.sub(r"(\*{1,2})Anexo A\.[12] --- ", r"\1Figura --- ", texto)
-    return renombrar(antes).rstrip() + "\n\n" + biblio.rstrip() + "\n\n" + renombrar(anexos).rstrip() + "\n"
+        # La Parte I tenía dos rótulos de anexo del 1er Parcial: una figura
+        # (A.1) y el título de una transcripción de chat (A.2, no es figura).
+        texto = texto.replace("**Anexo A.2 --- ", "**")
+        return re.sub(r"(\*{1,2})Anexo A\.1 --- ", r"\1Figura --- ", texto)
+    conclusiones = (DOCS / "seccion_conclusiones.md").read_text(encoding="utf-8")
+    return (renombrar(antes).rstrip() + "\n\n" + conclusiones.strip() + "\n\n" + biblio.rstrip()
+            + "\n\n" + renombrar(anexos).rstrip() + "\n")
 
 
 def _parte3_desde_uno(base: str) -> str:
@@ -308,13 +400,132 @@ def _parte3_desde_uno(base: str) -> str:
     return antes + parte3 + resto
 
 
+# --------------------------------------------------------------------------
+# Figuras numeradas (Figura 1, 2, 3…) con un campo SEQ de Word, para que el
+# índice de figuras (TOC \c "Figura") las liste con su página.
+# --------------------------------------------------------------------------
+IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)(\{[^}]*\})?\s*$")
+ROTULO_RE = re.compile(r"^(?:Figura|Captura)\s*(?:[A-Z]?\.?\d+[ab]?)?\s*(?:---|—|–|-|:|\.)?\s*")
+
+
+def _texto_plano(md: str) -> str:
+    t = re.sub(r"`([^`]*)`", r"\1", md).replace("---", "—")
+    t = re.sub(r"\*\*?([^*]+)\*\*?", r"\1", t)
+    return t.replace("\\*", "*").replace("\\_", "_").strip().rstrip(".")
+
+
+def _leyenda_xml(n: int, texto: str) -> str:
+    t = html.escape(_texto_plano(texto), quote=False)
+    return (
+        "```{=openxml}\n"
+        '<w:p><w:pPr><w:pStyle w:val="ImageCaption"/><w:jc w:val="center"/></w:pPr>'
+        '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Figura </w:t></w:r>'
+        '<w:fldSimple w:instr=" SEQ Figura \\* ARABIC "><w:r><w:rPr><w:b/></w:rPr>'
+        f"<w:t>{n}</w:t></w:r></w:fldSimple>"
+        f'<w:r><w:t xml:space="preserve">. {t}</w:t></w:r></w:p>\n'
+        "```"
+    )
+
+
+def _rotulo(texto: str) -> str | None:
+    """'Figura C.4a: …' → 'C.4a'; 'Captura 14: …' → 'Captura 14'; 'Figura 2. …' → '2'."""
+    m = re.match(r"^Figura\s+([A-Z]\.\d+[ab]?|\d+)\b", texto)
+    if m:
+        return m.group(1)
+    m = re.match(r"^Captura\s+(\d+[ab]?)\b", texto)
+    return f"Captura {m.group(1)}" if m else None
+
+
+def numerar_figuras(md: str) -> str:
+    lineas = md.splitlines()
+    out: list[str] = []
+    mapa: dict[str, int] = {}
+    n = 0
+    i = 0
+    while i < len(lineas):
+        linea = lineas[i]
+        m = IMG_RE.match(linea.strip())
+        if not m:
+            out.append(linea)
+            i += 1
+            continue
+        alt, ruta, attrs = m.group(1), m.group(2), m.group(3) or ""
+        leyenda = None
+        siguiente = i + 1  # primera línea que queda después de la figura
+        if alt and alt != "rot":
+            leyenda = alt
+        else:
+            j = i + 1
+            while j < len(lineas) and not lineas[j].strip():
+                j += 1
+            sig = lineas[j].strip() if j < len(lineas) else ""
+            if re.match(r"^\*[^*].*\*$", sig) and sig.startswith(("*Figura", "*Captura")):
+                leyenda = sig[1:-1]
+                siguiente = j + 1  # la leyenda en cursiva se reemplaza
+        if leyenda is None:
+            out.append(linea)
+            i += 1
+            continue
+        n += 1
+        rot = _rotulo(leyenda)
+        if rot:
+            mapa[rot] = n
+        out.append(f"![]({ruta}){attrs}")
+        out.append("")
+        out.append(_leyenda_xml(n, ROTULO_RE.sub("", leyenda, count=1)))
+        i = siguiente
+    texto = "\n".join(out)
+    return _referencias_a_figuras(texto, mapa)
+
+
+def _referencias_a_figuras(texto: str, mapa: dict[str, int]) -> str:
+    def num(r: str) -> str:
+        return str(mapa[r]) if r in mapa else r
+
+    # Primero las figuras numeradas del 1er Parcial ("(Figura 2)", "(ver Figura 2)"),
+    # antes de que las demás conversiones escriban números nuevos.
+    texto = re.sub(r"\((ver )?Figura (\d+)\)", lambda m: f"({m.group(1) or ''}Figura {num(m.group(2))})", texto)
+
+    # "Capturas 6 y 7", "Capturas 9 a 12", "Captura 14", "Capturas 4 y 5"
+    def capturas(m: re.Match) -> str:
+        a, sep, b = m.group(1), m.group(2), m.group(3)
+        if b:
+            return f"Figuras {num('Captura ' + a)} {sep} {num('Captura ' + b)}"
+        return f"Figura {num('Captura ' + a)}"
+    texto = re.sub(r"Capturas? (\d+[ab]?)(?: (y|a) (\d+[ab]?))?", capturas, texto)
+    texto = re.sub(r"Figura ([A-Z]\.\d+[ab]?)\b", lambda m: f"Figura {num(m.group(1))}", texto)
+    return texto
+
+
+TITULOS = {
+    "## 1.1 Identificar Actores Y Casos De Uso": "## 1.1 Identificar actores y casos de uso",
+    "## 1.2 Priorizar Casos De Uso": "## 1.2 Priorizar casos de uso",
+    "## 1.3 Detallar Caso De Uso": "## 1.3 Detallar casos de uso",
+    "## 1.4 Estructurar Modelo De Caso De Uso": "## 1.4 Estructurar el modelo de casos de uso",
+    "## 2.1 Análisis De Arquitectura": "## 2.1 Análisis de arquitectura",
+    "## 2.2. Análisis de caso de uso --- Diagramas de Comunicación": "## 2.2 Análisis de casos de uso (diagramas de comunicación)",
+    "## 2.3. Análisis de clase": "## 2.3 Análisis de clases",
+    "## 2.4. Análisis de paquete": "## 2.4 Análisis de paquetes",
+    "# 5. Todo lo relacionado con Spring Boot": "# 5. Spring Boot: el backend que genera la herramienta",
+    "## 4.3 Implementación --- Segundo Ciclo": "## 4.3 Implementación del Segundo Ciclo",
+}
+
+
+def _pulir_titulos(base: str) -> str:
+    for viejo, nuevo in TITULOS.items():
+        if f"\n{viejo}\n" not in base:
+            raise SystemExit(f"Título no encontrado: {viejo!r}")
+        base = base.replace(f"\n{viejo}\n", f"\n{nuevo}\n", 1)
+    return base
+
+
 def reordenar(base: str) -> str:
     base = _perfil_al_inicio(base)
     base = _diseno_en_orden(base)
     base = _parte2_desde_uno(base)
     base = _parte1_desde_uno(base)
     base = _parte3_desde_uno(_bibliografia_y_anexos(base))
-    return base
+    return _pulir_titulos(base)
 
 
 # --------------------------------------------------------------------------
@@ -342,7 +553,7 @@ def ensamblar() -> Path:
         (DOCS / "seccion1_fundamentacion_teorica_2do_parcial.md").read_text(encoding="utf-8"),
         "1", "8", "8. Fundamentación teórica del Segundo Parcial",
     )
-    base = insertar(base, "**PARTE 2", quitar_referencias(teoria))
+    base = fusionar_teoria(base, quitar_referencias(teoria))
 
     # PARTE 2 — Perfil
     base = insertar(base, "## 1.2 Descripción del problema", b["perfil_intro"])
@@ -405,7 +616,7 @@ def ensamblar() -> Path:
         base, flags=re.M,
     )
 
-    md = caratula() + "\n\n" + figuras_rotadas(base)
+    md = caratula() + "\n\n" + numerar_figuras(figuras_rotadas(base))
     bd.BUILD.mkdir(parents=True, exist_ok=True)
     master = bd.BUILD / "examen_parcial_2.md"
     master.write_text(md, encoding="utf-8")

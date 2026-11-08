@@ -1,6 +1,6 @@
 """Verificación modelo-código (paso 3 de la evaluación).
 
-Cruza cada mensaje de los diagramas de secuencia del Ciclo 2 con el código: el
+Cruza cada mensaje de los diagramas de secuencia de los dos ciclos con el código: el
 mensaje m() que llega a un objeto de la clase X debe ser una operación de X.
 Uso, desde la raíz del repo:  python docs/diagrams/ea/verificar_secuencias.py
   OK  = la operación existe en la clase receptora
@@ -21,8 +21,10 @@ TEXT = {f: open(f, encoding='utf-8', errors='ignore').read() for f in SRC}
 MODULES = {'ApiClient': 'frontend/src/api/client.ts', 'Intent': 'backend/src/ai/moderator/intent.ts',
            'CanvasPolicy': 'backend/src/ai/moderator/canvas-policy.ts',
            'AuthorshipUtil': 'backend/src/diagrams/authorship.util.ts',
-           'OperationValidator': 'backend/src/ai/validate-operations.ts'}
-LIBS = ('Model<', 'Server', 'FlutterLocalNotificationsPlugin')
+           'OperationValidator': 'backend/src/ai/validate-operations.ts',
+           'Multiplicity': 'frontend/src/lib/multiplicity.ts', 'XmiUtil': 'backend/src/diagrams/xmi.util.ts',
+           'UmlTypes': 'frontend/src/types/uml.ts'}
+LIBS = ('Model<', 'Server', 'FlutterLocalNotificationsPlugin', 'ReactFlow', 'ZipArchive', 'SpeechRecognition')
 
 
 def class_files(name):
@@ -33,12 +35,12 @@ def class_files(name):
 
 
 def has_method(files, m):
-    pat = re.compile(rf'(^|\s|\.)(async\s+)?{re.escape(m)}\s*(<[^>]*>)?\s*\(|\b{re.escape(m)}\s*[:=]\s*(async\s*)?(useCallback\()?\(|function\s+{re.escape(m)}\b', re.M)
+    pat = re.compile(rf'(^|\s|\.)(async\s+)?{re.escape(m)}\s*(<[^>]*>)?\s*\(|\b{re.escape(m)}\s*[:=]\s*(async\s*)?(useCallback\(\s*)?\(|function\s+{re.escape(m)}\b', re.M)
     return any(pat.search(TEXT[f]) for f in files)
 
 
 rows = []
-for path in sorted(glob.glob('docs/diagrams/2do_parcial/pud/seq_*.plantuml') + glob.glob('docs/diagrams/2do_parcial/0[56]_*.plantuml')):
+for path in sorted(glob.glob('docs/diagrams/1er_parcial/seq_*.plantuml') + glob.glob('docs/diagrams/2do_parcial/pud/seq_*.plantuml') + glob.glob('docs/diagrams/2do_parcial/0[56]_*.plantuml')):
     lines = read(path)
     parts = {}
     for l in lines:

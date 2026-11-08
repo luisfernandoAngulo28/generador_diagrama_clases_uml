@@ -10,7 +10,7 @@
 Este anexo reúne la evidencia de que el sistema fue construido, desplegado y
 verificado de extremo a extremo. Las secciones A.1 a A.7 corresponden al 1er
 Parcial (se mantienen vigentes) y las A.8 a A.13 a lo agregado en el 2do Parcial.
-Cada figura lleva el número de su sección: la Figura A.4a está en la sección A.4.
+Las figuras están en el índice de figuras, al comienzo del documento.
 
 ### A.1 Despliegue en producción
 

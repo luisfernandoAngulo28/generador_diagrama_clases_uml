@@ -508,8 +508,12 @@ que refleja. Ejemplo en vivo:
 - **Ejemplo:** en CU15, `ChatGateway` envía `answer()` a `ModeratorService`, y
   `answer()` está en `backend/src/ai/moderator/moderator.service.ts`.
 - **Prueba automática en vivo:** `python docs/diagrams/ea/verificar_secuencias.py`
-  da **86 de 86** mensajes que son operaciones de la clase receptora (otros 28 son
-  de librerías: Mongoose `Model`, Socket.io `Server` y notificaciones de Flutter).
+  da **146 de 146** mensajes que son operaciones de la clase receptora, en los 22
+  diagramas de los dos ciclos (otros 38 son de librerías: Mongoose `Model`,
+  Socket.io `Server`, React Flow, la API de voz, el ZIP y notificaciones de Flutter).
+- Los de CU1–CU12 se rehicieron el 08/11 con operaciones reales; antes describían
+  acciones ("click en + Clase"). Si preguntan por CU5: `saveDiagram()` →
+  `updateDiagram()` → `DiagramsController.update()` → `DiagramsService.update()`.
 - Cada objeto de una secuencia es de una clase que aparece en el **diagrama de
   clases de diseño de la sala** (09), generado a partir de las secuencias.
 
@@ -607,7 +611,7 @@ laptop, sin AWS ni internet.
 | Contexto de la IA | 25 entradas de bitácora · 8 de la sala · 8 del hilo individual |
 | Migración | 8 diagramas + 55 entradas de historial, IDs conservados |
 | Modelos UML | 58 diagramas en Enterprise Architect 13.5, UML 2.5.1 (28 del Ciclo 1 y 30 del Ciclo 2) |
-| Verificación secuencia ↔ código | 86 de 86 mensajes son operaciones de la clase receptora (+28 de librerías) |
+| Verificación secuencia ↔ código | 146 de 146 mensajes son operaciones de la clase receptora en los 22 diagramas (+38 de librerías) |
 | Proceso Unificado | 2 ciclos × 4 fases (Inicio, Elaboración, Construcción, Transición) × 5 flujos |
 
 ---

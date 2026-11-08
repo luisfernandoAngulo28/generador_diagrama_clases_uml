@@ -1,21 +1,23 @@
 @startuml seq_cu8
 !include ../2do_parcial/pud/_seq.iuml
-title CU8 — Generar Backend Spring Boot\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 (1er Parcial)</size>
-actor "Usuario" as U
-boundary ":LienzoUML" as L
-control ":api/client.ts" as A
+title CU8 — Generar Backend Spring Boot\n<size:11>Diagrama de Secuencia · UML 2.5.1 · Ciclo 1 · cada mensaje es una operación de la clase que lo recibe</size>
+actor Usuario as U
+boundary ":App" as A
+participant ":ApiClient" as API
 control ":GeneratorController" as GC
-control ":DiagramsService" as DS
+control ":DiagramsService" as S
 control ":GeneratorService" as GS
-U -> L : click "Generar backend Spring Boot"
-L -> A : downloadGeneratedBackend(id)
-A -> GC : POST /generator/:id/zip
-GC -> DS : findOne(id)
-DS --> GC : modelo UML
-GC -> GS : generate(modelo)
-GS -> GS : renderEntity/Repository/Service/Controller por clase
-GS --> GC : archivos generados (Map)
-GC -> GC : empaquetar .zip (archiver)
-GC --> A : stream del .zip
-A --> U : descarga del archivo
+participant ":ZipArchive" as Z
+U -> A : generateBackend() [botón "Generar backend"]
+A -> API : downloadGeneratedBackend(id)
+API -> GC : generateZip(diagramId, res) [POST /generator/:id/zip]
+GC -> S : findOne(diagramId)
+S --> GC : diagrama
+GC -> GS : generate(model, options)
+GS -> GS : renderEntity(clase) [y Repository, Service, Controller por clase]
+GS --> GC : archivos del proyecto
+GC -> Z : append(contenido, ruta)
+GC -> Z : finalize()
+Z --> API : proyecto .zip
+API --> U : descarga del proyecto
 @enduml

@@ -856,24 +856,24 @@ Los diagramas de secuencia especifican el comportamiento dinámico de cada caso 
 | Rectángulo sobre la línea de vida | Activación: el objeto está ejecutando |
 | Marco `alt` / `opt` / `par` | Fragmento combinado: alternativas, paso opcional o mensajes en paralelo |
 
-**Dos niveles de detalle.** Los diagramas del **Ciclo 1** (CU1–CU12) son los del 1er Parcial: sus mensajes describen las acciones del usuario y las llamadas HTTP entre capas. Los del **Ciclo 2** (CU13–CU20) son de diseño: **cada mensaje es una operación real de la clase que lo recibe**. Esto se verificó con un script que busca cada mensaje en el código (`docs/diagrams/ea/verificar_secuencias.py`): los 86 mensajes a clases del proyecto existen como operaciones, y otros 28 son operaciones de librerías (Mongoose, Socket.io, notificaciones de Flutter).
+**Mensajes = operaciones.** En los 20 diagramas, **cada mensaje es una operación real de la clase que lo recibe**, con el nombre que tiene en el código entregado; entre corchetes se indica el evento o la ruta HTTP que la dispara. Esto se verificó con un script que busca cada mensaje en el código (`docs/diagrams/ea/verificar_secuencias.py`): los **146 mensajes** dirigidos a clases del proyecto existen como operaciones de esa clase, y otros 38 son operaciones de librerías (Mongoose, Socket.io, React Flow, la API de voz del navegador y las notificaciones de Flutter). Los diagramas del Ciclo 1 se rehicieron así el 08/11/2026; en el 1er Parcial describían acciones del usuario en lugar de operaciones.
 
 **Resumen de los diagramas.**
 
 | CU | Objetos que participan | Flujo principal |
 |---|---|---|
-| CU1 Crear Clase | `:LienzoUML` | El lienzo genera un identificador y agrega el nodo de la clase |
-| CU2 Editar Clase | `:LienzoUML`, `:Inspector` | Doble clic abre el inspector; cada cambio vuelve al lienzo con `onChange` |
-| CU3 Eliminar Clase | `:Inspector`, `:LienzoUML` | `onDelete(classId)` quita el nodo y sus relaciones |
-| CU4 Crear Relación | `:LienzoUML` | Se elige el tipo y se arrastra la conexión; `addEdge` la dibuja |
-| CU5 Guardar Diagrama | `:LienzoUML`, `:api/client.ts`, `:DiagramsController`, `:DiagramsService`, PostgreSQL | `buildModel()` arma el modelo, que se guarda con `POST` o `PATCH /diagrams` |
-| CU6 Cargar Diagrama Compartido | Los mismos que CU5 | `GET /diagrams/:id` recupera el modelo y el lienzo se reconstruye |
-| CU7 Colaborar en Tiempo Real | `:LienzoUML`, `:api/socket.ts`, `:DiagramsGateway` | `join-diagram` une a la sala; cada cambio se difunde con `diagram-update` |
-| CU8 Generar Backend | `:api/client.ts`, `:GeneratorController`, `:DiagramsService`, `:GeneratorService` | `generate(modelo)` produce las cuatro capas por clase y se descarga un ZIP |
-| CU9 Exportar a XMI | `:api/client.ts`, `:DiagramsController`, `:DiagramsService` | `renderXmi(modelo)` produce el archivo `.xmi` |
-| CU10 Consultar Asistente | `:ChatPanel`, `:AiController`, `:AiService`, Gemini | `chat(mensaje)` llama a `generateContent` con el prompt del sistema |
-| CU11 Dictar por Voz | `:ChatPanel`, Web Speech API | El texto reconocido (`onresult`) se envía como en CU10 |
-| CU12 Foto de Pizarra | `:LienzoUML`, `:AiController`, `:AiService`, Gemini | `interpretDiagramPhoto` devuelve un JSON con las clases, que se agregan al lienzo |
+| CU1 Crear Clase | `:App` | `addClass()` guarda el estado para deshacer (`pushHistory`) y crea la clase con `createDefaultClass()` |
+| CU2 Editar Clase | `:App`, `:ClassInspector` | `handleEditClass(classId)` abre el inspector; cada cambio vuelve con `updateClass(updated)` |
+| CU3 Eliminar Clase | `:ClassInspector`, `:App` | `onDelete()` llama a `deleteClass(classId)`, que quita la clase con sus relaciones y libera su bloqueo |
+| CU4 Crear Relación | `:App`, `:Multiplicity`, `:ReactFlow` | `onConnect(connection)` toma la notación de `edgeAppearance()` y agrega la arista con `addEdge` |
+| CU5 Guardar Diagrama | `:App`, `:ApiClient`, `:DiagramsController`, `:DiagramsService`, `:AuthorshipUtil`, `:Model<DiagramDocument>`, `:VersionsService` | `saveDiagram()` arma el modelo; el servicio calcula la autoría y los cambios, guarda y registra la versión |
+| CU6 Cargar Diagrama Compartido | `:App`, `:ApiClient`, `:DiagramsController`, `:DiagramsService`, `:Model<DiagramDocument>`, `:UmlTypes` | `loadDiagram(id)` → `getDiagram(id)` → `findOne(id)`; la autoría se indexa con `authorshipIndexOf` |
+| CU7 Colaborar en Tiempo Real | `:App` (de cada integrante), `:DiagramsGateway`, `:Server` | `handleJoin` une a la sala y avisa la presencia; `handleUpdate` reenvía cada cambio, que llega por `handleRemoteUpdate` |
+| CU8 Generar Backend | `:App`, `:ApiClient`, `:GeneratorController`, `:DiagramsService`, `:GeneratorService`, `:ZipArchive` | `generateZip` pide el modelo, `generate(model)` produce los archivos y se empaquetan en un ZIP |
+| CU9 Exportar a XMI | `:App`, `:ApiClient`, `:DiagramsController`, `:DiagramsService`, `:XmiUtil` | `exportXmi(id)` obtiene el diagrama y `renderXmi(name, model)` produce el XMI 2.1 |
+| CU10 Consultar Asistente | `:ChatPanel`, `:ChatGateway`, `:ModeratorService`, `:AiService`, `:HybridAiProvider` | `sendText(text)` llega a `answer()`, que consulta al motor híbrido con `editDiagram` (desde el 2do Parcial, por el Moderador IA) |
+| CU11 Dictar por Voz | `:useSpeechRecognition`, la API de voz del navegador, `:ChatPanel` | `start()` activa el reconocimiento; `onresult` entrega el texto, que se envía con `sendText` |
+| CU12 Foto de Pizarra | `:App`, `:ApiClient`, `:AiController`, `:AiService`, `:HybridAiProvider`, `:Multiplicity` | `handlePhotoSelected(e)` envía la imagen; `interpretDiagramPhoto` devuelve las clases, que se agregan al lienzo |
 | CU13 Iniciar Sesión | `:LoginPage`, `:AuthProvider`, `:ApiClient`, `:AuthController`, `:AuthService`, `:UsersService` | `login(dto)` verifica la contraseña; `alt` entre credenciales válidas e inválidas |
 | CU14 Enviar Mensaje al Chat | `:ChatPanel`, `:ChatGateway`, `:ModeratorService`, `:Model<GroupChatMessage>`, `:Server` | `handleSend` guarda el mensaje y lo difunde a la web y al móvil |
 | CU15 Consultar al Moderador IA | Los de CU14 más `:DiagramsService`, `:Model<ActivityLog>`, `:AiService`, `:HybridAiProvider` | `answer()` lee en paralelo (`par`) el diagrama, la bitácora y el hilo de la persona, y consulta al motor híbrido |
@@ -885,73 +885,73 @@ Los diagramas de secuencia especifican el comportamiento dinámico de cada caso 
 
 ***CU1 --- Crear Clase UML***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu1.png){width="2.83in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu1.png){width="4.0in"}
 
 *Figura --- Diagrama de Secuencia CU1*
 
 ***CU2 --- Editar Clase UML***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu2.png){width="3.47in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu2.png){width="3.07in"}
 
 *Figura --- Diagrama de Secuencia CU2*
 
 ***CU3 --- Eliminar Clase UML***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu3.png){width="3.27in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu3.png){width="3.47in"}
 
 *Figura --- Diagrama de Secuencia CU3*
 
 ***CU4 --- Crear Relación entre Clases***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu4.png){width="2.3in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu4.png){width="3.97in"}
 
 *Figura --- Diagrama de Secuencia CU4*
 
 ***CU5 --- Guardar Diagrama***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu5.png){width="6.2in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu5.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU5*
 
 ***CU6 --- Cargar Diagrama Compartido***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu6.png){width="6.2in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu6.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU6*
 
 ***CU7 --- Colaborar en Tiempo Real***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu7.png){width="6.2in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu7.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU7*
 
 ***CU8 --- Generar Backend Spring Boot***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu8.png){width="6.2in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu8.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU8*
 
 ***CU9 --- Exportar Diagrama a XMI***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu9.png){width="5.81in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu9.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU9*
 
 ***CU10 --- Consultar Asistente de IA***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu10.png){width="6.2in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu10.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU10*
 
 ***CU11 --- Dictar Comando por Voz***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu11.png){width="5.3in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu11.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU11*
 
 ***CU12 --- Interpretar Foto de Pizarra***
 
-![](docs/diagrams/ea/img/ciclo1/seq_cu12.png){width="6.2in"}
+![](docs/diagrams/ea/img/ciclo1/seq_cu12.png){width="6.4in"}
 
 *Figura --- Diagrama de Secuencia CU12*
 
@@ -982,6 +982,29 @@ El backend usa un Gateway de WebSockets. Los usuarios se unen a una sala identif
 ### 4. Inteligencia Artificial --- Google Gemini
 
 El backend invoca directamente el SDK de Google Gemini (sin microservicio intermedio) con instrucciones de sistema distintas según la tarea: una para el chat conversacional enjaulado a ingeniería de software, y otra para la interpretación de imágenes que enseña al modelo a leer la notación UML dibujada a mano y a devolver JSON estructurado.
+
+### 5. Aplicación móvil --- Flutter
+
+Cliente Android que consume la API REST que genera la herramienta: listado y alta de registros, dictado por voz y un asistente de IA que funciona sin internet (`flutter_gemma`, con un filtro de temas en `offline_guard.dart`).
+
+### 6. Del diseño al código
+
+Cada elemento del modelo de diseño tiene su lugar en el repositorio:
+
+| Elemento del diseño | Implementación | Carpeta o archivo |
+|---|---|---|
+| Lienzo UML (boundary) | Componente principal con React Flow; nodos y aristas propios | `frontend/src/App.tsx`, `components/UmlClassNode.tsx`, `components/UmlRelationEdge.tsx` |
+| Inspector de clases (boundary) | Formulario con la grilla de atributos y operaciones | `frontend/src/components/ClassInspector.tsx`, `FeaturesPanel.tsx` |
+| Panel de chat (boundary) | Chat con dictado por voz | `frontend/src/components/ChatPanel.tsx`, `hooks/useSpeechRecognition.ts` |
+| Acceso al servidor | Cliente REST (Axios) y cliente Socket.io | `frontend/src/api/client.ts`, `api/socket.ts` |
+| DiagramsController / DiagramsService (control) | API REST de diagramas, validación y exportación XMI | `backend/src/diagrams/` |
+| DiagramsGateway (control) | Salas de colaboración en tiempo real | `backend/src/diagrams/diagrams.gateway.ts` |
+| GeneratorService (control) | Una plantilla por artefacto Java: entidad, repositorio, servicio, controlador, `pom.xml`, `data.sql`, colección de Postman | `backend/src/generator/templates/` |
+| AiService (control) | Chat, comandos y lectura de fotos con Gemini | `backend/src/ai/` |
+| Diagram (entity) | Modelo UML completo en un campo JSON | `backend/src/diagrams/` (en el Ciclo 2, documento de MongoDB) |
+| Aplicación móvil | Pantallas, sincronización y asistente sin conexión | `flutter-template/lib/` |
+
+El código sigue el estándar del Anexo B: TypeScript en modo estricto, oxlint y Prettier en el backend y el frontend, y `flutter analyze` en la aplicación móvil.
 
 # 6. Pruebas
 

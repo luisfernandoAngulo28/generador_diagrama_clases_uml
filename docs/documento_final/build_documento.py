@@ -46,6 +46,18 @@ TOC_FIELD = (
     '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>\n'
     "```\n"
 )
+# Índice de figuras: lista los campos SEQ "Figura" de las leyendas (en su propia página).
+TOF_FIELD = (
+    "```{=openxml}\n"
+    '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
+    '<w:p><w:pPr><w:pStyle w:val="TOCHeading"/></w:pPr><w:r><w:t>Índice de figuras</w:t></w:r></w:p>'
+    '<w:p><w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+    '<w:r><w:instrText xml:space="preserve"> TOC \\h \\z \\c "Figura" </w:instrText></w:r>'
+    '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+    "<w:r><w:t>(Actualizar el índice de figuras: clic derecho → Actualizar campo)</w:t></w:r>"
+    '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>\n'
+    "```\n"
+)
 
 DIAGRAMAS = [
     ("01_despliegue.png", "Diagrama de despliegue (nodos, entornos de ejecución, artefactos y rutas de comunicación)",

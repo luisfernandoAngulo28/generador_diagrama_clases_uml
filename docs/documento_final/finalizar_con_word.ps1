@@ -26,7 +26,9 @@ try {
     $section = $doc.Sections.Item(1)
     $section.PageSetup.DifferentFirstPageHeaderFooter = -1
     $null = $section.Footers.Item(1).PageNumbers.Add(1, $false)  # centrado, sin número en la carátula
+    $null = $doc.Fields.Update()   # números SEQ de las figuras
     foreach ($toc in $doc.TablesOfContents) { $toc.Update() }
+    foreach ($tof in $doc.TablesOfFigures) { $tof.Update() }   # índice de figuras
     $doc.Save()
     $doc.Close(0)
     "Guardado: $docx"
