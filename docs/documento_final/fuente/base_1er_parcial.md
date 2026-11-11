@@ -144,11 +144,17 @@ Por eso se mapea de POO a modelo relacional: cada clase se convierte en una tabl
 
 El usuario construye el diagrama de clases de forma interactiva sobre el lienzo, definiendo:
 
-- **Clases:** con nombre y atributos tipados (nombre, tipo de dato, visibilidad, y marca de clave primaria).
+- **Clases:** con nombre, estereotipo («enum», «abstract» en cursiva, «interface»), atributos y operaciones.
 
-- **Relaciones:** asociación, agregación, composición, herencia, y las cuatro multiplicidades relacionales (uno a uno, uno a muchos, muchos a uno, muchos a muchos).
+- **Atributos:** nombre, tipo, visibilidad (+ − # ~), multiplicidad del atributo (`telefonos : String [0..*]`), marca de clave primaria, miembros **static** (subrayados) y **derivados** (con `/`).
 
-El modelo resultante se exporta en formato estándar XMI 2.1 / UML 2.1 ---el mismo formato de intercambio que reconocen herramientas profesionales como Enterprise Architect---, preservando clases, atributos tipados, visibilidad, multiplicidad de cada asociación y generalizaciones entre clases.
+- **Operaciones:** parámetros, tipo de retorno y visibilidad; operaciones **static** (subrayadas) y **abstractas** (en cursiva).
+
+- **Relaciones:** asociación, agregación (rombo hueco), composición (rombo relleno), herencia (generalización), **realización** de una interfaz (línea punteada con triángulo hueco) y dependencia (línea punteada con flecha abierta).
+
+- **Detalles de la asociación:** roles en cada extremo, **multiplicidad libre** en cada extremo (1, 0..1, 2..5, 1..\*; vacía = la que implica el tipo 1:1, 1:N, N:1 o N:M), **navegabilidad** (flecha abierta en el extremo navegable) y **clase de asociación** (unida con una línea punteada al centro de la asociación).
+
+El modelo resultante se exporta en formato estándar XMI 2.1 / UML 2.1 ---el mismo formato de intercambio que reconocen herramientas profesionales como Enterprise Architect---, preservando todo lo anterior. El archivo incluye además el diagrama: al importarlo en Enterprise Architect 13.5 aparece el lienzo con cada clase en su posición, sus relaciones y la misma notación (verificado importándolo en EA el 11/11/2026).
 
 ![](./media/image1.png){width="5.833333333333333in" height="3.0208333333333335in"}
 
@@ -244,7 +250,7 @@ Además del código Java de las cuatro capas, el proyecto generado incluye archi
 
 Adicionalmente, la herramienta web permite exportar la colección Postman directamente desde el diagrama, sin necesidad de generar todo el proyecto, y ofrece una vista previa del código generado antes de la descarga.
 
-# 7. El Proceso de Desarrollo de Software (PUDS)
+# 7. El Proceso de Desarrollo de Software (PUDS y RUP)
 
 El Proceso Unificado de Desarrollo de Software (PUDS) es el proceso propuesto por Jacobson, Booch y Rumbaugh (1999), los mismos autores de UML. Define quién hace qué, cuándo y cómo para llevar los requisitos de un usuario hasta un sistema de software, y usa UML como lenguaje para todos sus modelos.
 
@@ -280,6 +286,35 @@ En cada fase se recorren, con distinta intensidad, los **cinco flujos de trabajo
 La intensidad cambia según la fase: en Inicio predominan los requisitos; en Elaboración, el análisis y el diseño de la arquitectura; en Construcción, la implementación y las pruebas; y en Transición, las pruebas y el despliegue.
 
 La Parte 2 aplica este ciclo de vida al proyecto: el **Ciclo 1** corresponde al 1er Parcial y el **Ciclo 2** al 2do Parcial. Cada uno recorre las cuatro fases, y el capítulo 7 de la Parte 2 resume en una tabla qué flujos se trabajaron en cada fase de cada ciclo.
+
+## 7.3. PUDS y RUP: el mismo proceso, organizado en disciplinas
+
+El **RUP** (*Rational Unified Process*, Kruchten, Rational Software, hoy IBM) es la versión comercial y detallada del Proceso Unificado de Jacobson, Booch y Rumbaugh. No es otro proceso: comparte las tres características (dirigido por casos de uso, centrado en la arquitectura, iterativo e incremental), las **mismas cuatro fases** (Inicio, Elaboración, Construcción y Transición) con los mismos hitos, y usa UML para todos sus modelos. Por eso este proyecto sigue **RUP**: las fases y los flujos que aplica la Parte II son los de RUP.
+
+La diferencia está en cómo se reparte el trabajo. Donde el PUDS habla de cinco flujos de trabajo, RUP define **nueve disciplinas**: seis de ingeniería y tres de soporte. La tabla muestra dónde se documenta cada una:
+
+| Disciplina RUP | Flujo del PUDS | Dónde está en este documento |
+|---|---|---|
+| **Modelado del negocio** | Antes de Requisitos | Perfil del proyecto (descripción del problema y alcance) y el modelo de dominio de Análisis de clases (Parte II, 2.3) |
+| **Requisitos** | Requisitos | Parte II, capítulo 1: actores, casos de uso, priorización y detalle |
+| **Análisis y diseño** | Análisis y Diseño | Parte II, capítulos 2 y 3: clases de análisis, comunicación, secuencia, clases de diseño, datos lógicos |
+| **Implementación** | Implementación | Parte II, capítulo 4: arquitectura del sistema, subsistemas y código del segundo ciclo |
+| **Prueba** | Prueba | Parte II, capítulo 5: plan, casos de prueba, pruebas unitarias, de integración y de sistema |
+| **Despliegue** | Dentro de Diseño e Implementación | Diagrama de despliegue (Parte II, 3.1.1), despliegue del segundo ciclo (Parte II, 4) y producción en AWS (Anexo C.1) |
+| **Gestión de configuración y cambios** | — (soporte) | Git con ramas y *Conventional Commits*; bitácora de cambios con autoría e historial de versiones del diagrama; registro de defectos (Parte II, 6.5) |
+| **Gestión del proyecto** | — (soporte) | Plan vs. ejecución, cronograma y pendientes (Parte II, 6.1 a 6.3 y 6.8) |
+| **Entorno** | — (soporte) | Herramientas y uso de IA (Parte II, 6.7), estándar de codificación (Anexo B), contenedores Docker |
+
+RUP también resume su enfoque en **seis buenas prácticas**, y las seis se aplicaron:
+
+| Buena práctica de RUP | Cómo se aplicó en el proyecto |
+|---|---|
+| Desarrollar de forma iterativa | Dos ciclos (1er y 2do Parcial), cada uno con sus cuatro fases y un incremento desplegado |
+| Gestionar los requisitos | Casos de uso priorizados y trazabilidad requisito → código → prueba (Parte II, 6.6) |
+| Usar arquitecturas basadas en componentes | Módulos NestJS, componentes React y plantillas independientes del generador |
+| Modelar visualmente | UML 2.5: 58 diagramas en Enterprise Architect y la propia herramienta de modelado |
+| Verificar la calidad continuamente | Pruebas unitarias automatizadas (Vitest), validador del modelo y prueba de regresión del 1er Parcial |
+| Controlar los cambios | Git, bitácora con autoría por elemento e historial de versiones del diagrama |
 
 **PARTE 2 --- Proceso de Desarrollo de Software (PUDS)**
 
@@ -1265,6 +1300,8 @@ Fowler, M. (2002). Patterns of enterprise application architecture. Addison-Wesl
 Google. (2024). Gemini API documentation. https://ai.google.dev/docs
 
 Jacobson, I., Booch, G., & Rumbaugh, J. (1999). The unified software development process. Addison-Wesley.
+
+Kruchten, P. (2004). The Rational Unified Process: An introduction (3.a ed.). Addison-Wesley.
 
 Martin, R. C. (2017). Clean architecture: A craftsman\'s guide to software structure and design. Prentice Hall.
 
