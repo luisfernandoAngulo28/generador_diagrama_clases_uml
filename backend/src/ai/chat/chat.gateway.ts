@@ -12,12 +12,17 @@ import { AuthService } from '../../auth/auth.service.js';
 import { DiagramsService } from '../../diagrams/diagrams.service.js';
 import { resolveSocketUser } from '../../diagrams/socket-auth.js';
 import { ModeratorService } from '../moderator/moderator.service.js';
+import type { ChatImage, ImageMediaType } from '../providers/ai-provider.interface.js';
 
 export interface ChatSendPayload {
   diagramId: string;
   text: string;
   /** Ask the AI moderator. Also true when the text mentions "@IA". */
   askAi?: boolean;
+  /** Image for the AI to read (image → text); the client downsizes it first. */
+  image?: ChatImage;
+  /** Small JPEG data URL of the same image, stored with the message for the room. */
+  imageThumb?: string;
 }
 
 export interface AiSettingsPayload {
@@ -27,6 +32,29 @@ export interface AiSettingsPayload {
 }
 
 const MAX_MESSAGE_LENGTH = 2000;
+/** Socket.io's default frame limit is 1 MB; the client downsizes images well below this. */
+const MAX_IMAGE_BASE64 = 900_000;
+const MAX_THUMB_LENGTH = 120_000;
+const IMAGE_TYPES: readonly ImageMediaType[] = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const DEFAULT_IMAGE_QUESTION = '¿Qué hay en esta imagen?';
+
+/** The attached image if it is well-formed, null if invalid, undefined if there is none. */
+export function validImage(payload: ChatSendPayload | undefined): ChatImage | null | undefined {
+  const image = payload?.image;
+  if (!image) return undefined;
+  if (typeof image.data !== 'string' || !image.data || image.data.length > MAX_IMAGE_BASE64) return null;
+  if (!IMAGE_TYPES.includes(image.mediaType)) return null;
+  if (!/^[A-Za-z0-9+/=]+$/.test(image.data.slice(0, 200))) return null;
+  return { data: image.data, mediaType: image.mediaType };
+}
+
+function validThumb(thumb: unknown): string | undefined {
+  return typeof thumb === 'string' &&
+    thumb.length <= MAX_THUMB_LENGTH &&
+    /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(thumb)
+    ? thumb
+    : undefined;
+}
 
 /**
  * Public group chat of a diagram's room (2do Parcial). Shares the Socket.io
@@ -59,10 +87,17 @@ export class ChatGateway {
   async handleSend(@ConnectedSocket() client: Socket, @MessageBody() payload: ChatSendPayload) {
     const user = resolveSocketUser(client, this.authService);
     const diagramId = payload?.diagramId;
-    const text = typeof payload?.text === 'string' ? payload.text.trim() : '';
+    const image = validImage(payload);
+    const typed = typeof payload?.text === 'string' ? payload.text.trim() : '';
+    // An image alone is a valid question.
+    const text = typed || (image ? DEFAULT_IMAGE_QUESTION : '');
 
     if (!user) {
       client.emit('chat:error', { message: 'Inicia sesión para participar en el chat grupal.' });
+      return;
+    }
+    if (image === null) {
+      client.emit('chat:error', { message: 'La imagen no es válida o es demasiado grande.' });
       return;
     }
     if (!diagramId || !text || text.length > MAX_MESSAGE_LENGTH) {
@@ -75,7 +110,12 @@ export class ChatGateway {
     const room = this.server.in(diagramId);
     let question;
     try {
-      question = await this.moderatorService.storeUserMessage(diagramId, user, text);
+      question = await this.moderatorService.storeUserMessage(
+        diagramId,
+        user,
+        text,
+        image ? validThumb(payload.imageThumb) : undefined,
+      );
     } catch (err) {
       this.logger.warn(`No se pudo guardar el mensaje: ${describe(err)}`);
       client.emit('chat:error', { message: 'No se pudo enviar el mensaje.' });
@@ -83,13 +123,19 @@ export class ChatGateway {
     }
     room.emit('chat:new-message', question);
 
-    const askAi = payload.askAi ?? /@ia\b/i.test(text);
+    // A picture is always meant for the AI to read.
+    const askAi = Boolean(image) || (payload.askAi ?? /@ia\b/i.test(text));
     if (!askAi) return;
 
     const requestId = randomUUID();
     room.emit('ai:status', { requestId, isThinking: true, promptBy: user.name });
     try {
-      const { answer, operations } = await this.moderatorService.answer(diagramId, user, question);
+      const { answer, operations } = await this.moderatorService.answer(
+        diagramId,
+        user,
+        question,
+        image ?? undefined,
+      );
       room.emit('chat:new-message', { ...answer, operations });
     } catch (err) {
       this.logger.warn(`El moderador no pudo responder a ${user.name}: ${describe(err)}`);

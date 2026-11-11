@@ -969,6 +969,53 @@
   margin-top: 0.5rem;
 }
 
+/* Image attached to the next chat message (read by the AI, image → text). */
+.chat-panel__attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.5rem;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border, #3a3f4b);
+  border-radius: 8px;
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+.chat-panel__attachment img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.chat-panel__attachment span {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-panel__attachment button {
+  cursor: pointer;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chat-msg__image img {
+  display: block;
+  max-width: 100%;
+  max-height: 180px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
 .chat-panel__input {
   flex: 1;
   padding: 0.4rem;

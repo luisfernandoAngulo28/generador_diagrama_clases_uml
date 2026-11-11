@@ -2,7 +2,7 @@ import type { DiagramOperation } from './uml';
 
 export type AiProviderUsed = 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
 /** Why Gemini answered instead of the local model (see the backend chat schema). */
-export type AiProviderReason = 'PROJECT' | 'FALLBACK' | 'CLOUD_PRIMARY';
+export type AiProviderReason = 'PROJECT' | 'FALLBACK' | 'CLOUD_PRIMARY' | 'IMAGE';
 
 export interface ChatActor {
   userId: string;
@@ -22,6 +22,8 @@ export interface GroupChatMessage {
   appliedOperationsCount: number;
   providerUsed?: AiProviderUsed;
   providerReason?: AiProviderReason;
+  /** Thumbnail (data URL) of an image the user attached for the AI to read. */
+  imageThumb?: string;
   timestamp: string;
   /** Only on live AI answers: canvas changes for the asker's client to apply. */
   operations?: DiagramOperation[];

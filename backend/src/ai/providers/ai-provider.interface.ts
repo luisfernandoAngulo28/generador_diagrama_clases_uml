@@ -20,6 +20,19 @@ export interface AiCallOptions {
   heavy?: boolean;
   /** Lets the caller cancel a slow request (HybridAiProvider's timeout). */
   signal?: AbortSignal;
+  /**
+   * An image attached to the chat question (image → text). Only the cloud (Gemini) can read
+   * images: the hybrid engine sends these questions to Gemini only.
+   */
+  image?: ChatImage;
+}
+
+export type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+export interface ChatImage {
+  /** Base64 without the "data:...;base64," prefix. */
+  data: string;
+  mediaType: ImageMediaType;
 }
 
 /**

@@ -92,10 +92,21 @@ export class GeminiProvider implements AiProvider {
     options: AiCallOptions = {},
   ): Promise<EditDiagramResult> {
     const prompt = `Modelo actual del diagrama:\n${JSON.stringify(model)}\n\nMensaje del usuario:\n${message}`;
+    const contents = options.image
+      ? [
+          { inlineData: { mimeType: options.image.mediaType, data: options.image.data } },
+          {
+            text:
+              `${prompt}\n\nEl usuario adjuntó la imagen de arriba. Léela para responder: si pide ` +
+              `transcribirla, copia el texto tal cual en "reply"; si es un diagrama UML y pide ` +
+              `dibujarlo o pasarlo al lienzo, usa operaciones. Responde en el mismo JSON de siempre.`,
+          },
+        ]
+      : prompt;
 
     const rawText = await this.generateWithFallback(
       options.systemPrompt ?? EDIT_SYSTEM_PROMPT,
-      prompt,
+      contents,
     );
     const jsonText = stripJsonFences(rawText);
 

@@ -73,7 +73,12 @@ export class HybridAiProvider {
     model: UmlModel,
     options: Omit<AiCallOptions, 'signal'> = {},
   ): Promise<EditDiagramResult & { providerUsed: AiProviderId }> {
-    const chain = options.heavy ? this.visionChain() : this.textChain();
+    // The local text model cannot see images: an image question goes to the cloud only.
+    const chain = options.image
+      ? this.cloudOnlyChain()
+      : options.heavy
+        ? this.visionChain()
+        : this.textChain();
     let lastError: unknown;
 
     for (const [index, member] of chain.entries()) {
@@ -122,6 +127,15 @@ export class HybridAiProvider {
     const ordered =
       this.options.order === 'local-first' ? [this.local, this.cloud] : [this.cloud, this.local];
     return this.usable(ordered);
+  }
+
+  /** Images in the chat: only the cloud model reads them (no local fallback that would ignore the image). */
+  private cloudOnlyChain(): HybridMember[] {
+    const configured = this.cloud.isAvailable?.() ?? true;
+    if (!configured) {
+      throw new Error('Leer imágenes necesita Gemini (GEMINI_API_KEY) y no está configurado.');
+    }
+    return [this.cloud];
   }
 
   /** Cloud first whatever the order: photos and whole projects are too much for the local model. */

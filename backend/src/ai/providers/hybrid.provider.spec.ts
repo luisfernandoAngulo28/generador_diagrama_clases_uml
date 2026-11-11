@@ -203,3 +203,39 @@ describe('HybridAiProvider — pedidos pesados (proyecto completo)', () => {
     expect(result.providerUsed).toBe('OLLAMA_LOCAL');
   });
 });
+
+describe('HybridAiProvider — pregunta con imagen en el chat', () => {
+  const IMAGE = { data: 'iVBORw0KGgo=', mediaType: 'image/png' as const };
+
+  it('la lee Gemini aunque la IA local vaya primero', async () => {
+    const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
+    const cloud = fakeProvider('GEMINI_CLOUD', ok('cloud'));
+    const engine = new HybridAiProvider({ provider: local }, { provider: cloud }, OPTS);
+
+    const result = await engine.editDiagram('transcríbela', MODEL, { image: IMAGE });
+    expect(result).toMatchObject({ reply: 'cloud', providerUsed: 'GEMINI_CLOUD' });
+    expect(local.calls).toBe(0);
+  });
+
+  it('no cae al modelo local, que ignoraría la imagen', async () => {
+    const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
+    const cloud = fakeProvider('GEMINI_CLOUD', fail('503'));
+    const engine = new HybridAiProvider({ provider: local }, { provider: cloud }, OPTS);
+
+    await expect(engine.editDiagram('transcríbela', MODEL, { image: IMAGE })).rejects.toThrow();
+    expect(local.calls).toBe(0);
+  });
+
+  it('sin Gemini configurado avisa en vez de responder sin ver la imagen', async () => {
+    const local = fakeProvider('OLLAMA_LOCAL', ok('local'));
+    const cloud = fakeProvider('GEMINI_CLOUD', ok('cloud'));
+    const engine = new HybridAiProvider(
+      { provider: local },
+      { provider: cloud, isAvailable: () => false },
+      OPTS,
+    );
+
+    await expect(engine.editDiagram('transcríbela', MODEL, { image: IMAGE })).rejects.toThrow(/Gemini/);
+    expect(local.calls).toBe(0);
+  });
+});

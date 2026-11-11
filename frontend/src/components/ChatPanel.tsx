@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Bot, ClipboardCheck, FolderPlus, History, Lightbulb, Mic, PencilRuler, Send, Sparkles, Users } from 'lucide-react';
+import { BookOpen, Bot, ClipboardCheck, FolderPlus, History, ImagePlus, Lightbulb, Mic, PencilRuler, Send, Sparkles, Users, X } from 'lucide-react';
 import { getSocket } from '../api/socket';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { prepareChatImage, type PreparedChatImage } from '../lib/chatImage';
 import type { AuthUser } from '../types/auth';
 import type { AiProviderReason, AiSettingsEvent, AiStatusEvent, GroupChatMessage } from '../types/chat';
 import type { DiagramOperation } from '../types/uml';
@@ -84,6 +85,12 @@ const CLOUD_BADGES: Record<AiProviderReason, ProviderBadge> = {
     className: 'chat-badge--cloud',
     title: 'La IA local no respondió a tiempo: respondió Gemini como respaldo.',
   },
+  IMAGE: {
+    label: '☁️ Gemini · imagen → texto',
+    className: 'chat-badge--cloud',
+    title:
+      'La pregunta traía una imagen: la lee Gemini (imagen → texto), porque el modelo local solo entiende texto.',
+  },
   CLOUD_PRIMARY: {
     label: '☁️ Gemini · servidor',
     className: 'chat-badge--cloud',
@@ -112,6 +119,9 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, aiMode, on
   const [askAi, setAskAi] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Image attached to the next message (button, or Ctrl+V into the input); read by Gemini.
+  const [image, setImage] = useState<PreparedChatImage | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   // "IA edita el lienzo" vs "solo sugerencias": shared by the whole room, enforced by the server.
   const [aiCanEdit, setAiCanEdit] = useState(initialAiCanEdit);
   const [settingsNotice, setSettingsNotice] = useState<string | null>(null);
@@ -183,17 +193,35 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, aiMode, on
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, thinking]);
 
+  async function attachImage(file: Blob | null | undefined) {
+    if (!file) return;
+    setError(null);
+    try {
+      setImage(await prepareChatImage(file));
+      inputRef.current?.focus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo adjuntar la imagen.');
+    }
+  }
+
   async function sendText(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if ((!trimmed && !image) || sending) return;
     setSending(true);
     setError(null);
     try {
       // The moderator reads the diagram from the database: save first so it sees the current canvas.
       const id = await onEnsureSaved();
       if (!id) throw new Error('no diagram');
-      getSocket().emit('chat:send', { diagramId: id, text: trimmed, askAi: sendsToAi });
+      getSocket().emit('chat:send', {
+        diagramId: id,
+        text: trimmed,
+        // A picture is always for the AI to read.
+        askAi: sendsToAi || Boolean(image),
+        ...(image ? { image: { data: image.data, mediaType: image.mediaType }, imageThumb: image.thumb } : {}),
+      });
       setInput('');
+      setImage(null);
     } catch {
       setError('No se pudo guardar el diagrama antes de enviar el mensaje.');
     } finally {
@@ -312,6 +340,16 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, aiMode, on
         </div>
       )}
 
+      {image && (
+        <div className="chat-panel__attachment">
+          <img src={image.thumb} alt="Imagen adjunta" />
+          <span>Imagen adjunta: la leerá la IA (Gemini, imagen → texto)</span>
+          <button type="button" onClick={() => setImage(null)} title="Quitar la imagen" aria-label="Quitar la imagen">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div className="chat-panel__input-row">
         {!aiMode && (
           <button
@@ -335,13 +373,46 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, aiMode, on
             <Mic size={16} />
           </button>
         )}
+        <button
+          type="button"
+          className="chat-panel__mic"
+          onClick={() => fileRef.current?.click()}
+          disabled={sending}
+          title="Adjuntar una imagen para que la IA la lea (también puedes pegarla con Ctrl+V)"
+          aria-label="Adjuntar imagen"
+        >
+          <ImagePlus size={16} />
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => {
+            void attachImage(e.target.files?.[0]);
+            e.target.value = '';
+          }}
+        />
         <input
           ref={inputRef}
           className="chat-panel__input"
           value={input}
           maxLength={2000}
-          placeholder={sendsToAi ? 'Pregunta a la IA… (todos lo verán)' : 'Escribe al equipo…'}
+          placeholder={
+            image
+              ? 'Qué quieres de la imagen… (p. ej. "transcríbela")'
+              : sendsToAi
+                ? 'Pregunta a la IA… (todos lo verán)'
+                : 'Escribe al equipo…'
+          }
           onChange={(e) => setInput(e.target.value)}
+          onPaste={(e) => {
+            const file = [...e.clipboardData.items].find((it) => it.type.startsWith('image/'))?.getAsFile();
+            if (file) {
+              e.preventDefault();
+              void attachImage(file);
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') void sendText(input);
           }}
@@ -372,6 +443,11 @@ function ChatBubble({ message, isMine }: { message: GroupChatMessage; isMine: bo
           )}
           <span className="chat-msg__time">{time}</span>
         </div>
+        {message.imageThumb && (
+          <a href={message.imageThumb} target="_blank" rel="noreferrer" className="chat-msg__image">
+            <img src={message.imageThumb} alt="Imagen enviada a la IA" />
+          </a>
+        )}
         <div className="chat-msg__text">{message.text}</div>
         {(badge || message.appliedOperationsCount > 0) && (
           <div className="chat-msg__footer">

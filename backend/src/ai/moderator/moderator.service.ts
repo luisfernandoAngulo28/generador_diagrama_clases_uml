@@ -13,6 +13,7 @@ import type { Actor } from '../../diagrams/schemas/author.schema.js';
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { JwtPayload } from '../../auth/auth.service.js';
 import { AiService } from '../ai.service.js';
+import type { ChatImage } from '../providers/ai-provider.interface.js';
 import { applyCanvasPolicy } from './canvas-policy.js';
 import { classifyRequest, isExplicitChangeRequest } from './intent.js';
 import { droppedOperationsNote } from '../validate-operations.js';
@@ -42,6 +43,7 @@ export interface ChatMessage {
   appliedOperationsCount: number;
   providerUsed?: 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
   providerReason?: AiProviderReason;
+  imageThumb?: string;
   timestamp: Date;
 }
 
@@ -85,12 +87,18 @@ export class ModeratorService implements OnModuleInit {
   }
 
   /** Stores a human message of the public chat (with or without a question for the AI). */
-  async storeUserMessage(diagramId: string, user: JwtPayload, text: string): Promise<ChatMessage> {
+  async storeUserMessage(
+    diagramId: string,
+    user: JwtPayload,
+    text: string,
+    imageThumb?: string,
+  ): Promise<ChatMessage> {
     const question = await this.chatModel.create({
       diagramId,
       sender: toActor(user),
       text,
       isAiResponse: false,
+      ...(imageThumb ? { imageThumb } : {}),
       timestamp: new Date(),
     });
     return toChatMessage(question.toObject());
@@ -104,6 +112,7 @@ export class ModeratorService implements OnModuleInit {
     diagramId: string,
     user: JwtPayload,
     question: ChatMessage,
+    image?: ChatImage,
   ): Promise<Omit<ModeratorAnswer, 'question'>> {
     const asker = toActor(user);
     const text = stripAiMention(question.text);
@@ -153,6 +162,7 @@ export class ModeratorService implements OnModuleInit {
       systemPrompt: buildModeratorPrompt(promptContext),
       localSystemPrompt: buildModeratorLitePrompt(promptContext),
       heavy: requestKind === 'PROJECT',
+      ...(image ? { image } : {}),
     });
 
     // Room setting + "solo modifica el lienzo si te lo piden": enforced here, not trusted to the model.
@@ -188,11 +198,13 @@ export class ModeratorService implements OnModuleInit {
       addressedTo: asker,
       appliedOperationsCount: operations.length,
       providerUsed: result.providerUsed,
-      providerReason: providerReason(
-        result.providerUsed,
-        requestKind === 'PROJECT',
-        this.aiService.isLocalFirst(),
-      ),
+      providerReason: image
+        ? 'IMAGE'
+        : providerReason(
+            result.providerUsed,
+            requestKind === 'PROJECT',
+            this.aiService.isLocalFirst(),
+          ),
       timestamp: new Date(),
     });
 
@@ -267,6 +279,7 @@ function toChatMessage(m: GroupChatMessageDocument & { _id: unknown }): ChatMess
     appliedOperationsCount: m.appliedOperationsCount,
     providerUsed: m.providerUsed,
     providerReason: m.providerReason,
+    imageThumb: m.imageThumb,
     timestamp: m.timestamp,
   };
 }
