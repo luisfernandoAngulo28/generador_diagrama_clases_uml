@@ -67,6 +67,153 @@ function aggregationKind(type: RelationType): string | null {
   return null;
 }
 
+const PACKAGE_ID = 'pkg_diagrama';
+
+/**
+ * Type of an attribute or return value as a UML primitive reference — the way Enterprise
+ * Architect writes it. Declaring each type as a packagedElement instead made EA import
+ * "Long", "String"… as extra elements of the package.
+ */
+function typeRef(typeName: string): string {
+  return `<type xmi:type="uml:PrimitiveType" href="http://schema.omg.org/spec/UML/2.1/uml.xml#${encodeURIComponent(typeName)}"/>`;
+}
+
+function isRealizationRel(rel: UmlRelation, interfaceIds: Set<string>): boolean {
+  return (
+    rel.type === 'INHERITANCE' &&
+    interfaceIds.has(rel.targetClassId) &&
+    !interfaceIds.has(rel.sourceClassId)
+  );
+}
+
+/** xmi:id of the UML element that represents a relation (see renderXmi). */
+function relationElementId(rel: UmlRelation, interfaceIds: Set<string>): string {
+  const relId = sanitizeId(rel.id);
+  if (rel.type !== 'INHERITANCE') return relId;
+  return isRealizationRel(rel, interfaceIds) ? `real_${relId}` : `gen_${relId}`;
+}
+
+/** Enterprise Architect connector type ("ea_type") and subtype of a relation. */
+function eaConnectorType(rel: UmlRelation, interfaceIds: Set<string>): { type: string; subtype?: string } {
+  switch (rel.type) {
+    case 'INHERITANCE':
+      return { type: isRealizationRel(rel, interfaceIds) ? 'Realisation' : 'Generalization' };
+    case 'DEPENDENCY':
+      return { type: 'Dependency' };
+    case 'AGGREGATION':
+      return { type: 'Aggregation', subtype: 'Weak' };
+    case 'COMPOSITION':
+      return { type: 'Aggregation', subtype: 'Strong' };
+    default:
+      return { type: 'Association' };
+  }
+}
+
+/**
+ * EA's own <connectors> list. When the file declares Enterprise Architect as exporter (needed
+ * for EA to rebuild the diagram), EA reads relations from here, not from the UML elements.
+ */
+function renderEaConnectors(model: UmlModel, interfaceIds: Set<string>): string {
+  const names = new Map(model.classes.map((c) => [c.id, c]));
+  const kind = (id: string) => (names.get(id)?.stereotype === 'interface' ? 'Interface' : 'Class');
+  return model.relations
+    .filter((rel) => names.has(rel.sourceClassId) && names.has(rel.targetClassId))
+    .map((rel) => {
+      const { type, subtype } = eaConnectorType(rel, interfaceIds);
+      const withMultiplicity = MULTIPLICITY_TYPES.has(rel.type);
+      const agg = aggregationKind(rel.type);
+      const end = (tag: 'source' | 'target', classId: string, role: string | undefined, mult: EndMultiplicity, aggregation: string) => {
+        const multiplicity = withMultiplicity
+          ? ` multiplicity="${mult.lower === mult.upper ? mult.lower : `${mult.lower}..${mult.upper}`}"`
+          : '';
+        const roleName = role ? ` name="${escapeXml(role)}"` : '';
+        return `        <${tag} xmi:idref="${sanitizeId(classId)}">
+          <model type="${kind(classId)}" name="${escapeXml(names.get(classId)!.name)}"/>
+          <role${roleName} visibility="Public"/>
+          <type${multiplicity} aggregation="${aggregation}"/>
+        </${tag}>`;
+      };
+      const direction = type === 'Association' || type === 'Aggregation' ? 'Unspecified' : 'Source -&gt; Destination';
+      return `      <connector xmi:idref="${relationElementId(rel, interfaceIds)}">
+${end('source', rel.sourceClassId, rel.sourceRole, sourceMultiplicity(rel.type), agg ?? 'none')}
+${end('target', rel.targetClassId, rel.targetRole, targetMultiplicity(rel.type), 'none')}
+        <properties ea_type="${type}"${subtype ? ` subtype="${subtype}"` : ''} direction="${direction}"/>
+      </connector>`;
+    })
+    .join('\n');
+}
+
+const MULTIPLICITY_TYPES = new Set<RelationType>([
+  'ASSOCIATION',
+  'AGGREGATION',
+  'COMPOSITION',
+  'ONE_TO_ONE',
+  'ONE_TO_MANY',
+  'MANY_TO_ONE',
+  'MANY_TO_MANY',
+]);
+
+/** The free-text "id: Long, nombre: String" parameter field, split into name/type pairs. */
+function splitParams(parameters: string | undefined): { name: string; type: string }[] {
+  return (parameters ?? '')
+    .split(',')
+    .map((raw) => raw.trim())
+    .filter(Boolean)
+    .map((param) => {
+      const [name, type] = param.split(':').map((s) => s.trim());
+      return { name: name || 'param', type: type || 'Object' };
+    });
+}
+
+/** Canvas size of a class box, close to how the editor draws it. */
+function boxSize(cls: UmlModel['classes'][number]): { width: number; height: number } {
+  const rows = cls.attributes.length + (cls.operations?.length ?? 0);
+  return { width: 180, height: Math.max(70, 44 + rows * 16) };
+}
+
+/**
+ * Enterprise Architect diagram extension (the <xmi:Extension> block EA itself exports): without
+ * it EA imports the classes and relations but no diagram, so nothing appears on a canvas. Each
+ * class keeps the position it has in the editor; connectors are listed so EA draws them.
+ */
+function renderEaDiagram(diagramName: string, model: UmlModel, interfaceIds: Set<string>): string {
+  const placed = model.classes.map((cls, i) => ({
+    cls,
+    x: cls.position?.x ?? 80 + (i % 4) * 260,
+    y: cls.position?.y ?? 80 + Math.floor(i / 4) * 220,
+  }));
+  // EA's canvas starts at (0,0): shift the layout so the top-left class sits at (40,40).
+  const minX = Math.min(0, ...placed.map((p) => p.x));
+  const minY = Math.min(0, ...placed.map((p) => p.y));
+
+  const classRows = placed.map(({ cls, x, y }, i) => {
+    const { width, height } = boxSize(cls);
+    const left = Math.round(x - minX + 40);
+    const top = Math.round(y - minY + 40);
+    return `          <element geometry="Left=${left};Top=${top};Right=${left + width};Bottom=${top + height};" subject="${sanitizeId(cls.id)}" seqno="${i + 1}"/>`;
+  });
+
+  const connectorRows = model.relations.map(
+    (rel) =>
+      `          <element geometry="SX=0;SY=0;EX=0;EY=0;" subject="${relationElementId(rel, interfaceIds)}" style="Hidden=0;"/>`,
+  );
+
+  return `  <xmi:Extension extender="Enterprise Architect" extenderID="6.5">
+    <connectors>
+${renderEaConnectors(model, interfaceIds)}
+    </connectors>
+    <diagrams>
+      <diagram xmi:id="diagram_1">
+        <model package="${PACKAGE_ID}" localID="1" owner="${PACKAGE_ID}"/>
+        <properties name="${escapeXml(diagramName)}" type="Logical"/>
+        <elements>
+${[...classRows, ...connectorRows].join('\n')}
+        </elements>
+      </diagram>
+    </diagrams>
+  </xmi:Extension>`;
+}
+
 export function renderXmi(diagramName: string, model: UmlModel): string {
   const inheritance = model.relations.filter((r) => r.type === 'INHERITANCE');
   const interfaceIds = new Set(
@@ -76,19 +223,6 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
   const nonInheritance = model.relations.filter(
     (r) => r.type !== 'INHERITANCE' && r.type !== 'DEPENDENCY',
   );
-
-  const distinctTypes = new Set<string>();
-  for (const cls of model.classes) {
-    for (const attr of cls.attributes) distinctTypes.add(attr.type);
-    for (const op of cls.operations ?? []) distinctTypes.add(op.returnType);
-  }
-
-  const typeDeclarations = [...distinctTypes]
-    .map(
-      (t) =>
-        `    <packagedElement xmi:type="uml:PrimitiveType" xmi:id="type_${sanitizeId(t)}" name="${escapeXml(t)}"/>`,
-    )
-    .join('\n');
 
   const classElements = model.classes
     .map((cls) => {
@@ -102,12 +236,11 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
         ? ''
         : inheritance
             .filter((r) => r.sourceClassId === cls.id)
-            .map((r) =>
-              // UML 2.5 §10.4: a class that "inherits" from an interface realizes it
-              // (InterfaceRealization, dashed line in EA), not a Generalization.
-              !isInterface && interfaceIds.has(r.targetClassId)
-                ? `      <interfaceRealization xmi:id="real_${sanitizeId(r.id)}" xmi:type="uml:InterfaceRealization" client="${classId}" supplier="${sanitizeId(r.targetClassId)}" contract="${sanitizeId(r.targetClassId)}"/>`
-                : `      <generalization xmi:id="gen_${sanitizeId(r.id)}" xmi:type="uml:Generalization" general="${sanitizeId(r.targetClassId)}"/>`,
+            // A class → «interface» relation is a realization, written at package level below.
+            .filter((r) => !isRealizationRel(r, interfaceIds))
+            .map(
+              (r) =>
+                `      <generalization xmi:id="gen_${sanitizeId(r.id)}" xmi:type="uml:Generalization" general="${sanitizeId(r.targetClassId)}"/>`,
             )
             .join('\n');
 
@@ -123,7 +256,11 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
           : cls.attributes
               .map(
                 (attr) =>
-                  `      <ownedAttribute xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}" type="type_${sanitizeId(attr.type)}"/>`,
+                  `      <ownedAttribute xmi:type="uml:Property" xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}" isOrdered="false" isUnique="true">
+        <lowerValue xmi:type="uml:LiteralInteger" value="1"/>
+        <upperValue xmi:type="uml:LiteralInteger" value="1"/>
+        ${typeRef(attr.type)}
+      </ownedAttribute>`,
               )
               .join('\n');
 
@@ -132,8 +269,17 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
         : (cls.operations ?? [])
             .map((op) => {
               const opId = `${classId}_op_${sanitizeId(op.name)}`;
+              const inParams = splitParams(op.parameters)
+                .map(
+                  (p, i) => `        <ownedParameter xmi:id="${opId}_p${i}" name="${escapeXml(p.name)}" direction="in">
+          ${typeRef(p.type)}
+        </ownedParameter>`,
+                )
+                .join('\n');
               return `      <ownedOperation xmi:id="${opId}" name="${escapeXml(op.name)}" visibility="${op.visibility}">
-        <ownedParameter xmi:id="${opId}_return" direction="return" type="type_${sanitizeId(op.returnType)}"/>
+${inParams}${inParams ? '\n' : ''}        <ownedParameter xmi:id="${opId}_return" name="return" direction="return">
+          ${typeRef(op.returnType)}
+        </ownedParameter>
       </ownedOperation>`;
             })
             .join('\n');
@@ -157,7 +303,7 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
         (rel.sourceRole ? ` name="${escapeXml(rel.sourceRole)}"` : '');
       const targetEndAttrs = rel.targetRole ? ` name="${escapeXml(rel.targetRole)}"` : '';
 
-      return `    <packagedElement xmi:type="uml:Association" xmi:id="${relId}" name="${rel.type.toLowerCase()}">
+      return `    <packagedElement xmi:type="uml:Association" xmi:id="${relId}">
       <memberEnd xmi:idref="${relId}_src"/>
       <memberEnd xmi:idref="${relId}_tgt"/>
       <ownedEnd xmi:id="${relId}_src" type="${sourceId}"${sourceEndAttrs}>
@@ -172,6 +318,16 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
     })
     .join('\n');
 
+  // UML 2.5 §10.4 realization of an interface, as Enterprise Architect exports it: a
+  // package-level uml:Realization (EA draws it dashed with a hollow triangle).
+  const realizationElements = inheritance
+    .filter((r) => isRealizationRel(r, interfaceIds))
+    .map(
+      (r) =>
+        `    <packagedElement xmi:type="uml:Realization" xmi:id="real_${sanitizeId(r.id)}" client="${sanitizeId(r.sourceClassId)}" supplier="${sanitizeId(r.targetClassId)}"/>`,
+    )
+    .join('\n');
+
   const dependencyElements = dependencies
     .map((rel: UmlRelation) => {
       const relId = sanitizeId(rel.id);
@@ -179,14 +335,20 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
     })
     .join('\n');
 
+  // Every element lives in one package, which owns the class diagram that Enterprise Architect
+  // rebuilds from the extension below.
   return `<?xml version="1.0" encoding="UTF-8"?>
 <xmi:XMI xmi:version="2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1">
-  <uml:Model xmi:type="uml:Model" xmi:id="model_1" name="${escapeXml(diagramName)}">
-${typeDeclarations}
+  <xmi:Documentation exporter="Enterprise Architect" exporterVersion="6.5"/>
+  <uml:Model xmi:type="uml:Model" xmi:id="model_1" name="EA_Model">
+  <packagedElement xmi:type="uml:Package" xmi:id="${PACKAGE_ID}" name="${escapeXml(diagramName)}">
 ${classElements}
 ${associationElements}
+${realizationElements}
 ${dependencyElements}
+  </packagedElement>
   </uml:Model>
+${renderEaDiagram(diagramName, model, interfaceIds)}
 </xmi:XMI>
 `;
 }

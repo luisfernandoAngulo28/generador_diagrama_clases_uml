@@ -99,7 +99,7 @@ describe('parseXmi', () => {
     expect(() => parseXmi(empty)).toThrow(/No se encontraron clases/);
   });
 
-  it('exports a class → «interface» relation as InterfaceRealization and imports it back', () => {
+  it('exports a class → «interface» relation as a uml:Realization and imports it back', () => {
     const model: UmlModel = {
       classes: [
         { id: 'c1', name: 'Pago', attributes: [] },
@@ -113,13 +113,57 @@ describe('parseXmi', () => {
     };
 
     const xml = renderXmi('Realizacion', model);
-    expect(xml).toContain('xmi:type="uml:InterfaceRealization" client="id_c1" supplier="id_c2" contract="id_c2"');
+    expect(xml).toContain('xmi:type="uml:Realization" xmi:id="real_id_r1" client="id_c1" supplier="id_c2"');
+    expect(xml).toContain('<properties ea_type="Realisation"');
     expect(xml).toContain('xmi:type="uml:Generalization" general="id_c1"');
     expect(xml).not.toContain('general="id_c2"');
 
     const { model: parsed } = parseXmi(xml);
     const rels = parsed.relations.map((r) => `${r.type}:${r.sourceClassId}->${r.targetClassId}`);
     expect(rels).toEqual(expect.arrayContaining(['INHERITANCE:id_c1->id_c2', 'INHERITANCE:id_c3->id_c1']));
+  });
+
+  it('includes the Enterprise Architect diagram (positions and connectors) and keeps the name', () => {
+    const model: UmlModel = {
+      classes: [
+        {
+          id: 'c1',
+          name: 'Cliente',
+          attributes: [{ name: 'nombre', type: 'String', visibility: 'private' }],
+          position: { x: -50, y: 20 },
+        },
+        {
+          id: 'c2',
+          name: 'Venta',
+          attributes: [],
+          operations: [
+            { name: 'calcular', returnType: 'Double', visibility: 'public', parameters: 'iva: Double' },
+          ],
+          position: { x: 250, y: 300 },
+        },
+      ],
+      relations: [{ id: 'r1', type: 'ONE_TO_MANY', sourceClassId: 'c1', targetClassId: 'c2' }],
+    };
+
+    const xml = renderXmi('Mi Diagrama', model);
+    // EA only rebuilds the diagram when the file declares it as exporter
+    expect(xml).toContain('<xmi:Documentation exporter="Enterprise Architect"');
+    expect(xml).toContain('<properties name="Mi Diagrama" type="Logical"/>');
+    // layout shifted so the left-most class starts at x = 40
+    expect(xml).toContain('geometry="Left=40;Top=60;Right=220;');
+    expect(xml).toContain('subject="id_c2" seqno="2"');
+    expect(xml).toContain('<connector xmi:idref="id_r1">');
+    expect(xml).toContain('<type multiplicity="0..*" aggregation="none"/>');
+    // types as UML primitive references, not as extra elements of the package
+    expect(xml).not.toContain('uml:PrimitiveType" xmi:id=');
+    expect(xml).not.toContain('name="one_to_many"');
+
+    const { name, model: parsed } = parseXmi(xml);
+    expect(name).toBe('Mi Diagrama');
+    expect(parsed.relations[0].type).toBe('ONE_TO_MANY');
+    expect(parsed.classes.find((c) => c.name === 'Venta')?.operations).toEqual([
+      { name: 'calcular', returnType: 'Double', visibility: 'public', parameters: 'iva: Double' },
+    ]);
   });
 
   it('imports an Enterprise Architect package-level uml:Realization as a realization', () => {

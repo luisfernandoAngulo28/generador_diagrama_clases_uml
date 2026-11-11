@@ -46,7 +46,8 @@ function inferMultiplicity(srcEnd: XmlNode, tgtEnd: XmlNode): RelationType {
   const tgtMany = tgtUpper === '*';
   if (srcMany && tgtMany) return 'MANY_TO_MANY';
   if (!srcMany && tgtMany) return 'ONE_TO_MANY';
-  if (srcMany && !tgtMany) return 'MANY_TO_ONE';
+  // 0..* → 0..1 is a plain association; 0..* → 1 is many-to-one.
+  if (srcMany && !tgtMany) return tgtLower === '0' ? 'ASSOCIATION' : 'MANY_TO_ONE';
   if (srcLower === '1' && tgtLower === '1') return 'ONE_TO_ONE';
   return 'ASSOCIATION';
 }
@@ -75,8 +76,18 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
     throw new Error('El archivo no es un XMI válido: falta el elemento <uml:Model>.');
   }
 
+  // Enterprise Architect (and renderXmi, for EA) names the model "EA_Model" and puts the
+  // diagram's elements in one top-level package: that package carries the real name.
+  const topPackages = asArray<XmlNode>(umlModel.packagedElement).filter(
+    (el) => el['@_xmi:type'] === 'uml:Package' && typeof el['@_name'] === 'string',
+  );
+  const modelName = typeof umlModel['@_name'] === 'string' ? umlModel['@_name'] : '';
   const diagramName: string =
-    typeof umlModel['@_name'] === 'string' ? umlModel['@_name'] : 'Diagrama importado';
+    modelName && modelName !== 'EA_Model'
+      ? modelName
+      : topPackages.length === 1
+        ? topPackages[0]['@_name']
+        : modelName || 'Diagrama importado';
   // Flatten packagedElements recursively: Enterprise Architect nests classes inside a
   // <packagedElement xmi:type="uml:Package">, so a shallow read would miss them.
   const packagedElements: XmlNode[] = [];
@@ -153,13 +164,17 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
     }
 
     const operations: UmlOperation[] = asArray<XmlNode>(el.ownedOperation).map((op) => {
-      const returnParam = asArray<XmlNode>(op.ownedParameter).find(
-        (p) => p['@_direction'] === 'return',
-      );
+      const params = asArray<XmlNode>(op.ownedParameter);
+      const returnParam = params.find((p) => p['@_direction'] === 'return');
+      const inParams = params
+        .filter((p) => p['@_direction'] !== 'return' && typeof p['@_name'] === 'string')
+        .map((p) => `${p['@_name']}: ${resolveAttrType(p)}`)
+        .join(', ');
       return {
         name: op['@_name'] ?? 'operacion',
-        returnType: returnParam ? resolveType(returnParam['@_type']) : 'void',
+        returnType: returnParam ? resolveAttrType(returnParam) : 'void',
         visibility: toVisibility(op['@_visibility']),
+        ...(inParams ? { parameters: inParams } : {}),
       };
     });
 
