@@ -2,6 +2,12 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Actor, ActorSchema } from './author.schema.js';
 
 export type AiProviderUsed = 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
+/**
+ * Why Gemini answered instead of the local model (shown in the chat badge):
+ * PROJECT = a whole project, too much for the local model; FALLBACK = Ollama did not
+ * answer in time; CLOUD_PRIMARY = this server runs Gemini first (AWS has no local model).
+ */
+export type AiProviderReason = 'PROJECT' | 'FALLBACK' | 'CLOUD_PRIMARY';
 
 /**
  * Public group chat of a diagram's room (2do Parcial): every participant
@@ -31,6 +37,9 @@ export class GroupChatMessageDocument {
 
   @Prop({ type: String, enum: ['OLLAMA_LOCAL', 'GEMINI_CLOUD'] })
   providerUsed?: AiProviderUsed;
+
+  @Prop({ type: String, enum: ['PROJECT', 'FALLBACK', 'CLOUD_PRIMARY'] })
+  providerReason?: AiProviderReason;
 
   @Prop({ type: Date, default: () => new Date() })
   timestamp: Date;

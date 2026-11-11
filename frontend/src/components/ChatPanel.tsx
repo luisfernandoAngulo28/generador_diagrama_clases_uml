@@ -3,7 +3,7 @@ import { BookOpen, Bot, ClipboardCheck, FolderPlus, History, Lightbulb, Mic, Pen
 import { getSocket } from '../api/socket';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { AuthUser } from '../types/auth';
-import type { AiSettingsEvent, AiStatusEvent, GroupChatMessage } from '../types/chat';
+import type { AiProviderReason, AiSettingsEvent, AiStatusEvent, GroupChatMessage } from '../types/chat';
 import type { DiagramOperation } from '../types/uml';
 
 interface ChatPanelProps {
@@ -55,18 +55,50 @@ const AI_SHORTCUTS = [
   },
 ];
 
-const PROVIDER_BADGE: Record<string, { label: string; className: string; title: string }> = {
-  OLLAMA_LOCAL: {
-    label: '🏠 Ollama Local',
-    className: 'chat-badge--local',
-    title: 'Respondido por el modelo local qwen2.5 (sin internet)',
-  },
-  GEMINI_CLOUD: {
-    label: '☁️ Gemini Cloud',
+interface ProviderBadge {
+  label: string;
+  className: string;
+  title: string;
+}
+
+const LOCAL_BADGE: ProviderBadge = {
+  label: '🏠 IA local',
+  className: 'chat-badge--local',
+  title: 'Respondido por el modelo local (Ollama, qwen2.5) en esta computadora, sin internet',
+};
+
+/**
+ * The chat is answered by the local model; Gemini only steps in for the cases below, and the
+ * badge says which one — it never just reads "Gemini". (Photos of diagrams, image → text, go to
+ * Gemini through Archivo → Foto de pizarra, not through the chat.)
+ */
+const CLOUD_BADGES: Record<AiProviderReason, ProviderBadge> = {
+  PROJECT: {
+    label: '☁️ Gemini · proyecto completo',
     className: 'chat-badge--cloud',
-    title: 'Respondido por Google Gemini (Google AI Studio)',
+    title:
+      'Un proyecto completo lo resuelve Gemini: el modelo local (1,5B en CPU) no alcanza para generarlo bien. Los cambios y preguntas del día a día los responde la IA local.',
+  },
+  FALLBACK: {
+    label: '☁️ Gemini · respaldo',
+    className: 'chat-badge--cloud',
+    title: 'La IA local no respondió a tiempo: respondió Gemini como respaldo.',
+  },
+  CLOUD_PRIMARY: {
+    label: '☁️ Gemini · servidor',
+    className: 'chat-badge--cloud',
+    title:
+      'El servidor en la nube (AWS t3.micro, 1 GB) no tiene IA local: ahí el chat usa Gemini. La IA local corre en la versión de la laptop.',
   },
 };
+
+function providerBadge(message: GroupChatMessage): ProviderBadge | undefined {
+  if (message.providerUsed === 'OLLAMA_LOCAL') return LOCAL_BADGE;
+  if (message.providerUsed !== 'GEMINI_CLOUD') return undefined;
+  return message.providerReason
+    ? CLOUD_BADGES[message.providerReason]
+    : { label: '☁️ Gemini', className: 'chat-badge--cloud', title: 'Respondido por Google Gemini' };
+}
 
 /**
  * Public group chat of the diagram's room (2do Parcial): every participant
@@ -323,7 +355,7 @@ export function ChatPanel({ diagramId, currentUser, initialAiCanEdit, aiMode, on
 }
 
 function ChatBubble({ message, isMine }: { message: GroupChatMessage; isMine: boolean }) {
-  const badge = message.providerUsed ? PROVIDER_BADGE[message.providerUsed] : undefined;
+  const badge = providerBadge(message);
   const time = new Date(message.timestamp).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
   const name = message.isAiResponse ? 'Moderador IA' : message.sender.userName;
 

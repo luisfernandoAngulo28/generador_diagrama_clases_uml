@@ -5,18 +5,23 @@
 #
 # Reemplaza el nginx.conf de produccion (que exige el certificado real de
 # Let's Encrypt) por una version simple en HTTP puro, y hace que el
-# backend use un Ollama local (Plan B sin internet) en vez de Gemini.
+# chat del backend use primero el Ollama local de esta laptop.
 # No modifica nada de lo que corre en el servidor real de AWS.
 services:
   backend:
     environment:
-      # Motor hibrido: Gemini primero y Ollama local como respaldo automatico
-      # cuando no hay internet. Para mostrar Ollama en la demo:
-      #   AI_HYBRID_ORDER=local-first en .env.production (o en la terminal).
+      # Motor hibrido, IA local primero: el chat lo responde Ollama en esta
+      # laptop. Gemini solo entra para leer fotos de diagramas (imagen -> texto),
+      # para un proyecto completo (demasiado para el modelo de 1,5B en CPU:
+      # medido 46 s y resultado pobre el 11/11/2026) y como respaldo si Ollama
+      # no responde en OLLAMA_TIMEOUT_MS. El chat muestra en cada respuesta
+      # cual de esos casos fue.
       # host.docker.internal apunta al host Windows desde dentro del
       # contenedor, donde corre "ollama serve" en el puerto 11434.
       AI_PROVIDER: hybrid
-      AI_HYBRID_ORDER: ${AI_HYBRID_ORDER:-cloud-first}
+      AI_HYBRID_ORDER: ${AI_HYBRID_ORDER:-local-first}
+      # El primer pedido carga el modelo en memoria (~45 s en CPU).
+      OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-60000}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
 
   frontend:

@@ -5,7 +5,10 @@ import { Model } from 'mongoose';
 import { DiagramsService } from '../../diagrams/diagrams.service.js';
 import { SessionsService } from '../../diagrams/sessions.service.js';
 import { ActivityLogDocument } from '../../diagrams/schemas/activity-log.schema.js';
-import { GroupChatMessageDocument } from '../../diagrams/schemas/group-chat-message.schema.js';
+import {
+  GroupChatMessageDocument,
+  type AiProviderReason,
+} from '../../diagrams/schemas/group-chat-message.schema.js';
 import type { Actor } from '../../diagrams/schemas/author.schema.js';
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { JwtPayload } from '../../auth/auth.service.js';
@@ -38,6 +41,7 @@ export interface ChatMessage {
   addressedTo?: Actor;
   appliedOperationsCount: number;
   providerUsed?: 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
+  providerReason?: AiProviderReason;
   timestamp: Date;
 }
 
@@ -184,6 +188,11 @@ export class ModeratorService implements OnModuleInit {
       addressedTo: asker,
       appliedOperationsCount: operations.length,
       providerUsed: result.providerUsed,
+      providerReason: providerReason(
+        result.providerUsed,
+        requestKind === 'PROJECT',
+        this.aiService.isLocalFirst(),
+      ),
       timestamp: new Date(),
     });
 
@@ -236,6 +245,17 @@ function toChatLine(m: GroupChatMessageDocument): ModeratorChatLine {
   };
 }
 
+/** Why the cloud answered (undefined when the local model did). */
+export function providerReason(
+  used: ChatMessage['providerUsed'],
+  isProject: boolean,
+  localFirst: boolean,
+): AiProviderReason | undefined {
+  if (used !== 'GEMINI_CLOUD') return undefined;
+  if (isProject) return 'PROJECT';
+  return localFirst ? 'FALLBACK' : 'CLOUD_PRIMARY';
+}
+
 function toChatMessage(m: GroupChatMessageDocument & { _id: unknown }): ChatMessage {
   return {
     id: String(m._id),
@@ -246,6 +266,7 @@ function toChatMessage(m: GroupChatMessageDocument & { _id: unknown }): ChatMess
     addressedTo: m.addressedTo,
     appliedOperationsCount: m.appliedOperationsCount,
     providerUsed: m.providerUsed,
+    providerReason: m.providerReason,
     timestamp: m.timestamp,
   };
 }

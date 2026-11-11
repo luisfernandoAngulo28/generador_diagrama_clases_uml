@@ -1,7 +1,7 @@
 import type { UmlModel } from '../../diagrams/uml.types.js';
 import type { EditDiagramResult } from '../operations.types.js';
 
-/** Which engine produced an answer; shown as a badge in the UI ("Ollama Local 🏠" / "Gemini Cloud ☁️"). */
+/** Which engine produced an answer; shown as a badge in the chat ("🏠 IA local" / "☁️ Gemini · <motivo>"). */
 export type AiProviderId = 'OLLAMA_LOCAL' | 'GEMINI_CLOUD';
 
 export interface AiCallOptions {

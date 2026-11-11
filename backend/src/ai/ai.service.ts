@@ -57,6 +57,11 @@ export class AiService {
     );
   }
 
+  /** True when the local model answers chat questions first (local-first or ollama mode). */
+  isLocalFirst(): boolean {
+    return this.localLeads;
+  }
+
   async editDiagram(
     message: string,
     model: UmlModel,
