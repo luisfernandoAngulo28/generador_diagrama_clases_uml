@@ -1007,6 +1007,34 @@
   flex-shrink: 0;
 }
 
+/* UML 2.5 feature notation: static = underlined, abstract = italics. */
+.uml-feature--static {
+  text-decoration: underline;
+}
+
+.uml-feature--abstract {
+  font-style: italic;
+}
+
+.inspector__cell-input--invalid {
+  border-color: #e53e3e !important;
+  outline-color: #e53e3e;
+}
+
+.inspector__cell-input--mult {
+  width: 4.2em;
+}
+
+.inspector__row {
+  display: flex;
+  gap: 8px;
+}
+
+.inspector__row > .inspector__field {
+  flex: 1;
+  min-width: 0;
+}
+
 .chat-msg__image img {
   display: block;
   max-width: 100%;

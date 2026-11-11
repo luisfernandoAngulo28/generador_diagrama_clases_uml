@@ -48,6 +48,28 @@ export function sourceMultiplicity(type: RelationType): EndMultiplicity {
   }
 }
 
+/** UML multiplicity typed by the user: "1", "*", "0..1", "2..5", "1..*". */
+export const MULTIPLICITY_PATTERN = /^(\d+|\*)(\.\.(\d+|\*))?$/;
+
+export function isValidMultiplicity(value: string): boolean {
+  if (!MULTIPLICITY_PATTERN.test(value)) return false;
+  const [lower, upper] = value.split('..');
+  if (upper === undefined) return true; // "1", "*"
+  if (lower === '*') return false; // "*..5"
+  return upper === '*' || Number(lower) <= Number(upper); // "5..2" is not a range
+}
+
+/** Multiplicity shown at each end: the user's value when set, otherwise the one implied by the type. */
+export function endLabels(
+  type: RelationType,
+  custom: { sourceMultiplicity?: string; targetMultiplicity?: string },
+): { source: string; target: string } {
+  return {
+    source: custom.sourceMultiplicity || formatMultiplicity(sourceMultiplicity(type)),
+    target: custom.targetMultiplicity || formatMultiplicity(targetMultiplicity(type)),
+  };
+}
+
 export function formatMultiplicity(m: EndMultiplicity): string {
   return m.lower === m.upper ? m.lower : `${m.lower}..${m.upper}`;
 }

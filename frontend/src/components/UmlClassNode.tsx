@@ -113,11 +113,17 @@ function UmlClassNodeImpl({ data, selected }: NodeProps) {
                       <span className="uml-class-node__visibility">
                         {VISIBILITY_SYMBOLS[attr.visibility]}
                       </span>
-                      <span className="uml-class-node__attr-name">
+                      <span
+                        className={`uml-class-node__attr-name${attr.isStatic ? ' uml-feature--static' : ''}`}
+                      >
+                        {attr.isDerived ? '/' : ''}
                         {attr.name}
                         {attr.isPrimaryKey ? ' (PK)' : ''}
                       </span>
-                      <span className="uml-class-node__attr-type">: {attr.type}</span>
+                      <span className={`uml-class-node__attr-type${attr.isStatic ? ' uml-feature--static' : ''}`}>
+                        : {attr.type}
+                        {attr.multiplicity ? ` [${attr.multiplicity}]` : ''}
+                      </span>
                     </>
                   )}
                 </div>
@@ -131,10 +137,20 @@ function UmlClassNodeImpl({ data, selected }: NodeProps) {
               <span className="uml-class-node__visibility">
                 {VISIBILITY_SYMBOLS[op.visibility]}
               </span>
-              <span className="uml-class-node__attr-name">
+              <span
+                className={`uml-class-node__attr-name${op.isStatic ? ' uml-feature--static' : ''}${
+                  op.isAbstract ? ' uml-feature--abstract' : ''
+                }`}
+              >
                 {op.name}({op.parameters ?? ''})
               </span>
-              <span className="uml-class-node__attr-type">: {op.returnType}</span>
+              <span
+                className={`uml-class-node__attr-type${op.isStatic ? ' uml-feature--static' : ''}${
+                  op.isAbstract ? ' uml-feature--abstract' : ''
+                }`}
+              >
+                : {op.returnType}
+              </span>
             </div>
           ))}
         </div>

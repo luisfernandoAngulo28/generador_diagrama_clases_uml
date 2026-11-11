@@ -23,6 +23,12 @@ export interface UmlAttribute {
   type: string;
   visibility: Visibility;
   isPrimaryKey?: boolean;
+  /** UML 2.5: static (class-scoped) feature, drawn underlined. */
+  isStatic?: boolean;
+  /** UML 2.5: derived attribute, drawn with a leading "/". */
+  isDerived?: boolean;
+  /** UML 2.5 attribute multiplicity, e.g. "0..*" → "telefonos : String [0..*]". */
+  multiplicity?: string;
   author?: AuthorStamp;
   lastModifiedBy?: AuthorStamp;
 }
@@ -33,6 +39,10 @@ export interface UmlOperation {
   visibility: Visibility;
   /** Free-text parameter list, e.g. "id: Long, nombre: String" — kept simple, not code-generated. */
   parameters?: string;
+  /** UML 2.5: static operation, drawn underlined. */
+  isStatic?: boolean;
+  /** UML 2.5: abstract operation, drawn in italics. */
+  isAbstract?: boolean;
 }
 
 export type ClassStereotype = 'enum' | 'abstract' | 'interface';
@@ -57,6 +67,8 @@ export interface UmlClass {
   lastModifiedBy?: AuthorStamp;
 }
 
+export type Navigability = 'SOURCE_TO_TARGET' | 'TARGET_TO_SOURCE';
+
 export type RelationType =
   | 'ASSOCIATION'
   | 'AGGREGATION'
@@ -76,6 +88,16 @@ export interface UmlRelation {
   targetClassId: string;
   sourceRole?: string;
   targetRole?: string;
+  /**
+   * UML 2.5 multiplicities typed by the user ("1", "0..1", "2..5", "1..*"). When absent, the
+   * multiplicity follows the relation type (ONE_TO_MANY → 1 / 0..*), as before.
+   */
+  sourceMultiplicity?: string;
+  targetMultiplicity?: string;
+  /** UML 2.5 navigability: an open arrowhead on the navigable end. Absent = unspecified. */
+  navigability?: Navigability;
+  /** UML 2.5 association class: a class attached with a dashed line to this association. */
+  associationClassId?: string;
   author?: AuthorStamp;
   lastModifiedBy?: AuthorStamp;
 }

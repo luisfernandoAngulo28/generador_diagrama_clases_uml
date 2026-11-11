@@ -1,4 +1,9 @@
 import { XMLParser } from 'fast-xml-parser';
+import {
+  formatEnd,
+  sourceEndMultiplicity as defaultSourceEnd,
+  targetEndMultiplicity as defaultTargetEnd,
+} from './xmi.util.js';
 import type {
   RelationType,
   UmlAttribute,
@@ -34,6 +39,22 @@ function toVisibility(value: unknown): Visibility {
   return typeof value === 'string' && (VISIBILITIES as string[]).includes(value)
     ? (value as Visibility)
     : 'public';
+}
+
+/** "lower..upper" of an association end or attribute ("" when the file has none). */
+function endText(end: XmlNode | undefined): string {
+  const lower = end?.lowerValue?.['@_value'];
+  const upper = end?.upperValue?.['@_value'];
+  if (lower === undefined && upper === undefined) return '';
+  const lo = String(lower ?? '0');
+  const up = upper === undefined ? lo : String(upper) === '-1' ? '*' : String(upper);
+  return lo === up ? lo : `${lo}..${up}`;
+}
+
+/** An attribute's multiplicity when it is not the default 1. */
+function attributeMultiplicity(attr: XmlNode): { multiplicity?: string } {
+  const text = endText(attr);
+  return text && text !== '1' ? { multiplicity: text } : {};
 }
 
 /** Infers a RelationType from end multiplicities when the file has no explicit hint (e.g. XMI from another tool). */
@@ -134,12 +155,31 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
     return undefined;
   }
 
+  // Our own extension (renderXmi): relation type and association class of each relation.
+  const toolRelations = new Map<string, { type?: RelationType; associationClass?: string }>();
+  for (const ext of asArray<XmlNode>(xmiRoot['xmi:Extension'])) {
+    if (ext['@_extender'] !== 'Diagramador UML') continue;
+    for (const r of asArray<XmlNode>(ext.relation)) {
+      const id = r['@_xmi:idref'];
+      if (typeof id !== 'string') continue;
+      toolRelations.set(id, {
+        type: (RELATION_TYPES as string[]).includes(r['@_type']) ? (r['@_type'] as RelationType) : undefined,
+        associationClass: typeof r['@_associationClass'] === 'string' ? r['@_associationClass'] : undefined,
+      });
+    }
+  }
+
   const classes: UmlClass[] = [];
   const classIds = new Set<string>();
 
   for (const el of packagedElements) {
     const xmiType = el['@_xmi:type'];
-    if (xmiType !== 'uml:Class' && xmiType !== 'uml:Enumeration' && xmiType !== 'uml:Interface')
+    if (
+      xmiType !== 'uml:Class' &&
+      xmiType !== 'uml:Enumeration' &&
+      xmiType !== 'uml:Interface' &&
+      xmiType !== 'uml:AssociationClass' // EA: a class and its association in one element
+    )
       continue;
     const id = el['@_xmi:id'];
     if (!id || typeof id !== 'string') continue;
@@ -153,6 +193,9 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
         type: resolveAttrType(attr),
         visibility: toVisibility(attr['@_visibility']),
         isPrimaryKey: (attr['@_name'] ?? '').toLowerCase() === 'id' ? true : undefined,
+        ...(attr['@_isStatic'] === 'true' ? { isStatic: true } : {}),
+        ...(attr['@_isDerived'] === 'true' ? { isDerived: true } : {}),
+        ...attributeMultiplicity(attr),
       }));
 
     for (const literal of asArray<XmlNode>(el.ownedLiteral)) {
@@ -175,6 +218,8 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
         returnType: returnParam ? resolveAttrType(returnParam) : 'void',
         visibility: toVisibility(op['@_visibility']),
         ...(inParams ? { parameters: inParams } : {}),
+        ...(op['@_isStatic'] === 'true' ? { isStatic: true } : {}),
+        ...(op['@_isAbstract'] === 'true' ? { isAbstract: true } : {}),
       };
     });
 
@@ -237,7 +282,7 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
   const endClassById = new Map<string, string>();
   for (const el of packagedElements) {
     const t = el['@_xmi:type'];
-    if (t === 'uml:Association') {
+    if (t === 'uml:Association' || t === 'uml:AssociationClass') {
       for (const oe of asArray<XmlNode>(el.ownedEnd)) {
         const pid = oe['@_xmi:id'];
         if (typeof pid !== 'string') continue;
@@ -258,7 +303,8 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
   }
 
   for (const el of packagedElements) {
-    if (el['@_xmi:type'] !== 'uml:Association') continue;
+    const isAssocClass = el['@_xmi:type'] === 'uml:AssociationClass';
+    if (el['@_xmi:type'] !== 'uml:Association' && !isAssocClass) continue;
     const ownedEnds = asArray<XmlNode>(el.ownedEnd);
 
     let srcEnd: XmlNode;
@@ -294,8 +340,11 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
 
     const aggregation = srcEnd['@_aggregation'] ?? tgtEnd['@_aggregation'];
     const nameHint = typeof el['@_name'] === 'string' ? el['@_name'].toUpperCase() : '';
+    const toolHint = toolRelations.get(el['@_xmi:id']);
     let type: RelationType;
-    if ((RELATION_TYPES as string[]).includes(nameHint)) {
+    if (toolHint?.type) {
+      type = toolHint.type;
+    } else if ((RELATION_TYPES as string[]).includes(nameHint)) {
       type = nameHint as RelationType;
     } else if (aggregation === 'composite') {
       type = 'COMPOSITION';
@@ -305,13 +354,34 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
       type = inferMultiplicity(srcEnd, tgtEnd);
     }
 
+    // Multiplicities typed by the user: kept only where they differ from the type's default.
+    const srcText = endText(srcEnd);
+    const tgtText = endText(tgtEnd);
+    const navigable = new Set(
+      asArray<XmlNode>(el.navigableOwnedEnd).map((n) => n['@_xmi:idref']),
+    );
+    const srcNav = navigable.has(srcEnd['@_xmi:id']);
+    const tgtNav = navigable.has(tgtEnd['@_xmi:id']);
+    const elId = typeof el['@_xmi:id'] === 'string' ? el['@_xmi:id'] : undefined;
+    const associationClassId = isAssocClass
+      ? elId
+      : toolHint?.associationClass && classIds.has(toolHint.associationClass)
+        ? toolHint.associationClass
+        : undefined;
+
     relations.push({
-      id: typeof el['@_xmi:id'] === 'string' ? el['@_xmi:id'] : nextRelId(),
+      // An EA association class shares its id with the class: give the relation its own.
+      id: elId ? (isAssocClass ? `${elId}_assoc` : elId) : nextRelId(),
       type,
       sourceClassId,
       targetClassId,
       sourceRole: srcEnd['@_name'] || undefined,
       targetRole: tgtEnd['@_name'] || undefined,
+      ...(srcText && srcText !== formatEnd(defaultSourceEnd(type)) ? { sourceMultiplicity: srcText } : {}),
+      ...(tgtText && tgtText !== formatEnd(defaultTargetEnd(type)) ? { targetMultiplicity: tgtText } : {}),
+      ...(tgtNav && !srcNav ? { navigability: 'SOURCE_TO_TARGET' as const } : {}),
+      ...(srcNav && !tgtNav ? { navigability: 'TARGET_TO_SOURCE' as const } : {}),
+      ...(associationClassId ? { associationClassId } : {}),
     });
   }
 

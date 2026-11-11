@@ -40,6 +40,8 @@ function targetMultiplicity(type: RelationType): EndMultiplicity {
   }
 }
 
+export { sourceMultiplicity as sourceEndMultiplicity, targetMultiplicity as targetEndMultiplicity };
+
 /** Multiplicity of the END AT THE SOURCE class, as seen from the target. */
 function sourceMultiplicity(type: RelationType): EndMultiplicity {
   switch (type) {
@@ -122,22 +124,44 @@ function renderEaConnectors(model: UmlModel, interfaceIds: Set<string>): string 
       const { type, subtype } = eaConnectorType(rel, interfaceIds);
       const withMultiplicity = MULTIPLICITY_TYPES.has(rel.type);
       const agg = aggregationKind(rel.type);
-      const end = (tag: 'source' | 'target', classId: string, role: string | undefined, mult: EndMultiplicity, aggregation: string) => {
-        const multiplicity = withMultiplicity
-          ? ` multiplicity="${mult.lower === mult.upper ? mult.lower : `${mult.lower}..${mult.upper}`}"`
-          : '';
+      const nav = withMultiplicity ? rel.navigability : undefined;
+      const end = (
+        tag: 'source' | 'target',
+        classId: string,
+        role: string | undefined,
+        mult: EndMultiplicity,
+        aggregation: string,
+        navigable: boolean,
+      ) => {
+        const multiplicity = withMultiplicity ? ` multiplicity="${formatEnd(mult)}"` : '';
         const roleName = role ? ` name="${escapeXml(role)}"` : '';
+        const navStyle = nav ? (navigable ? 'Navigable' : 'Non-Navigable') : 'Unspecified';
         return `        <${tag} xmi:idref="${sanitizeId(classId)}">
           <model type="${kind(classId)}" name="${escapeXml(names.get(classId)!.name)}"/>
           <role${roleName} visibility="Public"/>
           <type${multiplicity} aggregation="${aggregation}"/>
+          <style value="Navigable=${navStyle};Owned=0;"/>
         </${tag}>`;
       };
-      const direction = type === 'Association' || type === 'Aggregation' ? 'Unspecified' : 'Source -&gt; Destination';
+      const direction =
+        nav === 'SOURCE_TO_TARGET'
+          ? 'Source -&gt; Destination'
+          : nav === 'TARGET_TO_SOURCE'
+            ? 'Destination -&gt; Source'
+            : type === 'Association' || type === 'Aggregation'
+              ? 'Unspecified'
+              : 'Source -&gt; Destination';
+      // UML 2.5 association class (EA: subtype "Class" + the class id in extendedProperties).
+      const assocClass =
+        type === 'Association' && rel.associationClassId && names.has(rel.associationClassId)
+          ? sanitizeId(rel.associationClassId)
+          : undefined;
       return `      <connector xmi:idref="${relationElementId(rel, interfaceIds)}">
-${end('source', rel.sourceClassId, rel.sourceRole, sourceMultiplicity(rel.type), agg ?? 'none')}
-${end('target', rel.targetClassId, rel.targetRole, targetMultiplicity(rel.type), 'none')}
-        <properties ea_type="${type}"${subtype ? ` subtype="${subtype}"` : ''} direction="${direction}"/>
+${end('source', rel.sourceClassId, rel.sourceRole, toEnd(rel.sourceMultiplicity, sourceMultiplicity(rel.type)), agg ?? 'none', nav === 'TARGET_TO_SOURCE')}
+${end('target', rel.targetClassId, rel.targetRole, toEnd(rel.targetMultiplicity, targetMultiplicity(rel.type)), 'none', nav === 'SOURCE_TO_TARGET')}
+        <properties ea_type="${type}"${assocClass ? ' subtype="Class"' : subtype ? ` subtype="${subtype}"` : ''} direction="${direction}"/>${
+          assocClass ? `\n        <extendedProperties associationclass="${assocClass}"/>` : ''
+        }
       </connector>`;
     })
     .join('\n');
@@ -153,6 +177,26 @@ const MULTIPLICITY_TYPES = new Set<RelationType>([
   'MANY_TO_MANY',
 ]);
 
+/** A typed multiplicity ("2..5", "*", "3") as lower/upper; falls back to the one implied by the type. */
+function toEnd(custom: string | undefined, fallback: EndMultiplicity): EndMultiplicity {
+  if (!custom) return fallback;
+  const [lower, upper] = custom.split('..');
+  if (upper === undefined) return lower === '*' ? { lower: '0', upper: '*' } : { lower, upper: lower };
+  return { lower, upper };
+}
+
+export function formatEnd(m: EndMultiplicity): string {
+  return m.lower === m.upper ? m.lower : `${m.lower}..${m.upper}`;
+}
+
+/** UML 2.5 lowerValue/upperValue of an attribute (default 1..1). */
+function attributeBounds(multiplicity: string | undefined): string {
+  const { lower, upper } = toEnd(multiplicity, { lower: '1', upper: '1' });
+  const upperType = upper === '*' ? 'uml:LiteralUnlimitedNatural' : 'uml:LiteralInteger';
+  return `<lowerValue xmi:type="uml:LiteralInteger" value="${lower}"/>
+        <upperValue xmi:type="${upperType}" value="${upper}"/>`;
+}
+
 /** The free-text "id: Long, nombre: String" parameter field, split into name/type pairs. */
 function splitParams(parameters: string | undefined): { name: string; type: string }[] {
   return (parameters ?? '')
@@ -163,6 +207,10 @@ function splitParams(parameters: string | undefined): { name: string; type: stri
       const [name, type] = param.split(':').map((s) => s.trim());
       return { name: name || 'param', type: type || 'Object' };
     });
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 /** Canvas size of a class box, close to how the editor draws it. */
@@ -198,7 +246,51 @@ function renderEaDiagram(diagramName: string, model: UmlModel, interfaceIds: Set
       `          <element geometry="SX=0;SY=0;EX=0;EY=0;" subject="${relationElementId(rel, interfaceIds)}" style="Hidden=0;"/>`,
   );
 
+  // EA's element entries: nType 17 marks an association class, and EA reads each operation's
+  // return type, static and abstract flags from here (not from the UML ownedOperation).
+  const classIds = new Set(model.classes.map((c) => c.id));
+  const assocClassIds = new Set(
+    model.relations
+      .map((r) => r.associationClassId)
+      .filter((id): id is string => !!id && classIds.has(id)),
+  );
+  const assocClassElements = model.classes
+    .filter((cls) => assocClassIds.has(cls.id) || (cls.stereotype !== 'enum' && cls.operations?.length))
+    .map((cls) => {
+      const classId = sanitizeId(cls.id);
+      const kind = cls.stereotype === 'interface' ? 'Interface' : 'Class';
+      const operations =
+        cls.stereotype === 'enum'
+          ? []
+          : (cls.operations ?? []).map((op, pos) => {
+              const opId = `${classId}_op_${sanitizeId(op.name)}`;
+              const params = splitParams(op.parameters)
+                .map(
+                  (p, i) => `            <parameter xmi:idref="${opId}_p${i}" visibility="public">
+              <properties pos="${i}" type="${escapeXml(p.type)}" const="false"/>
+            </parameter>`,
+                )
+                .join('\n');
+              return `        <operation xmi:idref="${opId}" name="${escapeXml(op.name)}" scope="${capitalize(op.visibility)}">
+          <properties position="${pos}"/>
+          <type type="${escapeXml(op.returnType)}" const="false" static="${!!op.isStatic}" isAbstract="${!!op.isAbstract}" concurrency="Sequential" returnarray="0" pure="0" isQuery="false"/>
+          <parameters>
+${params}
+          </parameters>
+        </operation>`;
+            });
+      return `      <element xmi:idref="${classId}" xmi:type="uml:${kind}" name="${escapeXml(cls.name)}" scope="public">
+        <properties sType="${kind}" nType="${assocClassIds.has(cls.id) ? 17 : 0}" scope="public"${
+          cls.stereotype === 'abstract' ? ' isAbstract="true"' : ''
+        }/>${operations.length ? `\n        <operations>\n${operations.join('\n')}\n        </operations>` : ''}
+      </element>`;
+    })
+    .join('\n');
+
   return `  <xmi:Extension extender="Enterprise Architect" extenderID="6.5">
+    <elements>
+${assocClassElements}
+    </elements>
     <connectors>
 ${renderEaConnectors(model, interfaceIds)}
     </connectors>
@@ -211,7 +303,26 @@ ${[...classRows, ...connectorRows].join('\n')}
         </elements>
       </diagram>
     </diagrams>
+  </xmi:Extension>
+  <xmi:Extension extender="Diagramador UML">
+${renderToolExtension(model)}
   </xmi:Extension>`;
+}
+
+/**
+ * The editor's own data that plain UML can't carry losslessly: the relation type (ONE_TO_MANY,
+ * MANY_TO_MANY…, which typed multiplicities would otherwise hide) and the association class.
+ * Other tools ignore an extension they don't know; parseXmi reads it back.
+ */
+function renderToolExtension(model: UmlModel): string {
+  return model.relations
+    .map(
+      (rel) =>
+        `    <relation xmi:idref="${sanitizeId(rel.id)}" type="${rel.type}"${
+          rel.associationClassId ? ` associationClass="${sanitizeId(rel.associationClassId)}"` : ''
+        }/>`,
+    )
+    .join('\n');
 }
 
 export function renderXmi(diagramName: string, model: UmlModel): string {
@@ -256,9 +367,8 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
           : cls.attributes
               .map(
                 (attr) =>
-                  `      <ownedAttribute xmi:type="uml:Property" xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}" isOrdered="false" isUnique="true">
-        <lowerValue xmi:type="uml:LiteralInteger" value="1"/>
-        <upperValue xmi:type="uml:LiteralInteger" value="1"/>
+                  `      <ownedAttribute xmi:type="uml:Property" xmi:id="${classId}_${escapeXml(attr.name)}" name="${escapeXml(attr.name)}" visibility="${attr.visibility}" isStatic="${!!attr.isStatic}" isDerived="${!!attr.isDerived}" isOrdered="false" isUnique="true">
+        ${attributeBounds(attr.multiplicity)}
         ${typeRef(attr.type)}
       </ownedAttribute>`,
               )
@@ -276,7 +386,9 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
         </ownedParameter>`,
                 )
                 .join('\n');
-              return `      <ownedOperation xmi:id="${opId}" name="${escapeXml(op.name)}" visibility="${op.visibility}">
+              const flags =
+                (op.isStatic ? ' isStatic="true"' : '') + (op.isAbstract ? ' isAbstract="true"' : '');
+              return `      <ownedOperation xmi:id="${opId}" name="${escapeXml(op.name)}" visibility="${op.visibility}"${flags}>
 ${inParams}${inParams ? '\n' : ''}        <ownedParameter xmi:id="${opId}_return" name="return" direction="return">
           ${typeRef(op.returnType)}
         </ownedParameter>
@@ -295,8 +407,15 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
       const relId = sanitizeId(rel.id);
       const sourceId = sanitizeId(rel.sourceClassId);
       const targetId = sanitizeId(rel.targetClassId);
-      const srcMult = sourceMultiplicity(rel.type);
-      const tgtMult = targetMultiplicity(rel.type);
+      const srcMult = toEnd(rel.sourceMultiplicity, sourceMultiplicity(rel.type));
+      const tgtMult = toEnd(rel.targetMultiplicity, targetMultiplicity(rel.type));
+      // UML 2.5: the navigable end is listed as navigableOwnedEnd.
+      const navigableEnd =
+        rel.navigability === 'SOURCE_TO_TARGET'
+          ? `\n      <navigableOwnedEnd xmi:idref="${relId}_tgt"/>`
+          : rel.navigability === 'TARGET_TO_SOURCE'
+            ? `\n      <navigableOwnedEnd xmi:idref="${relId}_src"/>`
+            : '';
       const aggregation = aggregationKind(rel.type);
       const sourceEndAttrs =
         (aggregation ? ` aggregation="${aggregation}"` : '') +
@@ -305,7 +424,7 @@ ${attributes}${attributes ? '\n' : ''}${operations}${operations ? '\n' : ''}${ge
 
       return `    <packagedElement xmi:type="uml:Association" xmi:id="${relId}">
       <memberEnd xmi:idref="${relId}_src"/>
-      <memberEnd xmi:idref="${relId}_tgt"/>
+      <memberEnd xmi:idref="${relId}_tgt"/>${navigableEnd}
       <ownedEnd xmi:id="${relId}_src" type="${sourceId}"${sourceEndAttrs}>
         <lowerValue xmi:type="uml:LiteralInteger" value="${srcMult.lower}"/>
         <upperValue xmi:type="uml:LiteralUnlimitedNatural" value="${srcMult.upper}"/>

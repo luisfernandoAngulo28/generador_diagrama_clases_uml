@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import type { UmlAttribute, UmlClass, UmlOperation, Visibility } from '../types/uml';
+import { isValidMultiplicity } from '../lib/multiplicity';
 
 interface FeaturesPanelProps {
   umlClass: UmlClass;
@@ -100,8 +101,11 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
                   {!isEnum && (
                     <>
                       <th>Tipo</th>
+                      <th title="Multiplicidad UML del atributo, ej: 0..* (vacío = 1)">Mult.</th>
                       <th>Visibilidad</th>
                       <th>PK</th>
+                      <th title="static: de la clase, no de cada objeto (se dibuja subrayado)">Static</th>
+                      <th title="Derivado: se calcula a partir de otros (se dibuja con /)">/ Deriv.</th>
                     </>
                   )}
                   <th></th>
@@ -124,6 +128,20 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
                             className="inspector__cell-input"
                             value={attr.type}
                             onChange={(e) => updateAttribute(index, { type: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className={`inspector__cell-input inspector__cell-input--mult${
+                              attr.multiplicity && !isValidMultiplicity(attr.multiplicity)
+                                ? ' inspector__cell-input--invalid'
+                                : ''
+                            }`}
+                            placeholder="1"
+                            value={attr.multiplicity ?? ''}
+                            onChange={(e) =>
+                              updateAttribute(index, { multiplicity: e.target.value.trim() || undefined })
+                            }
                           />
                         </td>
                         <td>
@@ -150,6 +168,20 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
                             }
                           />
                         </td>
+                        <td className="inspector__cell-center">
+                          <input
+                            type="checkbox"
+                            checked={!!attr.isStatic}
+                            onChange={(e) => updateAttribute(index, { isStatic: e.target.checked || undefined })}
+                          />
+                        </td>
+                        <td className="inspector__cell-center">
+                          <input
+                            type="checkbox"
+                            checked={!!attr.isDerived}
+                            onChange={(e) => updateAttribute(index, { isDerived: e.target.checked || undefined })}
+                          />
+                        </td>
                       </>
                     )}
                     <td className="inspector__cell-center">
@@ -174,6 +206,8 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
                   <th>Parámetros</th>
                   <th>Retorna</th>
                   <th>Visibilidad</th>
+                  <th title="static: de la clase (se dibuja subrayada)">Static</th>
+                  <th title="Abstracta: sin implementación (se dibuja en cursiva)">Abstr.</th>
                   <th></th>
                 </tr>
               </thead>
@@ -216,6 +250,20 @@ export function FeaturesPanel({ umlClass, onChange }: FeaturesPanelProps) {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td className="inspector__cell-center">
+                      <input
+                        type="checkbox"
+                        checked={!!op.isStatic}
+                        onChange={(e) => updateOperation(index, { isStatic: e.target.checked || undefined })}
+                      />
+                    </td>
+                    <td className="inspector__cell-center">
+                      <input
+                        type="checkbox"
+                        checked={!!op.isAbstract}
+                        onChange={(e) => updateOperation(index, { isAbstract: e.target.checked || undefined })}
+                      />
                     </td>
                     <td className="inspector__cell-center">
                       <button className="inspector__remove" onClick={() => removeOperation(index)}>

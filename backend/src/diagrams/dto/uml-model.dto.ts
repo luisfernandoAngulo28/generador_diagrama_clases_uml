@@ -1,6 +1,8 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
+  Matches,
   IsNumber,
   IsIn,
   IsNotEmpty,
@@ -8,7 +10,11 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import type { ClassStereotype, RelationType, Visibility } from '../uml.types.js';
+import type { ClassStereotype, Navigability, RelationType, Visibility } from '../uml.types.js';
+
+/** UML multiplicity: "1", "*", "0..1", "2..5", "1..*". */
+export const MULTIPLICITY_PATTERN = /^(\d+|\*)(\.\.(\d+|\*))?$/;
+const NAVIGABILITIES: Navigability[] = ['SOURCE_TO_TARGET', 'TARGET_TO_SOURCE'];
 
 const VISIBILITIES: Visibility[] = ['public', 'private', 'protected', 'package'];
 const CLASS_STEREOTYPES: ClassStereotype[] = ['enum', 'abstract', 'interface'];
@@ -38,6 +44,19 @@ export class UmlAttributeDto {
 
   @IsOptional()
   isPrimaryKey?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isStatic?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isDerived?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Matches(MULTIPLICITY_PATTERN)
+  multiplicity?: string;
 }
 
 export class UmlOperationDto {
@@ -55,6 +74,14 @@ export class UmlOperationDto {
   @IsOptional()
   @IsString()
   parameters?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isStatic?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isAbstract?: boolean;
 }
 
 // Without decorators the global ValidationPipe (whitelist: true) stripped x/y,
@@ -128,6 +155,24 @@ export class UmlRelationDto {
   @IsOptional()
   @IsString()
   targetRole?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(MULTIPLICITY_PATTERN)
+  sourceMultiplicity?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(MULTIPLICITY_PATTERN)
+  targetMultiplicity?: string;
+
+  @IsOptional()
+  @IsIn(NAVIGABILITIES)
+  navigability?: Navigability;
+
+  @IsOptional()
+  @IsString()
+  associationClassId?: string;
 }
 
 export class UmlModelDto {

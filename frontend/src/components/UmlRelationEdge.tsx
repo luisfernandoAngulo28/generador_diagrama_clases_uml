@@ -1,20 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, useStore, type EdgeProps, type Edge } from '@xyflow/react';
-import type { RelationType } from '../types/uml';
+import type { Navigability, RelationType } from '../types/uml';
 import {
   MULTIPLICITY_RELATION_TYPES,
   REALIZATION_DASH,
+  endLabels,
   isRealization,
-  formatMultiplicity,
-  sourceMultiplicity,
-  targetMultiplicity,
 } from '../lib/multiplicity';
 
 export interface UmlRelationEdgeData extends Record<string, unknown> {
   type: RelationType;
   sourceRole?: string;
   targetRole?: string;
+  sourceMultiplicity?: string;
+  targetMultiplicity?: string;
+  navigability?: Navigability;
+  associationClassId?: string;
 }
+
+const NAVIGABLE_ARROW = "url('#uml-open-arrow')";
 
 export type UmlRelationEdgeType = Edge<UmlRelationEdgeData, 'umlRelation'>;
 
@@ -54,7 +58,7 @@ export function UmlRelationEdge({
   markerEnd,
   data,
 }: EdgeProps<UmlRelationEdgeType>) {
-  const [path] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+  const [path, midX, midY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
   const pathRef = useRef<SVGPathElement>(null);
   const [sourcePoint, setSourcePoint] = useState({ x: sourceX, y: sourceY });
   const [targetPoint, setTargetPoint] = useState({ x: targetX, y: targetY });
@@ -83,23 +87,43 @@ export function UmlRelationEdge({
     ? { ...style, strokeDasharray: REALIZATION_DASH }
     : style;
   const showMultiplicity = MULTIPLICITY_RELATION_TYPES.has(type);
+  const multiplicity = endLabels(type, data ?? {});
 
-  const sourceLabel = [
-    data?.sourceRole,
-    showMultiplicity ? formatMultiplicity(sourceMultiplicity(type)) : null,
-  ]
+  const sourceLabel = [data?.sourceRole, showMultiplicity ? multiplicity.source : null]
     .filter(Boolean)
     .join('\n');
-  const targetLabel = [
-    data?.targetRole,
-    showMultiplicity ? formatMultiplicity(targetMultiplicity(type)) : null,
-  ]
+  const targetLabel = [data?.targetRole, showMultiplicity ? multiplicity.target : null]
     .filter(Boolean)
     .join('\n');
+
+  // UML 2.5 navigability: open arrowhead on the navigable end (only where no other marker sits).
+  const navigability = showMultiplicity ? data?.navigability : undefined;
+  const endMarker = navigability === 'SOURCE_TO_TARGET' && !markerEnd ? NAVIGABLE_ARROW : markerEnd;
+  const startMarker =
+    navigability === 'TARGET_TO_SOURCE' && !markerStart ? NAVIGABLE_ARROW : markerStart;
+
+  // UML 2.5 association class: dashed line from the middle of the association to the class.
+  const assocCenter = useStore((s) => {
+    const id = data?.associationClassId;
+    const n = id ? s.nodeLookup.get(id) : undefined;
+    if (!n) return '';
+    const { x, y } = n.internals.positionAbsolute;
+    return `${x + (n.measured.width ?? 0) / 2},${y + (n.measured.height ?? 0) / 2}`;
+  });
 
   return (
     <>
-      <BaseEdge id={id} path={path} style={edgeStyle}markerStart={markerStart} markerEnd={markerEnd} />
+      <BaseEdge id={id} path={path} style={edgeStyle} markerStart={startMarker} markerEnd={endMarker} />
+      {assocCenter && (
+        <path
+          d={`M ${midX},${midY} L ${assocCenter}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.2}
+          strokeDasharray="6 4"
+          className="uml-assoc-class-line"
+        />
+      )}
       {/* Invisible twin of the same path, purely so we can sample real points along the
           curve (getPointAtLength) for end-label placement without disturbing BaseEdge's
           own rendering/click-interaction path. */}

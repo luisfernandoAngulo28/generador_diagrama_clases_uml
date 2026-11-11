@@ -64,7 +64,7 @@ import { UmlNoteNode } from './components/UmlNoteNode';
 import { layoutNodes } from './lib/layout';
 import { ClassInspector } from './components/ClassInspector';
 import { FeaturesPanel } from './components/FeaturesPanel';
-import { RelationInspector } from './components/RelationInspector';
+import { RelationInspector, type RelationPatch } from './components/RelationInspector';
 import { ClassTreePanel } from './components/ClassTreePanel';
 import { ChatPanel } from './components/ChatPanel';
 import { AiModeBar } from './components/AiModeBar';
@@ -107,7 +107,20 @@ import type {
   UmlModel,
   ValidationResult,
 } from './types/uml';
-import { RELATION_LABELS, authorshipIndexOf, type AuthorshipIndex } from './types/uml';
+import { RELATION_LABELS, authorshipIndexOf, type AuthorshipIndex, type Navigability, type UmlRelation } from './types/uml';
+
+/** Edge data of a model relation: everything the canvas shows besides its two ends. */
+function relationEdgeData(rel: UmlRelation) {
+  return {
+    type: rel.type,
+    sourceRole: rel.sourceRole,
+    targetRole: rel.targetRole,
+    sourceMultiplicity: rel.sourceMultiplicity,
+    targetMultiplicity: rel.targetMultiplicity,
+    navigability: rel.navigability,
+    associationClassId: rel.associationClassId,
+  };
+}
 import {
   createDiagram,
   downloadGeneratedBackend,
@@ -445,7 +458,7 @@ function AppInner() {
         source: rel.sourceClassId,
         target: rel.targetClassId,
         type: 'umlRelation' as const,
-        data: { type: rel.type, sourceRole: rel.sourceRole, targetRole: rel.targetRole },
+        data: relationEdgeData(rel),
         ...edgeAppearance(rel.type),
       })),
     );
@@ -977,6 +990,13 @@ function AppInner() {
         targetClassId: e.target,
         sourceRole: (e.data?.sourceRole as string) || undefined,
         targetRole: (e.data?.targetRole as string) || undefined,
+        sourceMultiplicity: (e.data?.sourceMultiplicity as string) || undefined,
+        targetMultiplicity: (e.data?.targetMultiplicity as string) || undefined,
+        navigability: (e.data?.navigability as Navigability) || undefined,
+        // A deleted association class leaves no dangling reference behind.
+        associationClassId: classNodes.some((n) => n.id === e.data?.associationClassId)
+          ? (e.data?.associationClassId as string)
+          : undefined,
       })),
       notes: noteNodes.map((n) => ({
         id: n.id,
@@ -1211,12 +1231,16 @@ function AppInner() {
           nodes.find((n) => n.id === editingEdgeRaw.target)?.data?.umlClass?.name ?? '?',
         sourceRole: (editingEdgeRaw.data?.sourceRole as string) ?? '',
         targetRole: (editingEdgeRaw.data?.targetRole as string) ?? '',
+        sourceMultiplicity: (editingEdgeRaw.data?.sourceMultiplicity as string) ?? '',
+        targetMultiplicity: (editingEdgeRaw.data?.targetMultiplicity as string) ?? '',
+        navigability: ((editingEdgeRaw.data?.navigability as Navigability) ?? '') as Navigability | '',
+        associationClassId: (editingEdgeRaw.data?.associationClassId as string) ?? '',
+        sourceClassId: editingEdgeRaw.source,
+        targetClassId: editingEdgeRaw.target,
       }
     : null;
 
-  function updateEdgeRelation(
-    patch: Partial<{ type: RelationType; sourceRole: string; targetRole: string }>,
-  ) {
+  function updateEdgeRelation(patch: RelationPatch) {
     setEdges((eds) =>
       eds.map((e) => {
         if (e.id !== editingEdgeId) return e;
@@ -1805,6 +1829,9 @@ function AppInner() {
         {editingEdge && (
           <RelationInspector
             relation={editingEdge}
+            classes={nodes
+              .filter((n) => n.data?.umlClass)
+              .map((n) => ({ id: n.id, name: n.data.umlClass.name as string }))}
             onChange={updateEdgeRelation}
             onClose={() => setEditingEdgeId(null)}
             onDelete={() => deleteRelation(editingEdge.id)}

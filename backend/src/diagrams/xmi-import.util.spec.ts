@@ -166,6 +166,96 @@ describe('parseXmi', () => {
     ]);
   });
 
+  it('round-trips the UML 2.5 details: typed multiplicities, navigability, association class, static/derived/abstract', () => {
+    const model: UmlModel = {
+      classes: [
+        {
+          id: 'e',
+          name: 'Estudiante',
+          attributes: [
+            { name: 'contador', type: 'Integer', visibility: 'private', isStatic: true },
+            { name: 'edad', type: 'Integer', visibility: 'private', isDerived: true },
+            { name: 'telefonos', type: 'String', visibility: 'private', multiplicity: '0..*' },
+          ],
+          operations: [
+            { name: 'calcular', returnType: 'Double', visibility: 'public', isAbstract: true },
+            { name: 'crear', returnType: 'Estudiante', visibility: 'public', isStatic: true },
+          ],
+        },
+        { id: 'c', name: 'Curso', attributes: [] },
+        { id: 'i', name: 'Inscripcion', attributes: [{ name: 'nota', type: 'Double', visibility: 'private' }] },
+      ],
+      relations: [
+        {
+          id: 'r1',
+          type: 'MANY_TO_MANY',
+          sourceClassId: 'e',
+          targetClassId: 'c',
+          sourceMultiplicity: '2..5',
+          targetMultiplicity: '1..*',
+          navigability: 'SOURCE_TO_TARGET',
+          associationClassId: 'i',
+        },
+      ],
+    };
+
+    const xml = renderXmi('UML25', model);
+    // what Enterprise Architect reads
+    expect(xml).toContain('<type multiplicity="2..5" aggregation="none"/>');
+    expect(xml).toContain('<style value="Navigable=Navigable;Owned=0;"/>');
+    expect(xml).toContain('<properties ea_type="Association" subtype="Class" direction="Source -&gt; Destination"/>');
+    expect(xml).toContain('<extendedProperties associationclass="id_i"/>');
+    expect(xml).toContain('nType="17"');
+    expect(xml).toContain('isStatic="true" isDerived="false"');
+    expect(xml).toContain('<ownedOperation xmi:id="id_e_op_id_calcular" name="calcular" visibility="public" isAbstract="true">');
+
+    const { model: parsed } = parseXmi(xml);
+    const ids = new Map(parsed.classes.map((c) => [c.name, c.id]));
+    const est = parsed.classes.find((c) => c.name === 'Estudiante')!;
+    expect(est.attributes.find((a) => a.name === 'contador')?.isStatic).toBe(true);
+    expect(est.attributes.find((a) => a.name === 'edad')?.isDerived).toBe(true);
+    expect(est.attributes.find((a) => a.name === 'telefonos')?.multiplicity).toBe('0..*');
+    expect(est.operations?.find((o) => o.name === 'calcular')?.isAbstract).toBe(true);
+    expect(est.operations?.find((o) => o.name === 'crear')?.isStatic).toBe(true);
+    expect(parsed.relations[0]).toMatchObject({
+      type: 'MANY_TO_MANY',
+      sourceMultiplicity: '2..5',
+      targetMultiplicity: '1..*',
+      navigability: 'SOURCE_TO_TARGET',
+      associationClassId: ids.get('Inscripcion'),
+    });
+  });
+
+  it('keeps an Enterprise Architect uml:AssociationClass as a class and an association', () => {
+    const xml = `<?xml version="1.0"?>
+<xmi:XMI xmi:version="2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1">
+  <uml:Model xmi:type="uml:Model" name="EA_Model">
+    <packagedElement xmi:type="uml:Package" xmi:id="EAPK_1" name="Escuela">
+      <packagedElement xmi:type="uml:Class" xmi:id="EAID_E" name="Estudiante"/>
+      <packagedElement xmi:type="uml:Class" xmi:id="EAID_C" name="Curso"/>
+      <packagedElement xmi:type="uml:AssociationClass" xmi:id="EAID_I" name="Inscripcion">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="EAID_N" name="nota"><type href="http://schema.omg.org/spec/UML/2.1/uml.xml#Double"/></ownedAttribute>
+        <memberEnd xmi:idref="EAID_src"/>
+        <memberEnd xmi:idref="EAID_dst"/>
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_src" association="EAID_I"><type xmi:idref="EAID_E"/></ownedEnd>
+        <ownedEnd xmi:type="uml:Property" xmi:id="EAID_dst" association="EAID_I"><type xmi:idref="EAID_C"/></ownedEnd>
+      </packagedElement>
+    </packagedElement>
+  </uml:Model>
+</xmi:XMI>`;
+    const { name, model } = parseXmi(xml);
+    expect(name).toBe('Escuela');
+    expect(model.classes.map((c) => c.name).sort()).toEqual(['Curso', 'Estudiante', 'Inscripcion']);
+    expect(model.relations).toEqual([
+      expect.objectContaining({
+        id: 'EAID_I_assoc',
+        sourceClassId: 'EAID_E',
+        targetClassId: 'EAID_C',
+        associationClassId: 'EAID_I',
+      }),
+    ]);
+  });
+
   it('imports an Enterprise Architect package-level uml:Realization as a realization', () => {
     const xml = `<?xml version="1.0"?>
 <xmi:XMI xmi:version="2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1">
