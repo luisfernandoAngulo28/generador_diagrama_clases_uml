@@ -1,6 +1,7 @@
 import type { UmlClass, UmlModel } from '../../diagrams/uml.types.js';
 import { capitalize, toJavaType } from '../java-type.util.js';
-import { findSuperclass, resolveRelationFields } from '../relations.util.js';
+import { findRealizedInterfaces, findSuperclass, resolveRelationFields } from '../relations.util.js';
+import { parseParams } from './interface.template.js';
 
 export function renderEntity(
   cls: UmlClass,
@@ -104,10 +105,42 @@ export function renderEntity(
         '',
       ].join('\n');
 
-  const classKeyword = cls.stereotype === 'abstract' ? 'public abstract class' : 'public class';
-  const classHeader = superclass
-    ? `${classKeyword} ${cls.name} extends ${superclass.name} {`
-    : `${classKeyword} ${cls.name} {`;
+  // UML InterfaceRealization → "implements". Each interface operation gets a stub unless a
+  // generated accessor already has that name, so the project compiles as generated.
+  const interfaces = findRealizedInterfaces(cls, model);
+  interfaces.forEach((i) => imports.add(`${packageName}.model.${i.name}`));
+  const generatedMethodNames = new Set<string>(superclass ? [] : ['getId', 'setId']);
+  for (const { name, type } of allFields) {
+    generatedMethodNames.add(`${type === 'Boolean' ? 'is' : 'get'}${capitalize(name)}`);
+    generatedMethodNames.add(`set${capitalize(name)}`);
+  }
+  const isAbstract = cls.stereotype === 'abstract';
+  const interfaceStubs = isAbstract
+    ? '' // an abstract class may leave the interface's operations to its subclasses
+    : interfaces
+        .flatMap((i) => i.operations ?? [])
+        .filter((op, idx, all) => all.findIndex((o) => o.name === op.name) === idx)
+        .filter((op) => !generatedMethodNames.has(op.name))
+        .map((op) => {
+          const returnType = toJavaType(op.returnType);
+          return [
+            '',
+            '',
+            `    @Override`,
+            `    public ${returnType} ${op.name}(${parseParams(op.parameters)}) {`,
+            `        // TODO: implementar la operación de la interfaz`,
+            `        throw new UnsupportedOperationException("${op.name} no implementado");`,
+            `    }`,
+          ].join('\n');
+        })
+        .join('');
+
+  const classKeyword = isAbstract ? 'public abstract class' : 'public class';
+  const extendsClause = superclass ? ` extends ${superclass.name}` : '';
+  const implementsClause = interfaces.length
+    ? ` implements ${interfaces.map((i) => i.name).join(', ')}`
+    : '';
+  const classHeader = `${classKeyword} ${cls.name}${extendsClause}${implementsClause} {`;
 
   // Inheritance follows OMT's "one table per class": the root of a hierarchy
   // declares JOINED, and every class (root or subclass) gets its own table,
@@ -135,7 +168,7 @@ ${idField}${fields}${relationFieldsCode}
     public ${cls.name}() {
     }
 
-${idGetterSetter}${gettersSetters}
+${idGetterSetter}${gettersSetters}${interfaceStubs}
 }
 `;
 }

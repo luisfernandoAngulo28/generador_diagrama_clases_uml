@@ -54,4 +54,40 @@ describe('GeneratorService', () => {
     expect(files['README.md']).toContain('http://localhost:8080/swagger-ui.html');
     expect(files['README.md']).toContain('/api/clientes');
   });
+
+  it('turns a class → «interface» relation into "implements" with stubs, not "extends"', () => {
+    const model: UmlModel = {
+      classes: [
+        {
+          id: 'c1',
+          name: 'Pago',
+          attributes: [
+            { name: 'id', type: 'Long', visibility: 'private', isPrimaryKey: true },
+            { name: 'monto', type: 'Double', visibility: 'private' },
+          ],
+        },
+        {
+          id: 'c2',
+          name: 'Notificable',
+          stereotype: 'interface',
+          attributes: [],
+          operations: [
+            { name: 'notificar', returnType: 'void', visibility: 'public', parameters: 'mensaje: String' },
+            { name: 'getMonto', returnType: 'Double', visibility: 'public' },
+          ],
+        },
+      ],
+      relations: [{ id: 'r1', type: 'INHERITANCE', sourceClassId: 'c1', targetClassId: 'c2' }],
+    };
+    const files = service.generate(model, { projectName: 'tienda' });
+    const pago = files['src/main/java/com/example/tienda/entity/Pago.java'];
+
+    expect(pago).toContain('public class Pago implements Notificable {');
+    expect(pago).not.toContain('extends');
+    expect(pago).toContain('import com.example.tienda.model.Notificable;');
+    expect(pago).toContain('private Long id;'); // still the root of its own table
+    expect(pago).toContain('public void notificar(String mensaje) {');
+    // getMonto() is already the generated getter, so no duplicate stub
+    expect(pago.match(/public Double getMonto\(\)/g)).toHaveLength(1);
+  });
 });

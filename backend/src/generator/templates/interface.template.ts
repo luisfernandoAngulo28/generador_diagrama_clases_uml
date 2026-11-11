@@ -20,7 +20,7 @@ ${methods}
 }
 
 /** Best-effort translation of the free-text "id: Long, nombre: String" parameter field into Java. */
-function parseParams(parameters: string | undefined): string {
+export function parseParams(parameters: string | undefined): string {
   if (!parameters?.trim()) return '';
   return parameters
     .split(',')

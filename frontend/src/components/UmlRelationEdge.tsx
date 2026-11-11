@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { BaseEdge, EdgeLabelRenderer, getBezierPath, type EdgeProps, type Edge } from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, useStore, type EdgeProps, type Edge } from '@xyflow/react';
 import type { RelationType } from '../types/uml';
 import {
   MULTIPLICITY_RELATION_TYPES,
+  REALIZATION_DASH,
+  isRealization,
   formatMultiplicity,
   sourceMultiplicity,
   targetMultiplicity,
@@ -32,8 +34,15 @@ function EndLabel({ x, y, text }: { x: number; y: number; text: string }) {
   );
 }
 
+function stereotypeOf(data: Record<string, unknown> | undefined): string | undefined {
+  const cls = data?.umlClass as { stereotype?: string } | undefined;
+  return cls?.stereotype;
+}
+
 export function UmlRelationEdge({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -66,6 +75,13 @@ export function UmlRelationEdge({
   }, [path]);
 
   const type = data?.type ?? 'ASSOCIATION';
+  // Read the end classes' stereotypes from the store so the notation follows a later
+  // stereotype change in the inspector (class → «interface») without rebuilding the edge.
+  const sourceStereotype = useStore((s) => stereotypeOf(s.nodeLookup.get(source)?.data));
+  const targetStereotype = useStore((s) => stereotypeOf(s.nodeLookup.get(target)?.data));
+  const edgeStyle = isRealization(type, sourceStereotype, targetStereotype)
+    ? { ...style, strokeDasharray: REALIZATION_DASH }
+    : style;
   const showMultiplicity = MULTIPLICITY_RELATION_TYPES.has(type);
 
   const sourceLabel = [
@@ -83,7 +99,7 @@ export function UmlRelationEdge({
 
   return (
     <>
-      <BaseEdge id={id} path={path} style={style} markerStart={markerStart} markerEnd={markerEnd} />
+      <BaseEdge id={id} path={path} style={edgeStyle}markerStart={markerStart} markerEnd={markerEnd} />
       {/* Invisible twin of the same path, purely so we can sample real points along the
           curve (getPointAtLength) for end-label placement without disturbing BaseEdge's
           own rendering/click-interaction path. */}

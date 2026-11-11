@@ -270,10 +270,19 @@ export function findSuperclass(
   cls: UmlClass,
   model: UmlModel,
 ): UmlClass | undefined {
-  const rel = model.relations.find(
-    (r) => r.type === 'INHERITANCE' && r.sourceClassId === cls.id,
-  );
-  return rel ? findClass(model, rel.targetClassId) : undefined;
+  // An INHERITANCE towards an «interface» is a realization ("implements"), not a superclass.
+  return model.relations
+    .filter((r) => r.type === 'INHERITANCE' && r.sourceClassId === cls.id)
+    .map((r) => findClass(model, r.targetClassId))
+    .find((c) => c !== undefined && c.stereotype !== 'interface');
+}
+
+/** «interface» classes that `cls` realizes (UML InterfaceRealization → Java "implements"). */
+export function findRealizedInterfaces(cls: UmlClass, model: UmlModel): UmlClass[] {
+  return model.relations
+    .filter((r) => r.type === 'INHERITANCE' && r.sourceClassId === cls.id)
+    .map((r) => findClass(model, r.targetClassId))
+    .filter((c): c is UmlClass => c !== undefined && c.stereotype === 'interface');
 }
 
 export { capitalize };

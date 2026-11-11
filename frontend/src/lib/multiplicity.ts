@@ -63,7 +63,23 @@ export const MULTIPLICITY_RELATION_TYPES = new Set<RelationType>([
   'MANY_TO_MANY',
 ]);
 
-export type EdgeVisualKind = 'inheritance' | 'composition' | 'aggregation' | 'dependency' | 'plain';
+/**
+ * UML 2.5 §10.4 InterfaceRealization: a class (not an interface) that "inherits" from an
+ * interface realizes it — dashed line with a hollow triangle, instead of the solid line of a
+ * Generalization. The model keeps the INHERITANCE type (the generator already turns an
+ * interface target into "implements"); only the notation and the XMI element change.
+ */
+export function isRealization(
+  type: RelationType,
+  sourceStereotype?: string,
+  targetStereotype?: string,
+): boolean {
+  return type === 'INHERITANCE' && targetStereotype === 'interface' && sourceStereotype !== 'interface';
+}
+
+export const REALIZATION_DASH = '6 4';
+
+export type EdgeVisualKind ='inheritance' | 'composition' | 'aggregation' | 'dependency' | 'plain';
 
 export function edgeVisualKind(type: RelationType): EdgeVisualKind {
   switch (type) {

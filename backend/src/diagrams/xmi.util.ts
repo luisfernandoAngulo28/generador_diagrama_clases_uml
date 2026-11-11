@@ -69,6 +69,9 @@ function aggregationKind(type: RelationType): string | null {
 
 export function renderXmi(diagramName: string, model: UmlModel): string {
   const inheritance = model.relations.filter((r) => r.type === 'INHERITANCE');
+  const interfaceIds = new Set(
+    model.classes.filter((c) => c.stereotype === 'interface').map((c) => c.id),
+  );
   const dependencies = model.relations.filter((r) => r.type === 'DEPENDENCY');
   const nonInheritance = model.relations.filter(
     (r) => r.type !== 'INHERITANCE' && r.type !== 'DEPENDENCY',
@@ -99,9 +102,12 @@ export function renderXmi(diagramName: string, model: UmlModel): string {
         ? ''
         : inheritance
             .filter((r) => r.sourceClassId === cls.id)
-            .map(
-              (r) =>
-                `      <generalization xmi:id="gen_${sanitizeId(r.id)}" xmi:type="uml:Generalization" general="${sanitizeId(r.targetClassId)}"/>`,
+            .map((r) =>
+              // UML 2.5 §10.4: a class that "inherits" from an interface realizes it
+              // (InterfaceRealization, dashed line in EA), not a Generalization.
+              !isInterface && interfaceIds.has(r.targetClassId)
+                ? `      <interfaceRealization xmi:id="real_${sanitizeId(r.id)}" xmi:type="uml:InterfaceRealization" client="${classId}" supplier="${sanitizeId(r.targetClassId)}" contract="${sanitizeId(r.targetClassId)}"/>`
+                : `      <generalization xmi:id="gen_${sanitizeId(r.id)}" xmi:type="uml:Generalization" general="${sanitizeId(r.targetClassId)}"/>`,
             )
             .join('\n');
 

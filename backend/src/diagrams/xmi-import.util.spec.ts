@@ -99,6 +99,44 @@ describe('parseXmi', () => {
     expect(() => parseXmi(empty)).toThrow(/No se encontraron clases/);
   });
 
+  it('exports a class → «interface» relation as InterfaceRealization and imports it back', () => {
+    const model: UmlModel = {
+      classes: [
+        { id: 'c1', name: 'Pago', attributes: [] },
+        { id: 'c2', name: 'Notificable', stereotype: 'interface', attributes: [] },
+        { id: 'c3', name: 'PagoQr', attributes: [] },
+      ],
+      relations: [
+        { id: 'r1', type: 'INHERITANCE', sourceClassId: 'c1', targetClassId: 'c2' },
+        { id: 'r2', type: 'INHERITANCE', sourceClassId: 'c3', targetClassId: 'c1' },
+      ],
+    };
+
+    const xml = renderXmi('Realizacion', model);
+    expect(xml).toContain('xmi:type="uml:InterfaceRealization" client="id_c1" supplier="id_c2" contract="id_c2"');
+    expect(xml).toContain('xmi:type="uml:Generalization" general="id_c1"');
+    expect(xml).not.toContain('general="id_c2"');
+
+    const { model: parsed } = parseXmi(xml);
+    const rels = parsed.relations.map((r) => `${r.type}:${r.sourceClassId}->${r.targetClassId}`);
+    expect(rels).toEqual(expect.arrayContaining(['INHERITANCE:id_c1->id_c2', 'INHERITANCE:id_c3->id_c1']));
+  });
+
+  it('imports an Enterprise Architect package-level uml:Realization as a realization', () => {
+    const xml = `<?xml version="1.0"?>
+<xmi:XMI xmi:version="2.1" xmlns:uml="http://schema.omg.org/spec/UML/2.1" xmlns:xmi="http://schema.omg.org/spec/XMI/2.1">
+  <uml:Model xmi:type="uml:Model" name="EA_Model">
+    <packagedElement xmi:type="uml:Class" xmi:id="EAID_A" name="Pago"/>
+    <packagedElement xmi:type="uml:Interface" xmi:id="EAID_B" name="Notificable"/>
+    <packagedElement xmi:type="uml:Realization" xmi:id="EAID_R" client="EAID_A" supplier="EAID_B"/>
+  </uml:Model>
+</xmi:XMI>`;
+    const { model } = parseXmi(xml);
+    expect(model.relations).toEqual([
+      { id: 'EAID_R', type: 'INHERITANCE', sourceClassId: 'EAID_A', targetClassId: 'EAID_B' },
+    ]);
+  });
+
   it('round-trips «enum», «abstract» and «interface» stereotypes', () => {
     const model: UmlModel = {
       classes: [

@@ -202,6 +202,18 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
         targetClassId,
       });
     }
+    // Class-owned <interfaceRealization> (UML 2.5 §10.4); the model keeps it as INHERITANCE
+    // towards an «interface» class, which the canvas draws dashed and the generator as "implements".
+    for (const real of asArray<XmlNode>(el.interfaceRealization)) {
+      const targetClassId = real['@_contract'] ?? real['@_supplier'];
+      if (!classIds.has(sourceClassId) || !classIds.has(targetClassId)) continue;
+      relations.push({
+        id: typeof real['@_xmi:id'] === 'string' ? real['@_xmi:id'] : nextRelId(),
+        type: 'INHERITANCE',
+        sourceClassId,
+        targetClassId,
+      });
+    }
   }
 
   // Index association ends. EA may store one end as an association <ownedEnd> and the other as a
@@ -289,13 +301,16 @@ export function parseXmi(xml: string): { name: string; model: UmlModel } {
   }
 
   for (const el of packagedElements) {
-    if (el['@_xmi:type'] !== 'uml:Dependency') continue;
+    const xmiType = el['@_xmi:type'];
+    // Enterprise Architect writes an interface realization as a package-level uml:Realization.
+    const isRealization = xmiType === 'uml:Realization' || xmiType === 'uml:InterfaceRealization';
+    if (xmiType !== 'uml:Dependency' && !isRealization) continue;
     const sourceClassId = el['@_client'];
     const targetClassId = el['@_supplier'];
     if (!classIds.has(sourceClassId) || !classIds.has(targetClassId)) continue;
     relations.push({
       id: typeof el['@_xmi:id'] === 'string' ? el['@_xmi:id'] : nextRelId(),
-      type: 'DEPENDENCY',
+      type: isRealization ? 'INHERITANCE' : 'DEPENDENCY',
       sourceClassId,
       targetClassId,
     });
